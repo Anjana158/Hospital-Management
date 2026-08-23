@@ -1,0 +1,1647 @@
+/* =========================================
+   GLOBAL LOGIN PAGE
+========================================= */
+
+.login-page {
+  width: 100%;
+  height: 100vh;
+  height: 100svh;
+
+  position: relative;
+
+  overflow: hidden;
+
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+
+  font-family:
+    "Segoe UI",
+    Arial,
+    sans-serif;
+}
+
+
+/* =========================================
+   LIGHT OVERLAY ON HOSPITAL IMAGE
+========================================= */
+
+.background-overlay {
+  position: absolute;
+
+  inset: 0;
+
+  z-index: 1;
+
+  background:
+    linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.82) 0%,
+      rgba(255, 255, 255, 0.60) 30%,
+      rgba(255, 255, 255, 0.20) 58%,
+      rgba(255, 255, 255, 0.08) 72%
+    );
+}
+
+
+/* =========================================
+   RIGHT PASTEL AREA
+========================================= */
+
+.right-background {
+  position:  absolute;
+
+  z-index: 2;
+
+  top: 0;
+  right: 0;
+
+  width: 46%;
+  height: 100%;
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(167, 198, 245, 0.97),
+      rgba(243, 208, 229, 0.96)
+    );
+
+  /*
+    Wavy left edge
+  */
+
+  clip-path: ellipse(
+    82% 75% at 100% 50%
+  );
+}
+
+
+/* =========================================
+   TOP DECORATIVE CURVE
+========================================= */
+
+.decorative-top {
+  position: absolute;
+
+  z-index: 3;
+
+  top: -180px;
+  right: -180px;
+
+  width: 650px;
+  height: 350px;
+
+  border-radius: 0 0 0 70%;
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(191, 216, 255, 0.65),
+      rgba(253, 180, 225, 0.65)
+    );
+
+  transform: rotate(14deg);
+
+  pointer-events: none;
+}
+
+
+/* =========================================
+   BOTTOM DECORATIVE CURVE
+========================================= */
+
+.decorative-bottom {
+  position: absolute;
+
+  z-index: 3;
+
+  right: -220px;
+  bottom: -220px;
+
+  width: 700px;
+  height: 430px;
+
+  border-radius: 70% 0 0 0;
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(216, 230, 255, 0.55),
+      rgba(249, 214, 237, 0.55)
+    );
+
+  transform: rotate(-8deg);
+
+  pointer-events: none;
+}
+
+
+/* =========================================
+   MAIN CONTAINER
+========================================= */
+
+.login-container {
+  position: relative;
+
+  z-index: 10;
+
+  width: 100%;
+  height: 100%;
+
+  display: flex;
+
+  align-items: center;
+}
+
+
+/* =========================================
+   LEFT WELCOME SECTION
+========================================= */
+
+.welcome-section {
+  width: 62%;
+  height: 100%;
+
+  display: flex;
+
+  align-items: flex-start;
+
+  justify-content: flex-start;
+
+  padding-left: 4.3%;
+  padding-top: 15.5%;
+
+  box-sizing: border-box;
+}
+
+
+.welcome-content {
+  width: 100%;
+  max-width: 610px;
+}
+
+
+/* =========================================
+   WELCOME SMALL TEXT
+========================================= */
+
+.welcome-small {
+  margin: 0 0 8px;
+
+  color: #53648b;
+
+  font-size: clamp(19px, 1.6vw, 25px);
+
+  line-height: 1.2;
+
+  font-weight: 600;
+}
+
+
+/* =========================================
+   HOSPITAL TITLE
+========================================= */
+
+.hospital-title {
+  margin: 0;
+
+  color: #124b9b;
+
+  font-size: clamp(
+    48px,
+    5vw,
+    68px
+  );
+
+  line-height: 0.98;
+
+  font-weight: 700;
+
+  letter-spacing: -2px;
+}
+
+
+/* =========================================
+   MANAGEMENT TITLE
+========================================= */
+
+.management-title {
+  margin: 9px 0 0;
+
+  color: #e85f9e;
+
+  font-size: clamp(
+    35px,
+    3.7vw,
+    54px
+  );
+
+  line-height: 1;
+
+  font-weight: 700;
+
+  letter-spacing: -1.7px;
+}
+
+
+/* =========================================
+   PINK LINE
+========================================= */
+
+.pink-line {
+  width: 61px;
+  height: 4px;
+
+  margin-top: 25px;
+
+  background: #f06aa5;
+
+  border-radius: 10px;
+}
+
+
+/* =========================================
+   DESCRIPTION
+========================================= */
+
+.welcome-description {
+  margin: 25px 0 0;
+
+  color: #4f628b;
+
+  font-size: clamp(
+    15px,
+    1.35vw,
+    18px
+  );
+
+  line-height: 1.55;
+
+  font-weight: 500;
+
+  letter-spacing: 0.05px;
+}
+
+
+/* =========================================
+   RIGHT LOGIN SECTION
+========================================= */
+
+.login-section {
+  width: 38%;
+  height: 100%;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  padding-right: 5%;
+
+  box-sizing: border-box;
+}
+
+
+/* =========================================
+   LOGIN CARD
+========================================= */
+
+.login-card {
+  width: min(90%, 465px);
+
+  padding: 42px 45px 45px;
+
+  box-sizing: border-box;
+
+  background:
+    rgba(255, 255, 255, 0.94);
+
+  border-radius: 28px;
+
+  box-shadow:
+    0 20px 55px rgba(67, 90, 145, 0.13),
+    0 5px 20px rgba(67, 90, 145, 0.06);
+
+  backdrop-filter: blur(12px);
+}
+
+
+/* =========================================
+   LOGIN HEADING
+========================================= */
+
+.login-heading {
+  margin: 0;
+
+  color: #104b9b;
+
+  font-size: clamp(
+    30px,
+    2.5vw,
+    36px
+  );
+
+  line-height: 1.2;
+
+  font-weight: 700;
+
+  letter-spacing: -0.8px;
+
+  text-align: center;
+}
+
+
+.login-heading span {
+  color: #e85f9e;
+}
+
+
+/* =========================================
+   SUBTITLE
+========================================= */
+
+.login-subtitle {
+  margin: 13px 0 31px;
+
+  color: #697b9e;
+
+  font-size: 17px;
+
+  line-height: 1.4;
+
+  font-weight: 500;
+
+  text-align: center;
+}
+
+
+/* =========================================
+   FORM
+========================================= */
+
+.login-card form {
+  width: 100%;
+}
+
+
+/* =========================================
+   INPUT BOX
+========================================= */
+
+.input-wrapper {
+  position: relative;
+
+  width: 100%;
+  height: 74px;
+
+  margin-bottom: 18px;
+
+  box-sizing: border-box;
+
+  border: 1.5px solid #d7deea;
+
+  border-radius: 11px;
+
+  background:
+    rgba(255, 255, 255, 0.78);
+
+  display: flex;
+
+  align-items: center;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+
+.input-wrapper:focus-within {
+  border-color: #7193cf;
+
+  box-shadow:
+    0 0 0 3px rgba(87, 126, 199, 0.08);
+}
+
+
+/* =========================================
+   INPUT ICON
+========================================= */
+
+.input-icon {
+  margin-left: 23px;
+
+  color: #1455a8;
+
+  font-size: 22px;
+
+  flex-shrink: 0;
+}
+
+
+/* =========================================
+   INPUT
+========================================= */
+
+.input-wrapper input {
+  width: 100%;
+  height: 100%;
+
+  border: none;
+  outline: none;
+
+  background: transparent;
+
+  padding: 0 18px;
+
+  color: #344b75;
+
+  font-size: 17px;
+
+  font-family: inherit;
+}
+
+
+.input-wrapper input::placeholder {
+  color: #7583a2;
+
+  opacity: 1;
+}
+
+
+/* =========================================
+   PASSWORD EYE
+========================================= */
+
+.password-toggle {
+  border: none;
+
+  background: transparent;
+
+  margin-right: 19px;
+
+  padding: 5px;
+
+  color: #92a0be;
+
+  font-size: 20px;
+
+  cursor: pointer;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+}
+
+
+.password-toggle:hover {
+  color: #1455a8;
+}
+
+
+/* =========================================
+   ERROR MESSAGE
+========================================= */
+
+.login-error {
+  margin: -2px 0 13px;
+
+  padding: 9px 12px;
+
+  border-radius: 7px;
+
+  background: #fff0f3;
+
+  color: #d34e6d;
+
+  font-size: 13px;
+
+  font-weight: 500;
+}
+
+
+/* =========================================
+   LOGIN BUTTON
+========================================= */
+
+.login-button {
+  width: 100%;
+  height: 74px;
+
+  margin-top: 20px;
+
+  border: none;
+
+  border-radius: 10px;
+
+  background:
+    linear-gradient(
+      100deg,
+      #f05da1 0%,
+      #d86ab0 48%,
+      #7488df 100%
+    );
+
+  color: white;
+
+  font-size: 21px;
+
+  font-weight: 500;
+
+  font-family: inherit;
+
+  cursor: pointer;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  gap: 18px;
+
+  box-shadow:
+    0 8px 18px rgba(225, 101, 166, 0.15);
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    opacity 0.2s ease;
+}
+
+
+.login-button:hover {
+  transform: translateY(-2px);
+
+  box-shadow:
+    0 12px 25px rgba(225, 101, 166, 0.25);
+}
+
+
+.login-button:active {
+  transform: translateY(0);
+}
+
+
+.login-button:disabled {
+  cursor: not-allowed;
+
+  opacity: 0.7;
+
+  transform: none;
+}
+
+
+/* =========================================
+   ARROW
+========================================= */
+
+.arrow-icon {
+  font-size: 22px;
+}
+
+
+/* =========================================
+   LOADING
+========================================= */
+
+.loading-text {
+  font-size: 18px;
+}
+
+
+/* =========================================
+   TABLET
+========================================= */
+
+@media (max-width: 1000px) {
+
+  .welcome-section {
+    width: 58%;
+
+    padding-left: 4%;
+    padding-top: 15%;
+  }
+
+  .login-section {
+    width: 42%;
+
+    padding-right: 3%;
+  }
+
+  .login-card {
+    width: min(92%, 430px);
+
+    padding: 36px 35px 38px;
+  }
+
+  .welcome-description br {
+    display: none;
+  }
+}
+
+
+/* =========================================
+   SMALL TABLET
+========================================= */
+
+@media (max-width: 800px) {
+
+  .login-page {
+    overflow: hidden;
+  }
+
+  .right-background {
+    width: 48%;
+  }
+
+  .welcome-section {
+    width: 55%;
+  }
+
+  .login-section {
+    width: 45%;
+  }
+
+  .welcome-small {
+    font-size: 18px;
+  }
+
+  .hospital-title {
+    font-size: 45px;
+  }
+
+  .management-title {
+    font-size: 34px;
+  }
+
+  .welcome-description {
+    font-size: 14px;
+  }
+
+  .login-card {
+    padding: 32px 27px 34px;
+  }
+
+  .login-heading {
+    font-size: 28px;
+  }
+
+  .login-subtitle {
+    font-size: 15px;
+
+    margin-bottom: 25px;
+  }
+
+  .input-wrapper {
+    height: 65px;
+  }
+
+  .login-button {
+    height: 65px;
+
+    font-size: 19px;
+  }
+}
+
+
+/* =========================================
+   MOBILE
+========================================= */
+
+@media (max-width: 650px) {
+
+  .login-page {
+    height: 100svh;
+
+    overflow: hidden;
+
+    background-position: center;
+  }
+
+
+  /*
+    Make the background more visible
+    but keep the login card readable.
+  */
+
+  .background-overlay {
+    background:
+      linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.70),
+        rgba(255, 255, 255, 0.90)
+      );
+  }
+
+
+  .right-background {
+    width: 100%;
+    height: 100%;
+
+    clip-path: none;
+
+    background:
+      linear-gradient(
+        180deg,
+        rgba(240, 246, 255, 0.30),
+        rgba(255, 239, 249, 0.65)
+      );
+  }
+
+
+  .decorative-top,
+  .decorative-bottom {
+    opacity: 0.5;
+  }
+
+
+  .login-container {
+    height: 100svh;
+
+    flex-direction: column;
+
+    justify-content: center;
+
+    align-items: center;
+
+    padding: 18px;
+
+    box-sizing: border-box;
+  }
+
+
+  .welcome-section {
+    width: 100%;
+    height: auto;
+
+    padding: 0;
+
+    margin-bottom: 18px;
+
+    justify-content: center;
+
+    text-align: center;
+  }
+
+
+  .welcome-content {
+    max-width: 500px;
+  }
+
+
+  .welcome-small {
+    font-size: 17px;
+
+    margin-bottom: 5px;
+  }
+
+
+  .hospital-title {
+    font-size: 42px;
+
+    letter-spacing: -1.5px;
+  }
+
+
+  .management-title {
+    font-size: 30px;
+
+    letter-spacing: -1px;
+  }
+
+
+  .pink-line {
+    margin: 17px auto 0;
+  }
+
+
+  .welcome-description {
+    display: none;
+  }
+
+
+  .login-section {
+    width: 100%;
+    height: auto;
+
+    padding: 0;
+
+    justify-content: center;
+  }
+
+
+  .login-card {
+    width: min(100%, 430px);
+
+    padding: 30px 25px 32px;
+
+    border-radius: 23px;
+  }
+
+
+  .login-heading {
+    font-size: 28px;
+  }
+
+
+  .login-subtitle {
+    font-size: 15px;
+
+    margin-top: 10px;
+
+    margin-bottom: 23px;
+  }
+
+
+  .input-wrapper {
+    height: 62px;
+
+    margin-bottom: 15px;
+  }
+
+
+  .input-icon {
+    margin-left: 19px;
+
+    font-size: 20px;
+  }
+
+
+  .input-wrapper input {
+    font-size: 16px;
+  }
+
+
+  .login-button {
+    height: 62px;
+
+    margin-top: 16px;
+
+    font-size: 19px;
+  }
+}
+
+
+/* =========================================
+   VERY SMALL MOBILE
+========================================= */
+
+@media (max-width: 400px) {
+
+  .login-container {
+    padding: 12px;
+  }
+
+  .welcome-section {
+    margin-bottom: 12px;
+  }
+
+  .welcome-small {
+    font-size: 15px;
+  }
+
+  .hospital-title {
+    font-size: 36px;
+  }
+
+  .management-title {
+    font-size: 26px;
+  }
+
+  .pink-line {
+    margin-top: 13px;
+  }
+
+  .login-card {
+    padding: 25px 20px 27px;
+  }
+
+  .login-heading {
+    font-size: 25px;
+  }
+
+  .login-subtitle {
+    font-size: 14px;
+
+    margin-bottom: 20px;
+  }
+
+  .input-wrapper {
+    height: 57px;
+  }
+
+  .login-button {
+    height: 57px;
+
+    font-size: 18px;
+  }
+}
+
+
+/* =========================================
+   USERS HEADER
+========================================= */
+
+.users-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+
+/* =========================================
+   ADD USER BUTTON
+========================================= */
+
+.users-add-button {
+    height: 44px;
+
+    display: flex;
+    align-items: center;
+    gap: 9px;
+
+    padding: 0 18px;
+
+    border: none;
+    border-radius: 10px;
+
+    background: linear-gradient(
+        135deg,
+        #1455a8,
+        #7187c9
+    );
+
+    color: white;
+
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    box-shadow:
+        0 7px 18px rgba(
+            20,
+            85,
+            168,
+            0.18
+        );
+
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.users-add-button:hover {
+    transform: translateY(-2px);
+
+    box-shadow:
+        0 10px 22px rgba(
+            20,
+            85,
+            168,
+            0.24
+        );
+}
+
+
+/* =========================================
+   MESSAGES
+========================================= */
+
+.users-success,
+.users-error {
+    margin-bottom: 18px;
+
+    padding: 12px 15px;
+
+    border-radius: 10px;
+
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.users-success {
+    background: #eefaf3;
+    color: #2f8a5c;
+    border: 1px solid #ccebd9;
+}
+
+.users-error {
+    background: #fff2f3;
+    color: #c64d63;
+    border: 1px solid #f3d1d7;
+}
+
+
+/* =========================================
+   USERS CARD
+========================================= */
+
+.users-card {
+    background: #ffffff;
+
+    border: 1px solid #e8edf5;
+
+    border-radius: 18px;
+
+    box-shadow:
+        0 10px 30px rgba(
+            67,
+            90,
+            145,
+            0.06
+        );
+
+    overflow: hidden;
+}
+
+
+/* =========================================
+   TOOLBAR
+========================================= */
+
+.users-toolbar {
+    min-height: 75px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 20px;
+
+    padding: 15px 20px;
+
+    border-bottom: 1px solid #edf0f5;
+}
+
+.users-toolbar-title {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.users-toolbar-title strong {
+    color: #344b75;
+
+    font-size: 15px;
+}
+
+.users-toolbar-title span {
+    color: #8b97ad;
+
+    font-size: 12px;
+}
+
+
+/* =========================================
+   ROLE FILTER
+========================================= */
+
+.users-filter {
+    height: 40px;
+
+    display: flex;
+    align-items: center;
+    gap: 9px;
+
+    padding: 0 12px;
+
+    border: 1px solid #e1e7f0;
+    border-radius: 9px;
+
+    background: #fafbfe;
+
+    color: #71809c;
+}
+
+.users-filter svg {
+    font-size: 13px;
+}
+
+.users-filter select {
+    border: none;
+    outline: none;
+
+    background: transparent;
+
+    color: #526583;
+
+    font-family: inherit;
+    font-size: 13px;
+
+    cursor: pointer;
+}
+
+
+/* =========================================
+   TABLE
+========================================= */
+
+.users-table-wrapper {
+    width: 100%;
+
+    overflow-x: auto;
+}
+
+.users-table {
+    width: 100%;
+
+    border-collapse: collapse;
+
+    min-width: 900px;
+}
+
+.users-table thead {
+    background: #f8faff;
+}
+
+.users-table th {
+    padding: 14px 18px;
+
+    text-align: left;
+
+    color: #71809c;
+
+    font-size: 11px;
+    font-weight: 700;
+
+    text-transform: uppercase;
+
+    letter-spacing: 0.7px;
+
+    border-bottom: 1px solid #e9edf4;
+}
+
+.users-table td {
+    padding: 16px 18px;
+
+    color: #536581;
+
+    font-size: 13px;
+
+    border-bottom: 1px solid #f0f2f6;
+
+    white-space: nowrap;
+}
+
+.users-table tbody tr {
+    transition: background 0.15s ease;
+}
+
+.users-table tbody tr:hover {
+    background: #fafcff;
+}
+
+.users-table td strong {
+    color: #344b75;
+}
+
+
+/* =========================================
+   EMPTY
+========================================= */
+
+.users-empty {
+    height: 180px;
+
+    text-align: center !important;
+
+    color: #8b97ad !important;
+}
+
+
+/* =========================================
+   ROLE BADGE
+========================================= */
+
+.role-badge {
+    display: inline-flex;
+
+    align-items: center;
+    justify-content: center;
+
+    padding: 5px 10px;
+
+    border-radius: 20px;
+
+    font-size: 10px;
+    font-weight: 700;
+
+    letter-spacing: 0.5px;
+}
+
+.role-admin {
+    background: #f1edff;
+    color: #7257bb;
+}
+
+.role-reception {
+    background: #eaf7f5;
+    color: #3d8d83;
+}
+
+.role-billing {
+    background: #fff3e9;
+    color: #c57a3b;
+}
+
+
+/* =========================================
+   STATUS BADGE
+========================================= */
+
+.status-badge {
+    display: inline-flex;
+
+    padding: 5px 10px;
+
+    border-radius: 20px;
+
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.status-active {
+    background: #eaf8f0;
+    color: #31885a;
+}
+
+.status-inactive {
+    background: #f1f3f6;
+    color: #7c8799;
+}
+
+.status-locked {
+    background: #fff0f1;
+    color: #c74f61;
+}
+
+
+/* =========================================
+   ACTIONS
+========================================= */
+
+.user-actions {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.user-edit-button,
+.user-delete-button {
+    width: 34px;
+    height: 34px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border: none;
+    border-radius: 8px;
+
+    cursor: pointer;
+
+    transition:
+        background 0.2s ease,
+        transform 0.2s ease;
+}
+
+.user-edit-button {
+    background: #eef4ff;
+    color: #4774b8;
+}
+
+.user-edit-button:hover {
+    background: #dfeaff;
+    transform: translateY(-1px);
+}
+
+.user-delete-button {
+    background: #fff0f2;
+    color: #cc5b70;
+}
+
+.user-delete-button:hover {
+    background: #ffe1e6;
+    transform: translateY(-1px);
+}
+
+
+/* =========================================
+   MODAL OVERLAY
+========================================= */
+
+.user-modal-overlay {
+    position: fixed;
+
+    inset: 0;
+
+    z-index: 100;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    padding: 20px;
+
+    background: rgba(
+        27,
+        42,
+        70,
+        0.42
+    );
+
+    backdrop-filter: blur(4px);
+}
+
+
+/* =========================================
+   MODAL
+========================================= */
+
+.user-modal {
+    width: 100%;
+    max-width: 680px;
+
+    max-height: 90vh;
+
+    overflow-y: auto;
+
+    background: #ffffff;
+
+    border-radius: 18px;
+
+    box-shadow:
+        0 25px 70px rgba(
+            26,
+            43,
+            76,
+            0.25
+        );
+}
+
+
+/* =========================================
+   MODAL HEADER
+========================================= */
+
+.user-modal-header {
+    display: flex;
+
+    align-items: flex-start;
+    justify-content: space-between;
+
+    padding: 24px 26px 20px;
+
+    border-bottom: 1px solid #edf0f5;
+}
+
+.user-modal-header p {
+    margin: 0 0 6px;
+
+    color: #e85f9e;
+
+    font-size: 10px;
+    font-weight: 700;
+
+    letter-spacing: 1.3px;
+}
+
+.user-modal-header h2 {
+    margin: 0;
+
+    color: #124b9b;
+
+    font-size: 22px;
+}
+
+.user-modal-close {
+    width: 34px;
+    height: 34px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border: none;
+    border-radius: 8px;
+
+    background: #f5f7fb;
+
+    color: #7b88a0;
+
+    cursor: pointer;
+}
+
+.user-modal-close:hover {
+    background: #eef1f7;
+}
+
+
+/* =========================================
+   FORM
+========================================= */
+
+.user-modal form {
+    padding: 25px 26px;
+}
+
+.user-form-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+    gap: 18px;
+}
+
+.user-form-group {
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 7px;
+}
+
+.user-form-group label {
+    color: #52627e;
+
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.user-form-group input,
+.user-form-group select {
+    width: 100%;
+
+    height: 43px;
+
+    box-sizing: border-box;
+
+    padding: 0 12px;
+
+    border: 1px solid #dfe5ef;
+
+    border-radius: 9px;
+
+    outline: none;
+
+    background: #fbfcfe;
+
+    color: #3f5271;
+
+    font-family: inherit;
+
+    font-size: 13px;
+
+    transition:
+        border 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.user-form-group input:focus,
+.user-form-group select:focus {
+    border-color: #7187c9;
+
+    box-shadow:
+        0 0 0 3px rgba(
+            113,
+            135,
+            201,
+            0.1
+        );
+
+    background: #ffffff;
+}
+
+
+/* =========================================
+   MODAL ERROR
+========================================= */
+
+.modal-error {
+    margin-top: 18px;
+
+    padding: 11px 13px;
+
+    border-radius: 8px;
+
+    background: #fff2f3;
+
+    color: #c64d63;
+
+    border: 1px solid #f3d1d7;
+
+    font-size: 12px;
+}
+
+
+/* =========================================
+   MODAL FOOTER
+========================================= */
+
+.user-modal-footer {
+    display: flex;
+
+    justify-content: flex-end;
+
+    gap: 10px;
+
+    margin-top: 25px;
+
+    padding-top: 20px;
+
+    border-top: 1px solid #edf0f5;
+}
+
+.user-cancel-button,
+.user-save-button {
+    height: 42px;
+
+    padding: 0 18px;
+
+    border-radius: 9px;
+
+    font-family: inherit;
+
+    font-size: 13px;
+    font-weight: 600;
+
+    cursor: pointer;
+}
+
+.user-cancel-button {
+    border: 1px solid #dfe5ef;
+
+    background: #ffffff;
+
+    color: #71809a;
+}
+
+.user-save-button {
+    border: none;
+
+    background:
+        linear-gradient(
+            135deg,
+            #1455a8,
+            #7187c9
+        );
+
+    color: white;
+}
+
+.user-save-button:disabled,
+.user-cancel-button:disabled {
+    opacity: 0.6;
+
+    cursor: not-allowed;
+}
+
+
+/* =========================================
+   USERS RESPONSIVE
+========================================= */
+
+@media (max-width: 700px) {
+
+    .users-header {
+        align-items: stretch;
+
+        flex-direction: column;
+    }
+
+    .users-add-button {
+        width: 100%;
+
+        justify-content: center;
+    }
+
+    .users-toolbar {
+        align-items: stretch;
+
+        flex-direction: column;
+    }
+
+    .users-filter {
+        width: 100%;
+
+        box-sizing: border-box;
+    }
+
+    .user-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .user-modal {
+        max-height: 95vh;
+    }
+
+    .user-modal form {
+        padding: 20px;
+    }
+
+}

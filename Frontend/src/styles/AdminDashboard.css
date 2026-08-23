@@ -1,0 +1,696 @@
+/* =========================================
+   ADMIN DASHBOARD
+========================================= */
+
+.admin-dashboard {
+  width: 100%;
+  height: 100vh;
+  height: 100svh;
+
+  display: flex;
+  flex-direction: column;
+
+  overflow: hidden;
+
+  background: #f5f8fc;
+
+  font-family:
+    "Segoe UI",
+    Arial,
+    sans-serif;
+
+  color: #344b75;
+}
+
+
+/* =========================================
+   NAVBAR
+========================================= */
+
+.admin-navbar {
+  height: 76px;
+
+  flex-shrink: 0;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 0 32px;
+
+  background:
+    linear-gradient(
+      100deg,
+      #ffffff,
+      #f8faff
+    );
+
+  border-bottom: 1px solid #e4eaf3;
+
+  box-shadow:
+    0 3px 15px rgba(67, 90, 145, 0.06);
+
+  z-index: 20;
+}
+
+
+/* =========================================
+   NAVBAR BRAND
+========================================= */
+
+.navbar-brand {
+  display: flex;
+
+  align-items: center;
+
+  gap: 13px;
+}
+
+
+.navbar-hospital-icon {
+  color: #1455a8;
+
+  font-size: 31px;
+}
+
+
+.navbar-brand h2 {
+  margin: 0;
+
+  color: #124b9b;
+
+  font-size: 20px;
+
+  font-weight: 700;
+}
+
+
+.navbar-brand span {
+  display: block;
+
+  margin-top: 2px;
+
+  color: #8090ae;
+
+  font-size: 12px;
+
+  font-weight: 500;
+}
+
+
+/* =========================================
+   NAVBAR USER
+========================================= */
+
+.navbar-user {
+  display: flex;
+
+  align-items: center;
+
+  gap: 12px;
+}
+
+
+.navbar-user-info {
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: flex-end;
+}
+
+
+.navbar-user-info strong {
+  color: #344b75;
+
+  font-size: 14px;
+
+  font-weight: 600;
+}
+
+
+.navbar-user-info span {
+  margin-top: 2px;
+
+  color: #e85f9e;
+
+  font-size: 11px;
+
+  font-weight: 700;
+
+  letter-spacing: 0.5px;
+}
+
+
+.navbar-user-icon {
+  color: #7187c9;
+
+  font-size: 38px;
+}
+
+
+/* =========================================
+   BODY
+========================================= */
+
+.admin-body {
+  flex: 1;
+
+  min-height: 0;
+
+  display: flex;
+
+  overflow: hidden;
+}
+
+
+/* =========================================
+   SIDEBAR
+========================================= */
+
+.admin-sidebar {
+  width: 245px;
+
+  flex-shrink: 0;
+
+  display: flex;
+
+  flex-direction: column;
+
+  justify-content: space-between;
+
+  padding: 25px 15px;
+
+  background: #ffffff;
+
+  border-right: 1px solid #e4eaf3;
+
+  box-shadow:
+    4px 0 18px rgba(67, 90, 145, 0.04);
+
+  z-index: 10;
+}
+
+
+/* =========================================
+   SIDEBAR NAVIGATION
+========================================= */
+
+.sidebar-navigation {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 7px;
+}
+
+
+.sidebar-link {
+  height: 50px;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 14px;
+
+  padding: 0 17px;
+
+  border-radius: 10px;
+
+  color: #667999;
+
+  text-decoration: none;
+
+  font-size: 14px;
+
+  font-weight: 600;
+
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+
+.sidebar-link svg {
+  width: 18px;
+
+  font-size: 17px;
+}
+
+
+.sidebar-link:hover {
+  background: #f1f5fc;
+
+  color: #1455a8;
+
+  transform: translateX(2px);
+}
+
+
+.sidebar-link.active {
+  background:
+    linear-gradient(
+      100deg,
+      rgba(240, 93, 161, 0.12),
+      rgba(116, 136, 223, 0.12)
+    );
+
+  color: #1455a8;
+
+  box-shadow:
+    inset 3px 0 0 #e85f9e;
+}
+
+
+/* =========================================
+   SIDEBAR LOGOUT
+========================================= */
+
+.sidebar-bottom {
+  padding-top: 15px;
+
+  border-top: 1px solid #edf0f5;
+}
+
+
+.sidebar-logout {
+  width: 100%;
+
+  height: 50px;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 14px;
+
+  padding: 0 17px;
+
+  border: none;
+
+  border-radius: 10px;
+
+  background: transparent;
+
+  color: #7c89a3;
+
+  font-size: 14px;
+
+  font-weight: 600;
+
+  font-family: inherit;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
+}
+
+
+.sidebar-logout svg {
+  width: 18px;
+
+  font-size: 17px;
+}
+
+
+.sidebar-logout:hover {
+  background: #fff2f5;
+
+  color: #d45378;
+}
+
+
+/* =========================================
+   CONTENT AREA
+========================================= */
+
+.admin-content {
+  flex: 1;
+
+  min-width: 0;
+
+  min-height: 0;
+
+  overflow-y: auto;
+
+  padding: 38px 42px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #f7faff 0%,
+      #f9f7fb 100%
+    );
+}
+
+
+/* =========================================
+   DASHBOARD HOME
+========================================= */
+
+.dashboard-home {
+  max-width: 1250px;
+
+  margin: 0 auto;
+}
+
+
+.dashboard-header {
+  margin-bottom: 32px;
+}
+
+
+.dashboard-label {
+  margin: 0 0 8px;
+
+  color: #e85f9e;
+
+  font-size: 12px;
+
+  font-weight: 700;
+
+  letter-spacing: 1.5px;
+}
+
+
+.dashboard-header h1 {
+  margin: 0;
+
+  color: #124b9b;
+
+  font-size: 32px;
+
+  font-weight: 700;
+
+  letter-spacing: -0.7px;
+}
+
+
+.dashboard-header > div > p:last-child {
+  margin: 9px 0 0;
+
+  color: #7585a3;
+
+  font-size: 15px;
+}
+
+
+/* =========================================
+   DASHBOARD CARDS
+========================================= */
+
+.dashboard-cards {
+  display: grid;
+
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
+
+  gap: 22px;
+}
+
+
+.dashboard-card {
+  min-height: 145px;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 18px;
+
+  padding: 25px;
+
+  background: rgba(255, 255, 255, 0.92);
+
+  border: 1px solid #e8edf5;
+
+  border-radius: 18px;
+
+  box-shadow:
+    0 10px 30px rgba(67, 90, 145, 0.07);
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+
+.dashboard-card:hover {
+  transform: translateY(-3px);
+
+  box-shadow:
+    0 14px 35px rgba(67, 90, 145, 0.11);
+}
+
+
+.dashboard-card-icon {
+  width: 55px;
+  height: 55px;
+
+  flex-shrink: 0;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 14px;
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(240, 93, 161, 0.12),
+      rgba(116, 136, 223, 0.16)
+    );
+
+  color: #1455a8;
+
+  font-size: 22px;
+}
+
+
+.dashboard-card span {
+  display: block;
+
+  margin-bottom: 5px;
+
+  color: #7c8ba6;
+
+  font-size: 13px;
+
+  font-weight: 600;
+}
+
+
+.dashboard-card strong {
+  display: block;
+
+  color: #124b9b;
+
+  font-size: 30px;
+
+  line-height: 1;
+
+  font-weight: 700;
+}
+
+
+/* =========================================
+   ADMIN INNER PAGES
+========================================= */
+
+.admin-page {
+  max-width: 1250px;
+
+  margin: 0 auto;
+}
+
+
+.admin-page-header {
+  margin-bottom: 30px;
+}
+
+
+.admin-page-header p {
+  margin: 0 0 7px;
+
+  color: #e85f9e;
+
+  font-size: 12px;
+
+  font-weight: 700;
+
+  letter-spacing: 1.4px;
+}
+
+
+.admin-page-header h1 {
+  margin: 0;
+
+  color: #124b9b;
+
+  font-size: 30px;
+}
+
+
+.admin-page-header span {
+  display: block;
+
+  margin-top: 7px;
+
+  color: #7585a3;
+
+  font-size: 14px;
+}
+
+
+.admin-placeholder {
+  min-height: 250px;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  background: #ffffff;
+
+  border: 1px solid #e8edf5;
+
+  border-radius: 18px;
+
+  color: #8794ac;
+
+  box-shadow:
+    0 10px 30px rgba(67, 90, 145, 0.05);
+}
+
+
+/* =========================================
+   TABLET
+========================================= */
+
+@media (max-width: 900px) {
+
+  .admin-sidebar {
+    width: 210px;
+  }
+
+  .admin-content {
+    padding: 30px;
+  }
+
+  .dashboard-cards {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+}
+
+
+/* =========================================
+   SMALL TABLET / MOBILE
+========================================= */
+
+@media (max-width: 700px) {
+
+  .admin-navbar {
+    height: 68px;
+
+    padding: 0 18px;
+  }
+
+  .navbar-brand h2 {
+    font-size: 16px;
+  }
+
+  .navbar-brand span {
+    display: none;
+  }
+
+  .navbar-hospital-icon {
+    font-size: 27px;
+  }
+
+  .navbar-user-info {
+    display: none;
+  }
+
+  .navbar-user-icon {
+    font-size: 32px;
+  }
+
+
+  .admin-sidebar {
+    width: 72px;
+
+    padding: 20px 10px;
+  }
+
+  .sidebar-link,
+  .sidebar-logout {
+    justify-content: center;
+
+    padding: 0;
+  }
+
+  .sidebar-link span,
+  .sidebar-logout span {
+    display: none;
+  }
+
+  .sidebar-link svg,
+  .sidebar-logout svg {
+    width: auto;
+
+    font-size: 19px;
+  }
+
+
+  .admin-content {
+    padding: 25px 18px;
+  }
+
+
+  .dashboard-header h1 {
+    font-size: 26px;
+  }
+
+
+  .dashboard-cards {
+    grid-template-columns: 1fr;
+  }
+
+}
+
+
+/* =========================================
+   SMALL MOBILE
+========================================= */
+
+@media (max-width: 450px) {
+
+  .admin-sidebar {
+    width: 62px;
+
+    padding-left: 7px;
+    padding-right: 7px;
+  }
+
+  .admin-content {
+    padding: 22px 14px;
+  }
+
+  .navbar-brand h2 {
+    font-size: 14px;
+  }
+
+  .dashboard-header h1 {
+    font-size: 23px;
+  }
+
+}
