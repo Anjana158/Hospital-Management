@@ -1,5 +1,4 @@
 const jwt = require("jsonwebtoken");
-const { success } = require("zod");
 
 function authenticateToken(req,res,next){
     try{

@@ -1,4 +1,3 @@
-const { success } = require("zod");
 const { loginUser } = require("../auth/authService");
 
 async function login(req,res) {
@@ -13,6 +12,7 @@ async function login(req,res) {
             });
         }
 
+        // login
         const result = await loginUser(username, password);
         return res.status(200).json({
             success:true,

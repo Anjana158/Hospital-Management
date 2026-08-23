@@ -18,27 +18,27 @@ async function main() {
         },
     });
 
-    // await prisma.role.upsert({
-    //     where: {
-    //         name: "RECEPTION",
-    //     },
-    //     update: {},
-    //     create: {
-    //         name: "RECEPTION",
-    //         description: "Reception Staff",
-    //     },
-    // });
+    const receptionRole = await prisma.role.upsert({
+        where: {
+            name: "RECEPTION",
+        },
+        update: {},
+        create: {
+            name: "RECEPTION",
+            description: "Reception Staff",
+        },
+    });
 
-    // await prisma.role.upsert({
-    //     where: {
-    //         name: "BILLING",
-    //     },
-    //     update: {},
-    //     create: {
-    //         name: "BILLING",
-    //         description: "Billing Staff",
-    //     },
-    // });
+    const billingRole = await prisma.role.upsert({
+        where: {
+            name: "BILLING",
+        },
+        update: {},
+        create: {
+            name: "BILLING",
+            description: "Billing Staff",
+        },
+    });
 
     console.log("Roles created successfully");
 
