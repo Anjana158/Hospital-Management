@@ -13,6 +13,32 @@ enum UserStatus {
     LOCKED
 }
 
+enum Gender {
+    MALE
+    FEMALE
+    OTHER
+    UNKNOWN
+}
+
+enum VisitType {
+    NEW
+    REVISIT
+}
+
+enum VisitStatus {
+    REGISTERED
+    WAITING
+    IN_CONSULTATION
+    COMPLETED
+    CANCELLED
+    NO_SHOW
+}
+
+enum RecordStatus {
+    ACTIVE
+    INACTIVE
+}
+
 model Role {
     id          Int         @id @default(autoincrement())
     name        String      @unique
@@ -49,5 +75,126 @@ model User {
     roleId          Int         
     role            Role        @relation(fields: [roleId], references: [id])
 
+    createdPatients Patient[]       @relation("PatientCreatedBy")
+    createdVisits   PatientVisit[]  @relation("VisitCreatedBy")
+
     @@map("users") 
+}
+
+model PatientCategory {
+    id               Int          @id @default(autoincrement())
+    code             String       @unique
+    name             String       @unique
+    discountEligible Boolean      @default(false)
+    status           RecordStatus @default(ACTIVE)
+
+    patients         Patient[]
+
+    createdAt        DateTime     @default(now())
+    updatedAt        DateTime     @updatedAt
+}
+
+model Department {
+    id         Int            @id @default(autoincrement())
+    code       String         @unique
+    name       String         @unique
+    status     RecordStatus   @default(ACTIVE)
+
+    doctors    Doctor[]
+    visits     PatientVisit[]
+
+    createdAt  DateTime       @default(now())
+    updatedAt  DateTime       @updatedAt
+}
+
+model Doctor {
+    id             Int            @id @default(autoincrement())
+    employeeCode   String?        @unique
+    fullName       String
+    specialization String?
+    status         RecordStatus   @default(ACTIVE)
+
+    departmentId   Int
+    department     Department     @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+
+    visits         PatientVisit[]
+
+    createdAt      DateTime       @default(now())
+    updatedAt      DateTime       @updatedAt
+
+    @@index([departmentId])
+}
+
+model Patient {
+    id             Int             @id @default(autoincrement())
+    uhid           String          @unique
+
+    firstName      String
+    middleName     String?
+    lastName       String?
+    dateOfBirth    DateTime?
+    gender         Gender          @default(UNKNOWN)
+
+    phone          String
+    alternatePhone String?
+    email          String?
+
+    addressLine1   String?
+    addressLine2   String?
+    city           String?
+    state          String?
+    postalCode     String?
+    country        String?
+
+    status         RecordStatus    @default(ACTIVE)
+
+    categoryId     Int
+    category       PatientCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+    createdBy      Int
+    createdByUser  User            @relation("PatientCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
+
+    visits         PatientVisit[]
+
+    createdAt      DateTime        @default(now())
+    updatedAt      DateTime        @updatedAt
+    archivedAt     DateTime?
+
+    @@index([lastName, firstName])
+    @@index([phone])
+    @@index([categoryId])
+}
+
+model PatientVisit {
+    id             Int          @id @default(autoincrement())
+    visitNumber    String       @unique
+    visitDate      DateTime     @default(now())
+
+    visitType      VisitType
+    status         VisitStatus  @default(REGISTERED)
+
+    patientId      Int
+    patient        Patient      @relation(fields: [patientId], references: [id], onDelete: Restrict)
+
+    departmentId   Int
+    department     Department   @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+
+    doctorId       Int
+    doctor         Doctor       @relation(fields: [doctorId], references: [id], onDelete: Restrict)
+
+    createdBy      Int
+    createdByUser  User         @relation("VisitCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
+
+    genderAtVisit  Gender?
+
+    createdAt      DateTime     @default(now())
+    updatedAt      DateTime     @updatedAt
+    cancelledAt    DateTime?
+    completedAt    DateTime?
+
+    @@index([visitDate])
+    @@index([patientId, visitDate])
+    @@index([departmentId, visitDate])
+    @@index([doctorId, visitDate])
+    @@index([createdBy, visitDate])
 }

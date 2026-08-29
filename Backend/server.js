@@ -9,6 +9,7 @@ const { connectPrisma } = require("./src/config/prisma");
 const authRoutes = require("./src/modules/auth/authRoutes");
 const userRoutes = require("./src/modules/users/userRoutes");
 const dashboardRoutes = require("./src/modules/dashboard/dashboardRoutes");
+const patientRoutes = require("./src/modules/patients/patientRoutes");
 
 const app = express()
 
@@ -18,6 +19,7 @@ app.use(cors())
 app.use("/api/auth",authRoutes);
 app.use("/api/users",userRoutes);
 app.use("/api/dashboard",dashboardRoutes);
+app.use("/api/patients",patientRoutes);
 
 const PORT = process.env.PORT || 5000
 
