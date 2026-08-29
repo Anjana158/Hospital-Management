@@ -142,6 +142,7 @@ model Patient {
     addressLine1   String?
     addressLine2   String?
     city           String?
+    district       String?
     state          String?
     postalCode     String?
     country        String?

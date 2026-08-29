@@ -28,7 +28,7 @@ const patientRegistrationSchema = z.object({
     firstName: z.string().trim().min(1, "First name is required").max(100),
     middleName: z.string().trim().max(100).optional().or(z.literal("")),
     lastName: z.string().trim().max(100).optional().or(z.literal("")),
-    dateOfBirth: z.string().trim().optional().or(z.literal("")),
+    dateOfBirth: z.string().trim().min(1, "Date of birth is required"),
     gender: z.enum(["MALE", "FEMALE", "OTHER", "UNKNOWN"]).default("UNKNOWN"),
     phone: phoneSchema,
     alternatePhone: phoneSchema.optional().or(z.literal("")),
@@ -36,13 +36,14 @@ const patientRegistrationSchema = z.object({
     addressLine1: z.string().trim().max(255).optional().or(z.literal("")),
     addressLine2: z.string().trim().max(255).optional().or(z.literal("")),
     city: z.string().trim().max(100).optional().or(z.literal("")),
+    district: z.string().trim().max(100).optional().or(z.literal("")),
     state: z.string().trim().max(100).optional().or(z.literal("")),
     postalCode: z.string().trim().max(20).optional().or(z.literal("")),
     country: z.string().trim().max(100).optional().or(z.literal("")),
     categoryId: z.coerce.number().int().positive("Patient category is required"),
 }).strict();
 
-function parseDateOfBirth(value) {
+function parseDateOfBirth(value, errorCode = "PATIENT_UPDATE_VALIDATION_ERROR") {
     if (!value) {
         return undefined;
     }
@@ -50,7 +51,7 @@ function parseDateOfBirth(value) {
     const date = new Date(value);
     if (Number.isNaN(date.getTime()) || date > new Date()) {
         const error = new Error("Date of birth must be a valid past date");
-        error.code = "PATIENT_UPDATE_VALIDATION_ERROR";
+        error.code = errorCode;
         throw error;
     }
 
@@ -102,6 +103,7 @@ const patientDetailsSelect = {
     addressLine1: true,
     addressLine2: true,
     city: true,
+    district: true,
     state: true,
     postalCode: true,
     country: true,
@@ -131,6 +133,7 @@ const patientUpdateSchema = z.object({
     addressLine1: z.string().trim().max(255).optional().or(z.literal("")),
     addressLine2: z.string().trim().max(255).optional().or(z.literal("")),
     city: z.string().trim().max(100).optional().or(z.literal("")),
+    district: z.string().trim().max(100).optional().or(z.literal("")),
     state: z.string().trim().max(100).optional().or(z.literal("")),
     postalCode: z.string().trim().max(20).optional().or(z.literal("")),
     country: z.string().trim().max(100).optional().or(z.literal("")),
@@ -298,7 +301,10 @@ async function registerPatientRecord(data, createdBy) {
 
     const patientData = {
         ...validatedData,
-        dateOfBirth: parseDateOfBirth(validatedData.dateOfBirth),
+        dateOfBirth: parseDateOfBirth(
+            validatedData.dateOfBirth,
+            "PATIENT_VALIDATION_ERROR"
+        ),
         middleName: validatedData.middleName || undefined,
         lastName: validatedData.lastName || undefined,
         alternatePhone: validatedData.alternatePhone || undefined,
@@ -306,6 +312,7 @@ async function registerPatientRecord(data, createdBy) {
         addressLine1: validatedData.addressLine1 || undefined,
         addressLine2: validatedData.addressLine2 || undefined,
         city: validatedData.city || undefined,
+        district: validatedData.district || undefined,
         state: validatedData.state || undefined,
         postalCode: validatedData.postalCode || undefined,
         country: validatedData.country || undefined,
@@ -316,10 +323,6 @@ async function registerPatientRecord(data, createdBy) {
             : undefined,
     };
 
-    delete patientData.dateOfBirth;
-    if (validatedData.dateOfBirth) {
-        patientData.dateOfBirth = parseDateOfBirth(validatedData.dateOfBirth);
-    }
     delete patientData.categoryId;
 
     for (let attempt = 0; attempt < 3; attempt += 1) {
@@ -353,6 +356,7 @@ async function registerPatientRecord(data, createdBy) {
                     addressLine1: true,
                     addressLine2: true,
                     city: true,
+                    district: true,
                     state: true,
                     postalCode: true,
                     country: true,
@@ -426,6 +430,7 @@ async function updatePatientRecord(patientId, data) {
         "addressLine1",
         "addressLine2",
         "city",
+        "district",
         "state",
         "postalCode",
         "country",

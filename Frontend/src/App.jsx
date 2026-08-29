@@ -14,6 +14,7 @@ import ProtectedRoute from './admin/ProtectedRoute'
 // RECEPTION
 import ReceptionDashboard from './reception/ReceptionDashboard'
 import ReceptionHome from './reception/ReceptionHome'
+import PatientManagement from './reception/PatientManagement'
 
 // BILLING
 import BillingDashboard from './billing/BillingDashboard'
@@ -55,6 +56,7 @@ function App() {
                 <Route element={<ProtectedRoute allowedRoles={["RECEPTION"]}/>}>
                     <Route path="/reception" element={<ReceptionDashboard />}>
                         <Route index element={<ReceptionHome />}/>
+                        <Route path="patients" element={<PatientManagement />}/>
                     </Route>
                 </Route>
 

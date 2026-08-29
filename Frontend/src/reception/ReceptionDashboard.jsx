@@ -5,6 +5,7 @@
 
 import {
     Outlet,
+    useLocation,
     useNavigate,
 } from "react-router-dom";
 
@@ -14,6 +15,9 @@ import "../styles/StaffDashboard.css";
 function ReceptionDashboard() {
 
     const navigate = useNavigate();
+    const location = useLocation();
+    const isDashboard = location.pathname === "/reception";
+    const isPatientManagement = location.pathname.startsWith("/reception/patients");
 
     const user =
         JSON.parse(
@@ -94,7 +98,7 @@ function ReceptionDashboard() {
                     <nav className="staff-navigation">
 
                         <button
-                            className="staff-nav-link active"
+                            className={`staff-nav-link${isDashboard ? " active" : ""}`}
                             onClick={() =>
                                 navigate("/reception")
                             }
@@ -104,27 +108,13 @@ function ReceptionDashboard() {
                         </button>
 
                         <button
-                            className="staff-nav-link"
+                            className={`staff-nav-link${isPatientManagement ? " active" : ""}`}
                             onClick={() =>
-                                alert(
-                                    "Patient registration will be added next."
-                                )
-                            }
-                        >
-                            <span>＋</span>
-                            <span>New Patient</span>
-                        </button>
-
-                        <button
-                            className="staff-nav-link"
-                            onClick={() =>
-                                alert(
-                                    "Patient search will be added next."
-                                )
+                                navigate("/reception/patients")
                             }
                         >
                             <span>⌕</span>
-                            <span>Patient Search</span>
+                            <span>Patient Management</span>
                         </button>
 
                     </nav>

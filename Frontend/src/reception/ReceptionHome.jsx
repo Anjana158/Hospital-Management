@@ -6,10 +6,12 @@ import {
 } from "react-icons/fa";
 
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 
 function ReceptionHome() {
 
+    const navigate = useNavigate();
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -100,7 +102,17 @@ function ReceptionHome() {
 
             <div className="staff-action-grid">
 
-                <div className="staff-action-card">
+                <div
+                    className="staff-action-card"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => navigate("/reception/patients")}
+                    onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                            navigate("/reception/patients");
+                        }
+                    }}
+                >
 
                     <div className="staff-action-icon">
                         <FaUserPlus />
@@ -119,7 +131,17 @@ function ReceptionHome() {
                 </div>
 
 
-                <div className="staff-action-card">
+                <div
+                    className="staff-action-card"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => navigate("/reception/patients")}
+                    onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                            navigate("/reception/patients");
+                        }
+                    }}
+                >
 
                     <div className="staff-action-icon">
                         <FaSearch />

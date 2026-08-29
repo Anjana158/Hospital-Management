@@ -10,6 +10,7 @@ const authRoutes = require("./src/modules/auth/authRoutes");
 const userRoutes = require("./src/modules/users/userRoutes");
 const dashboardRoutes = require("./src/modules/dashboard/dashboardRoutes");
 const patientRoutes = require("./src/modules/patients/patientRoutes");
+const patientCategoryRoutes = require("./src/modules/patientCategories/patientCategoryRoutes");
 
 const app = express()
 
@@ -20,6 +21,7 @@ app.use("/api/auth",authRoutes);
 app.use("/api/users",userRoutes);
 app.use("/api/dashboard",dashboardRoutes);
 app.use("/api/patients",patientRoutes);
+app.use("/api/patient-categories",patientCategoryRoutes);
 
 const PORT = process.env.PORT || 5000
 
