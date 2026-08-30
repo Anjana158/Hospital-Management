@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const KERALA_DISTRICTS = [
     "Alappuzha",
@@ -58,6 +58,27 @@ function PatientRegisterForm({
 }) {
     const [formData, setFormData] = useState(emptyForm);
     const [formError, setFormError] = useState("");
+
+    useEffect(() => {
+        const generalCategory = categories.find(
+            (category) => String(category.code).toUpperCase() === "GENERAL"
+        );
+
+        if (!generalCategory) {
+            return;
+        }
+
+        setFormData((previous) => {
+            if (previous.categoryId) {
+                return previous;
+            }
+
+            return {
+                ...previous,
+                categoryId: String(generalCategory.id),
+            };
+        });
+    }, [categories]);
 
     const handleChange = (event) => {
         const { name, value } = event.target;

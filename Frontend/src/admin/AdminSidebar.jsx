@@ -1,6 +1,7 @@
 import {
   FaTachometerAlt,
   FaUsers,
+  FaTags,
   FaSignOutAlt,
 } from "react-icons/fa";
 
@@ -44,6 +45,17 @@ function AdminSidebar() {
           <FaUsers />
 
           <span>Users</span>
+        </NavLink>
+
+        <NavLink
+          to="/dashboard/patient-categories"
+          className={({ isActive }) =>
+            `sidebar-link ${isActive ? "active" : ""}`
+          }
+        >
+          <FaTags />
+
+          <span>Patient Categories</span>
         </NavLink>
 
       </nav>
