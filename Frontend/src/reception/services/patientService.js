@@ -1,9 +1,11 @@
 import axios from "axios";
 
 const API_URL = "http://localhost:5000/api/patients";
+const SCHEMES_API_URL = "http://localhost:5000/api/schemes";
 
 const getAuthConfig = () => {
     const token = localStorage.getItem("token");
+
     return {
         headers: {
             Authorization: `Bearer ${token}`,
@@ -12,10 +14,37 @@ const getAuthConfig = () => {
 };
 
 // ========================================
+// GET TODAY'S PATIENTS
+// ========================================
+
+export const getTodayPatients = async (
+    page = 1,
+    limit = 20
+) => {
+    const response = await axios.get(
+        `${API_URL}/today`,
+        {
+            params: {
+                page,
+                limit,
+            },
+            ...getAuthConfig(),
+        }
+    );
+
+    return response.data;
+};
+
+// ========================================
 // SEARCH PATIENTS
 // ========================================
 
-export const searchPatients = async (query, field = "all", page = 1, limit = 20) => {
+export const searchPatients = async (
+    query,
+    field = "all",
+    page = 1,
+    limit = 20
+) => {
     const response = await axios.get(
         `${API_URL}/search`,
         {
@@ -23,8 +52,11 @@ export const searchPatients = async (query, field = "all", page = 1, limit = 20)
             ...getAuthConfig(),
         }
     );
+
     return response.data;
 };
+
+
 
 // ========================================
 // GET PATIENT BY ID
@@ -35,6 +67,7 @@ export const getPatientById = async (id) => {
         `${API_URL}/${id}`,
         getAuthConfig()
     );
+
     return response.data;
 };
 
@@ -47,6 +80,7 @@ export const getPatientByUhid = async (uhid) => {
         `${API_URL}/uhid/${uhid}`,
         getAuthConfig()
     );
+
     return response.data;
 };
 
@@ -60,6 +94,7 @@ export const registerPatient = async (patientData) => {
         patientData,
         getAuthConfig()
     );
+
     return response.data;
 };
 
@@ -73,22 +108,19 @@ export const updatePatient = async (id, patientData) => {
         patientData,
         getAuthConfig()
     );
+
     return response.data;
 };
 
 // ========================================
-// GET PATIENT CATEGORIES
+// GET SCHEMES
 // ========================================
 
-export const getPatientCategories = async () => {
-    const token = localStorage.getItem("token");
+export const getPatientSchemes = async () => {
     const response = await axios.get(
-        "http://localhost:5000/api/patient-categories",
-        {
-            headers: {
-                Authorization: `Bearer ${token}`,
-            },
-        }
+        SCHEMES_API_URL,
+        getAuthConfig()
     );
+
     return response.data;
 };

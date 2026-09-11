@@ -3,6 +3,7 @@ const express = require("express");
 const {
     registerPatient,
     searchPatients,
+    getTodayPatients,
     getPatientDetails,
     updatePatient,
 } = require("./patientController");
@@ -17,6 +18,7 @@ router.use(
 );
 
 router.get("/search", searchPatients);
+router.get("/today",getTodayPatients);
 router.get("/uhid/:uhid", getPatientDetails);
 router.get("/:id", getPatientDetails);
 router.patch("/:id", updatePatient);

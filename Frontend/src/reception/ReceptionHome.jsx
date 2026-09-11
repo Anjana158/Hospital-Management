@@ -135,12 +135,12 @@ function ReceptionHome() {
                     className="staff-action-card"
                     role="button"
                     tabIndex={0}
-                    onClick={() => navigate("/reception/patients")}
-                    onKeyDown={(event) => {
-                        if (event.key === "Enter" || event.key === " ") {
-                            navigate("/reception/patients");
-                        }
-                    }}
+                    // onClick={() => navigate("/reception/patients")}
+                    // onKeyDown={(event) => {
+                    //     if (event.key === "Enter" || event.key === " ") {
+                    //         navigate("/reception/patients");
+                    //     }
+                    // }}
                 >
 
                     <div className="staff-action-icon">

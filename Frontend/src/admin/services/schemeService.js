@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = "http://localhost:5000/api/patient-categories";
+const API_URL = "http://localhost:5000/api/schemes";
 
 const getAuthConfig = () => {
     const token = localStorage.getItem("token");
@@ -12,25 +12,29 @@ const getAuthConfig = () => {
     };
 };
 
-export const getPatientCategories = async () => {
-    const response = await axios.get(API_URL, getAuthConfig());
-    return response.data;
-};
-
-export const createPatientCategory = async (categoryData) => {
-    const response = await axios.post(
+export const getSchemes = async () => {
+    const response = await axios.get(
         API_URL,
-        categoryData,
         getAuthConfig()
     );
 
     return response.data;
 };
 
-export const updatePatientCategory = async (id, categoryData) => {
+export const createScheme = async (schemeData) => {
+    const response = await axios.post(
+        API_URL,
+        schemeData,
+        getAuthConfig()
+    );
+
+    return response.data;
+};
+
+export const updateScheme = async (id, schemeData) => {
     const response = await axios.patch(
         `${API_URL}/${id}`,
-        categoryData,
+        schemeData,
         getAuthConfig()
     );
 

@@ -615,3 +615,140 @@
         padding: 16px;
     }
 }
+
+/* ========================================
+   PATIENT LIST / SEARCH RESULT CARD
+======================================== */
+
+.patient-results-container {
+    background: #ffffff;
+    border: 1px solid #e8edf5;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(67, 90, 145, 0.05);
+    overflow: hidden;
+}
+
+/* ========================================
+   PATIENT LIST HEADER
+======================================== */
+
+.patient-list-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 22px 24px;
+    border-bottom: 1px solid #e8edf5;
+    background: #ffffff;
+}
+
+.patient-list-title {
+    margin: 0;
+    color: #124b9b;
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.4;
+}
+
+.patient-list-subtitle {
+    margin: 5px 0 0;
+    color: #667999;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+/* ========================================
+   TABLE WRAPPER
+======================================== */
+
+.patient-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.patient-table {
+    width: 100%;
+    min-width: 900px;
+    border-collapse: collapse;
+}
+
+.patient-table th {
+    padding: 14px 16px;
+    background: #f8faff;
+    border-bottom: 1px solid #e8edf5;
+    color: #71809d;
+    font-size: 11px;
+    font-weight: 700;
+    text-align: left;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+.patient-table td {
+    padding: 14px 16px;
+    border-bottom: 1px solid #edf1f6;
+    color: #344b75;
+    font-size: 13px;
+    vertical-align: middle;
+}
+
+.patient-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.patient-table tbody tr:hover {
+    background: #f8faff;
+}
+
+/* ========================================
+   EMPTY STATE
+======================================== */
+
+.patient-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    min-height: 220px;
+    padding: 40px 24px;
+    color: #667999;
+    background: #ffffff;
+}
+
+.patient-empty-title {
+    margin-bottom: 8px;
+    color: #344b75;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.patient-empty-state p {
+    max-width: 500px;
+    margin: 0 0 18px;
+    color: #667999;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+/* ========================================
+   PAGINATION
+======================================== */
+
+.patient-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    padding: 18px 24px;
+    border-top: 1px solid #e8edf5;
+    background: #fbfcff;
+}
+
+.patient-pagination-info {
+    color: #667999;
+    font-size: 13px;
+    font-weight: 500;
+}

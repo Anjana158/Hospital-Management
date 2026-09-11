@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 const KERALA_DISTRICTS = [
     "Alappuzha",
@@ -21,20 +21,34 @@ const emptyForm = {
     firstName: "",
     middleName: "",
     lastName: "",
+
     dateOfBirth: "",
-    gender: "UNKNOWN",
+    age: "",
+
+    gender: "",
+
     phone: "",
     alternatePhone: "",
     email: "",
+
     addressLine1: "",
     addressLine2: "",
     city: "",
+
     district: "Thrissur",
     state: "Kerala",
     postalCode: "",
     country: "India",
-    categoryId: "",
+
+    schemeId: "",
 };
+
+
+/*
+|--------------------------------------------------------------------------
+| Phone Validation
+|--------------------------------------------------------------------------
+*/
 
 function isValidPhone(value) {
     if (!value) {
@@ -45,294 +59,936 @@ function isValidPhone(value) {
         return false;
     }
 
-    const digitCount = value.replace(/\D/g, "").length;
-    return digitCount >= 7 && digitCount <= 15;
+    const digitCount =
+        value.replace(/\D/g, "").length;
+
+    return (
+        digitCount >= 7 &&
+        digitCount <= 15
+    );
 }
+
+
+/*
+|--------------------------------------------------------------------------
+| Calculate Age from DOB
+|--------------------------------------------------------------------------
+*/
+
+function calculateAgeFromDate(
+    dateString
+) {
+    if (!dateString) {
+        return "";
+    }
+
+    const birthDate =
+        new Date(`${dateString}T00:00:00`);
+
+    if (
+        Number.isNaN(
+            birthDate.getTime()
+        )
+    ) {
+        return "";
+    }
+
+    const today = new Date();
+
+    let age =
+        today.getFullYear() -
+        birthDate.getFullYear();
+
+    const monthDifference =
+        today.getMonth() -
+        birthDate.getMonth();
+
+    if (
+        monthDifference < 0 ||
+        (
+            monthDifference === 0 &&
+            today.getDate() <
+                birthDate.getDate()
+        )
+    ) {
+        age--;
+    }
+
+    return age;
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Calculate Approximate DOB from Age
+|--------------------------------------------------------------------------
+*/
+
+function calculateApproximateDob(
+    age
+) {
+    const numericAge =
+        Number(age);
+
+    if (
+        !Number.isInteger(
+            numericAge
+        ) ||
+        numericAge < 0 ||
+        numericAge > 150
+    ) {
+        return "";
+    }
+
+    const currentYear =
+        new Date().getFullYear();
+
+    return `${
+        currentYear - numericAge
+    }-01-01`;
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Component
+|--------------------------------------------------------------------------
+*/
 
 function PatientRegisterForm({
     onRegister,
     onCancel,
     loading,
-    categories = [],
+    schemes = [],
     showDuplicates = false,
 }) {
-    const [formData, setFormData] = useState(emptyForm);
-    const [formError, setFormError] = useState("");
+    const [formData, setFormData] =
+        useState(emptyForm);
 
-    useEffect(() => {
-        const generalCategory = categories.find(
-            (category) => String(category.code).toUpperCase() === "GENERAL"
-        );
+    const [formError, setFormError] =
+        useState("");
 
-        if (!generalCategory) {
-            return;
-        }
 
-        setFormData((previous) => {
-            if (previous.categoryId) {
-                return previous;
-            }
-
-            return {
-                ...previous,
-                categoryId: String(generalCategory.id),
-            };
-        });
-    }, [categories]);
+    /*
+    |--------------------------------------------------------------------------
+    | Handle Input Changes
+    |--------------------------------------------------------------------------
+    */
 
     const handleChange = (event) => {
-        const { name, value } = event.target;
-        setFormData((previous) => ({
-            ...previous,
-            [name]: value,
-        }));
+        const {
+            name,
+            value,
+        } = event.target;
+
+        /*
+        |--------------------------------------------------------------------------
+        | DOB changed
+        |--------------------------------------------------------------------------
+        |
+        | Automatically update age.
+        |
+        */
+
+        if (
+            name === "dateOfBirth"
+        ) {
+            const calculatedAge =
+                calculateAgeFromDate(
+                    value
+                );
+
+            setFormData(
+                (previous) => ({
+                    ...previous,
+
+                    dateOfBirth:
+                        value,
+
+                    age:
+                        calculatedAge,
+                })
+            );
+
+            setFormError("");
+
+            return;
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Age changed
+        |--------------------------------------------------------------------------
+        |
+        | Automatically update DOB.
+        |
+        */
+
+        if (name === "age") {
+            if (value === "") {
+                setFormData(
+                    (previous) => ({
+                        ...previous,
+
+                        age: "",
+                        dateOfBirth: "",
+                    })
+                );
+
+                setFormError("");
+
+                return;
+            }
+
+            const numericAge =
+                Number(value);
+
+            const approximateDob =
+                calculateApproximateDob(
+                    numericAge
+                );
+
+            setFormData(
+                (previous) => ({
+                    ...previous,
+
+                    age: value,
+
+                    dateOfBirth:
+                        approximateDob,
+                })
+            );
+
+            setFormError("");
+
+            return;
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Other Fields
+        |--------------------------------------------------------------------------
+        */
+
+        setFormData(
+            (previous) => ({
+                ...previous,
+                [name]: value,
+            })
+        );
+
+        setFormError("");
     };
 
-    const handleSubmit = (event) => {
+
+    /*
+    |--------------------------------------------------------------------------
+    | Submit
+    |--------------------------------------------------------------------------
+    */
+
+    const handleSubmit = (
+        event
+    ) => {
         event.preventDefault();
+
         setFormError("");
 
-        if (!formData.firstName.trim()) {
-            setFormError("First name is required");
+
+        /*
+        |--------------------------------------------------------------------------
+        | First Name
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            !formData.firstName.trim()
+        ) {
+            setFormError(
+                "First name is required"
+            );
+
             return;
         }
 
-        if (!formData.dateOfBirth) {
-            setFormError("Date of birth is required");
+
+        /*
+        |--------------------------------------------------------------------------
+        | DOB OR Age
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            !formData.dateOfBirth &&
+            !formData.age
+        ) {
+            setFormError(
+                "Date of birth or age is required"
+            );
+
             return;
         }
 
-        const dateOfBirth = new Date(formData.dateOfBirth);
-        if (Number.isNaN(dateOfBirth.getTime()) || dateOfBirth > new Date()) {
-            setFormError("Date of birth must be a valid past date");
+
+        /*
+        |--------------------------------------------------------------------------
+        | Validate DOB
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            formData.dateOfBirth
+        ) {
+            const dateOfBirth =
+                new Date(
+                    `${formData.dateOfBirth}T00:00:00`
+                );
+
+            if (
+                Number.isNaN(
+                    dateOfBirth.getTime()
+                ) ||
+                dateOfBirth >
+                    new Date()
+            ) {
+                setFormError(
+                    "Date of birth must be a valid past date"
+                );
+
+                return;
+            }
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Validate Age
+        |--------------------------------------------------------------------------
+        */
+
+        const numericAge =
+            Number(formData.age);
+
+        if (
+            formData.age === "" ||
+            !Number.isInteger(
+                numericAge
+            ) ||
+            numericAge < 0 ||
+            numericAge > 150
+        ) {
+            setFormError(
+                "Age must be a whole number between 0 and 150"
+            );
+
             return;
         }
 
-        if (!isValidPhone(formData.phone)) {
-            setFormError("Enter a valid phone number (7–15 digits)");
+
+        /*
+        |--------------------------------------------------------------------------
+        | Gender
+        |--------------------------------------------------------------------------
+        */
+
+        if (!formData.gender) {
+            setFormError(
+                "Gender is required"
+            );
+
             return;
         }
 
-        if (formData.alternatePhone && !isValidPhone(formData.alternatePhone)) {
-            setFormError("Enter a valid alternate phone number (7–15 digits)");
+
+        /*
+        |--------------------------------------------------------------------------
+        | Phone
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            !isValidPhone(
+                formData.phone
+            )
+        ) {
+            setFormError(
+                "Enter a valid phone number (7–15 digits)"
+            );
+
             return;
         }
 
-        if (!formData.categoryId) {
-            setFormError("Patient category is required");
+
+        /*
+        |--------------------------------------------------------------------------
+        | Alternate Phone
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            formData.alternatePhone &&
+            !isValidPhone(
+                formData.alternatePhone
+            )
+        ) {
+            setFormError(
+                "Enter a valid alternate phone number (7–15 digits)"
+            );
+
             return;
         }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Primary and Alternate Phone
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            formData.alternatePhone &&
+            formData.phone.replace(
+                /\D/g,
+                ""
+            ) ===
+                formData.alternatePhone.replace(
+                    /\D/g,
+                    ""
+                )
+        ) {
+            setFormError(
+                "Primary and alternate phone numbers cannot be the same"
+            );
+
+            return;
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Send Data to Parent
+        |--------------------------------------------------------------------------
+        */
 
         onRegister({
             ...formData,
-            categoryId: Number(formData.categoryId),
+
+            age:
+                numericAge,
+
+            schemeId:
+                formData.schemeId
+                    ? Number(
+                        formData.schemeId
+                    )
+                    : undefined,
         });
     };
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | UI
+    |--------------------------------------------------------------------------
+    */
+
     return (
-        <form className="patient-form" onSubmit={handleSubmit}>
-            {formError && <div className="form-error">{formError}</div>}
+        <form
+            className="patient-form"
+            onSubmit={handleSubmit}
+        >
+
+            {formError && (
+                <div className="form-error">
+                    {formError}
+                </div>
+            )}
+
+
+            {/* ------------------------------------------------------------ */}
+            {/* Name */}
+            {/* ------------------------------------------------------------ */}
 
             <div className="form-row">
+
                 <div className="form-group">
-                    <label className="required">First name</label>
+                    <label className="required">
+                        First name
+                    </label>
+
                     <input
                         name="firstName"
-                        value={formData.firstName}
-                        onChange={handleChange}
+                        value={
+                            formData.firstName
+                        }
+                        onChange={
+                            handleChange
+                        }
                         disabled={loading}
                     />
                 </div>
+
+
                 <div className="form-group">
-                    <label>Middle name</label>
+                    <label>
+                        Middle name
+                    </label>
+
                     <input
                         name="middleName"
-                        value={formData.middleName}
-                        onChange={handleChange}
+                        value={
+                            formData.middleName
+                        }
+                        onChange={
+                            handleChange
+                        }
                         disabled={loading}
                     />
                 </div>
+
             </div>
 
+
+            {/* ------------------------------------------------------------ */}
+            {/* Last Name + Gender */}
+            {/* ------------------------------------------------------------ */}
+
             <div className="form-row">
+
                 <div className="form-group">
-                    <label>Last name</label>
+                    <label>
+                        Last name
+                    </label>
+
                     <input
                         name="lastName"
-                        value={formData.lastName}
-                        onChange={handleChange}
+                        value={
+                            formData.lastName
+                        }
+                        onChange={
+                            handleChange
+                        }
                         disabled={loading}
                     />
                 </div>
+
+
                 <div className="form-group">
-                    <label className="required">Date of birth</label>
+                    <label className="required">
+                        Gender
+                    </label>
+
+                    <select
+                        name="gender"
+                        value={
+                            formData.gender
+                        }
+                        onChange={
+                            handleChange
+                        }
+                        disabled={loading}
+                        required
+                    >
+                        <option value="">
+                            Select gender
+                        </option>
+
+                        <option value="MALE">
+                            Male
+                        </option>
+
+                        <option value="FEMALE">
+                            Female
+                        </option>
+
+                        <option value="TRANSGENDER">
+                            Transgender
+                        </option>
+                    </select>
+                </div>
+
+            </div>
+
+
+            {/* ------------------------------------------------------------ */}
+            {/* DOB + Age */}
+            {/* ------------------------------------------------------------ */}
+
+            <div className="form-row">
+
+                <div className="form-group">
+
+                    <label className="required">
+                        Date of birth
+                    </label>
+
                     <input
                         type="date"
                         name="dateOfBirth"
-                        value={formData.dateOfBirth}
-                        onChange={handleChange}
+                        value={
+                            formData.dateOfBirth
+                        }
+                        onChange={
+                            handleChange
+                        }
                         disabled={loading}
                     />
                 </div>
+
+
+                <div className="form-group">
+
+                    <label className="required">
+                        Age
+                    </label>
+
+                    <input
+                        type="number"
+                        name="age"
+                        value={
+                            formData.age
+                        }
+                        onChange={
+                            handleChange
+                        }
+                        min="0"
+                        max="150"
+                        step="1"
+                        disabled={loading}
+                    />
+
+                </div>
+
             </div>
 
+
+            {/* ------------------------------------------------------------ */}
+            {/* Scheme & Email */}
+            {/* ------------------------------------------------------------ */}
+
             <div className="form-row">
+
                 <div className="form-group">
-                    <label>Gender</label>
+
+                    <label>
+                        Scheme
+                    </label>
+
                     <select
-                        name="gender"
-                        value={formData.gender}
-                        onChange={handleChange}
-                        disabled={loading}
+                        name="schemeId"
+                        value={
+                            formData.schemeId
+                        }
+                        onChange={
+                            handleChange
+                        }
+                        disabled={
+                            loading
+                        }
                     >
-                        <option value="UNKNOWN">Unknown</option>
-                        <option value="MALE">Male</option>
-                        <option value="FEMALE">Female</option>
-                        <option value="OTHER">Other</option>
-                    </select>
-                </div>
-                <div className="form-group">
-                    <label className="required">Category</label>
-                    <select
-                        name="categoryId"
-                        value={formData.categoryId}
-                        onChange={handleChange}
-                        disabled={loading || categories.length === 0}
-                    >
+
                         <option value="">
-                            {categories.length === 0
-                                ? "Categories unavailable"
-                                : "Select category"}
+                            Select scheme
                         </option>
-                        {categories.map((category) => (
-                            <option key={category.id} value={category.id}>
-                                {category.name}
-                            </option>
-                        ))}
+
+                        {schemes.map(
+                            (scheme) => (
+                                <option
+                                    key={
+                                        scheme.id
+                                    }
+                                    value={
+                                        scheme.id
+                                    }
+                                >
+                                    {scheme.name}
+                                </option>
+                            )
+                        )}
+
                     </select>
-                </div>
-            </div>
 
-            <div className="form-row">
-                <div className="form-group">
-                    <label className="required">Phone</label>
-                    <input
-                        name="phone"
-                        value={formData.phone}
-                        onChange={handleChange}
-                        disabled={loading}
-                    />
                 </div>
-                <div className="form-group">
-                    <label>Alternate phone</label>
-                    <input
-                        name="alternatePhone"
-                        value={formData.alternatePhone}
-                        onChange={handleChange}
-                        disabled={loading}
-                    />
-                </div>
-            </div>
 
-            <div className="form-row full">
                 <div className="form-group">
-                    <label>Email</label>
+
+                    <label>
+                        Email
+                    </label>
+
                     <input
                         type="email"
                         name="email"
-                        value={formData.email}
-                        onChange={handleChange}
+                        value={
+                            formData.email
+                        }
+                        onChange={
+                            handleChange
+                        }
                         disabled={loading}
                     />
+
                 </div>
+
             </div>
 
-            <div className="form-row full">
+
+            {/* ------------------------------------------------------------ */}
+            {/* Phone */}
+            {/* ------------------------------------------------------------ */}
+
+            <div className="form-row">
+
                 <div className="form-group">
-                    <label>Address line 1</label>
+
+                    <label className="required">
+                        Phone
+                    </label>
+
+                    <input
+                        name="phone"
+                        value={
+                            formData.phone
+                        }
+                        onChange={
+                            handleChange
+                        }
+                        disabled={loading}
+                    />
+
+                </div>
+
+
+                <div className="form-group">
+
+                    <label>
+                        Alternate phone
+                    </label>
+
+                    <input
+                        name="alternatePhone"
+                        value={
+                            formData.alternatePhone
+                        }
+                        onChange={
+                            handleChange
+                        }
+                        disabled={loading}
+                    />
+
+                </div>
+
+            </div>
+
+            {/* ------------------------------------------------------------ */}
+            {/* Address 1 */}
+            {/* ------------------------------------------------------------ */}
+
+            <div className="form-row full">
+
+                <div className="form-group">
+
+                    <label>
+                        Address line 1
+                    </label>
+
                     <input
                         name="addressLine1"
-                        value={formData.addressLine1}
-                        onChange={handleChange}
+                        value={
+                            formData.addressLine1
+                        }
+                        onChange={
+                            handleChange
+                        }
                         disabled={loading}
                     />
+
                 </div>
+
             </div>
+
+
+            {/* ------------------------------------------------------------ */}
+            {/* Address 2 */}
+            {/* ------------------------------------------------------------ */}
 
             <div className="form-row full">
+
                 <div className="form-group">
-                    <label>Address line 2</label>
+
+                    <label>
+                        Address line 2
+                    </label>
+
                     <input
                         name="addressLine2"
-                        value={formData.addressLine2}
-                        onChange={handleChange}
+                        value={
+                            formData.addressLine2
+                        }
+                        onChange={
+                            handleChange
+                        }
                         disabled={loading}
                     />
+
                 </div>
+
             </div>
 
+
+            {/* ------------------------------------------------------------ */}
+            {/* City + District */}
+            {/* ------------------------------------------------------------ */}
+
             <div className="form-row">
+
                 <div className="form-group">
-                    <label>City</label>
+
+                    <label>
+                        City
+                    </label>
+
                     <input
                         name="city"
-                        value={formData.city}
-                        onChange={handleChange}
+                        value={
+                            formData.city
+                        }
+                        onChange={
+                            handleChange
+                        }
                         disabled={loading}
                     />
+
                 </div>
+
+
                 <div className="form-group">
-                    <label>District</label>
+
+                    <label>
+                        District
+                    </label>
+
                     <select
                         name="district"
-                        value={formData.district}
-                        onChange={handleChange}
+                        value={
+                            formData.district
+                        }
+                        onChange={
+                            handleChange
+                        }
                         disabled={loading}
                     >
-                        <option value="">Select district</option>
-                        {KERALA_DISTRICTS.map((district) => (
-                            <option key={district} value={district}>
-                                {district}
-                            </option>
-                        ))}
+
+                        <option value="">
+                            Select district
+                        </option>
+
+                        {KERALA_DISTRICTS.map(
+                            (district) => (
+                                <option
+                                    key={
+                                        district
+                                    }
+                                    value={
+                                        district
+                                    }
+                                >
+                                    {district}
+                                </option>
+                            )
+                        )}
+
                     </select>
+
                 </div>
+
             </div>
 
+
+            {/* ------------------------------------------------------------ */}
+            {/* State + Country */}
+            {/* ------------------------------------------------------------ */}
+
             <div className="form-row">
+
                 <div className="form-group">
-                    <label>State</label>
+
+                    <label>
+                        State
+                    </label>
+
                     <input
                         name="state"
-                        value={formData.state}
-                        onChange={handleChange}
+                        value={
+                            formData.state
+                        }
+                        onChange={
+                            handleChange
+                        }
                         disabled={loading}
                     />
+
                 </div>
+
+
                 <div className="form-group">
-                    <label>Country</label>
+
+                    <label>
+                        Country
+                    </label>
+
                     <input
                         name="country"
-                        value={formData.country}
-                        onChange={handleChange}
+                        value={
+                            formData.country
+                        }
+                        onChange={
+                            handleChange
+                        }
                         disabled={loading}
                     />
+
                 </div>
+
             </div>
+
+
+            {/* ------------------------------------------------------------ */}
+            {/* Postal Code */}
+            {/* ------------------------------------------------------------ */}
 
             <div className="form-row">
+
                 <div className="form-group">
-                    <label>Postal code</label>
+
+                    <label>
+                        Postal code
+                    </label>
+
                     <input
                         name="postalCode"
-                        value={formData.postalCode}
-                        onChange={handleChange}
+                        value={
+                            formData.postalCode
+                        }
+                        onChange={
+                            handleChange
+                        }
                         disabled={loading}
                     />
+
                 </div>
+
             </div>
 
+
+            {/* ------------------------------------------------------------ */}
+            {/* Buttons */}
+            {/* ------------------------------------------------------------ */}
+
             <div className="form-buttons">
+
                 <button
                     type="button"
                     className="btn btn-secondary"
@@ -341,6 +997,8 @@ function PatientRegisterForm({
                 >
                     Cancel
                 </button>
+
+
                 <button
                     type="submit"
                     className="btn btn-primary"
@@ -352,7 +1010,9 @@ function PatientRegisterForm({
                             ? "Register anyway"
                             : "Register patient"}
                 </button>
+
             </div>
+
         </form>
     );
 }

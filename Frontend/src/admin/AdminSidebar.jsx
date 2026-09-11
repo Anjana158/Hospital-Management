@@ -48,14 +48,14 @@ function AdminSidebar() {
         </NavLink>
 
         <NavLink
-          to="/dashboard/patient-categories"
+          to="/dashboard/schemes"
           className={({ isActive }) =>
             `sidebar-link ${isActive ? "active" : ""}`
           }
         >
           <FaTags />
 
-          <span>Patient Categories</span>
+          <span>Schemes</span>
         </NavLink>
 
       </nav>

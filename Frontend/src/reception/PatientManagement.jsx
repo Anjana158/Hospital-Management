@@ -1,57 +1,144 @@
 import { useEffect, useState } from "react";
-import { FaSearch, FaUserPlus } from "react-icons/fa";
+import { FaSearch } from "react-icons/fa";
 
 import {
     searchPatients,
+    getTodayPatients,
     getPatientById,
     registerPatient,
-    getPatientCategories,
+    getPatientSchemes,
 } from "./services/patientService";
 
-import "./PatientManagement.css";
+import "../styles/PatientManagement.css";
 import PatientRegisterForm from "./PatientRegisterForm";
 import PatientDetails from "./PatientDetails";
 
 function PatientManagement() {
-    const [view, setView] = useState("search"); // search, register, details, duplicates
+    const [view, setView] = useState("search");
+
     const [searchQuery, setSearchQuery] = useState("");
     const [searchField, setSearchField] = useState("all");
     const [searchResults, setSearchResults] = useState([]);
+    const [hasSearched, setHasSearched] = useState(false);
+
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
-    
-    const [selectedPatient, setSelectedPatient] = useState(null);
-    const [showRegisterModal, setShowRegisterModal] = useState(false);
-    const [duplicateCandidates, setDuplicateCandidates] = useState([]);
-    const [categories, setCategories] = useState([]);
 
-    // ====================================
-    // LOAD CATEGORIES
-    // ====================================
+    const [selectedPatient, setSelectedPatient] = useState(null);
+
+    const [showRegisterModal, setShowRegisterModal] =
+        useState(false);
+
+    const [duplicateCandidates, setDuplicateCandidates] =
+        useState([]);
+
+    const [todayPatients, setTodayPatients] =  useState([]);
+
+    const [todayPagination, setTodayPagination] =  useState({ page: 1,limit: 20,total: 0, totalPages: 0,hasNextPage: false,hasPreviousPage: false,});
+
+    /*
+    |--------------------------------------------------------------------------
+    | Schemes
+    |--------------------------------------------------------------------------
+    */
+
+    const [schemes, setSchemes] = useState([]);
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Load Active Schemes
+    |--------------------------------------------------------------------------
+    */
 
     useEffect(() => {
-        loadCategories();
+        loadSchemes();
+        loadTodayPatients();
     }, []);
 
-    const loadCategories = async () => {
+    const loadSchemes = async () => {
         try {
-            const result = await getPatientCategories();
-            setCategories(result.data || []);
+            const result =
+                await getPatientSchemes();
+
+            setSchemes(
+                result.data || []
+            );
         } catch (error) {
-            console.error("Failed to load categories:", error);
+            console.error(
+                "Failed to load schemes:",
+                error
+            );
+
+            setSchemes([]);
         }
     };
 
-    // ====================================
-    // SEARCH PATIENTS
-    // ====================================
+    /*
+|--------------------------------------------------------------------------
+| Load Today's Patients
+|--------------------------------------------------------------------------
+*/
+
+const loadTodayPatients = async (
+        page = 1
+    ) => {
+        try {
+            setLoading(true);
+            setError("");
+
+            const result =
+                await getTodayPatients(
+                    page,
+                    20
+                );
+
+            setTodayPatients(
+                result.data?.items || []
+            );
+
+            setTodayPagination(
+                result.data?.pagination || {
+                    page: 1,
+                    limit: 20,
+                    total: 0,
+                    totalPages: 0,
+                    hasNextPage: false,
+                    hasPreviousPage: false,
+                }
+            );
+        } catch (error) {
+            console.error(
+                "Failed to load today's patients:",
+                error
+            );
+
+            setError(
+                error.response?.data?.message ||
+                "Failed to load today's patients"
+            );
+
+            setTodayPatients([]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Search Patients
+    |--------------------------------------------------------------------------
+    */
 
     const handleSearch = async (e) => {
         e.preventDefault();
 
         if (!searchQuery.trim()) {
             setError("Please enter a search query");
+            setHasSearched(false);
+            setSearchResults([]);
             return;
         }
 
@@ -59,6 +146,7 @@ function PatientManagement() {
             setLoading(true);
             setError("");
             setSuccess("");
+            setHasSearched(false);
 
             const result = await searchPatients(
                 searchQuery,
@@ -67,13 +155,20 @@ function PatientManagement() {
                 20
             );
 
-            setSearchResults(result.data?.items || []);
+            const results = result.data?.items || [];
 
-            if (result.data?.items?.length === 0) {
+            setSearchResults(results);
+            setHasSearched(true);
+
+            if (results.length === 0) {
                 setError("No patients found matching your search");
             }
         } catch (error) {
             console.error("Search error:", error);
+
+            setSearchResults([]);
+            setHasSearched(false);
+
             setError(
                 error.response?.data?.message ||
                 "Failed to search patients"
@@ -83,27 +178,61 @@ function PatientManagement() {
         }
     };
 
-    // ====================================
-    // VIEW PATIENT DETAILS
-    // ====================================
+    const handleClearSearch = () => {
+        setSearchQuery("");
+        setSearchResults([]);
+        setHasSearched(false);
+        setError("");
+        setSuccess("");
 
-    const viewPatientDetails = async (patientId) => {
+        loadTodayPatients(1);
+    };
+
+    /*
+    |--------------------------------------------------------------------------
+    | View Patient Details
+    |--------------------------------------------------------------------------
+    */
+
+    const viewPatientDetails = async (
+        patientId
+    ) => {
         try {
             setLoading(true);
-            const result = await getPatientById(patientId);
-            setSelectedPatient(result.data);
+            setError("");
+            setSuccess("");
+
+            const result =
+                await getPatientById(
+                    patientId
+                );
+
+            setSelectedPatient(
+                result.data
+            );
+
             setView("details");
         } catch (error) {
-            console.error("Failed to load patient details:", error);
-            setError("Failed to load patient details");
+            console.error(
+                "Failed to load patient details:",
+                error
+            );
+
+            setError(
+                error.response?.data?.message ||
+                "Failed to load patient details"
+            );
         } finally {
             setLoading(false);
         }
     };
 
-    // ====================================
-    // OPEN REGISTER MODAL
-    // ====================================
+
+    /*
+    |--------------------------------------------------------------------------
+    | Open Register Modal
+    |--------------------------------------------------------------------------
+    */
 
     const openRegisterModal = () => {
         setShowRegisterModal(true);
@@ -112,40 +241,56 @@ function PatientManagement() {
         setSuccess("");
     };
 
-    // ====================================
-    // HANDLE REGISTRATION
-    // ====================================
 
-    const handleRegister = async (formData) => {
+    /*
+    |--------------------------------------------------------------------------
+    | Handle Registration
+    |--------------------------------------------------------------------------
+    */
+
+    const handleRegister = async (
+        formData
+    ) => {
         try {
             setLoading(true);
             setError("");
 
-            const result = await registerPatient(formData);
+            const result =
+                await registerPatient(
+                    formData
+                );
 
             setSuccess(
                 "Patient registered successfully! UHID: " +
                 result.data.uhid
             );
+
             setShowRegisterModal(false);
+
             setSearchQuery("");
             setSearchResults([]);
 
-            // Auto-load the new patient details
+            await loadTodayPatients(1);
+
             setSelectedPatient(result.data);
+
             setView("details");
         } catch (error) {
-            console.error("Registration error:", error);
+            console.error(
+                "Registration error:",
+                error
+            );
 
             if (
                 error.response?.status === 409 &&
                 error.response?.data?.code ===
-                "PATIENT_DUPLICATE_PHONE"
+                    "PATIENT_DUPLICATE_PHONE"
             ) {
-                // Show duplicate warning
                 setDuplicateCandidates(
-                    error.response.data.duplicates || []
+                    error.response.data.duplicates ||
+                    []
                 );
+
                 setError("");
             } else {
                 setError(
@@ -158,49 +303,105 @@ function PatientManagement() {
         }
     };
 
-    // ====================================
-    // VIEW FROM DUPLICATE CANDIDATES
-    // ====================================
 
-    const viewDuplicateCandidate = async (patientId) => {
-        try {
-            setLoading(true);
-            const result = await getPatientById(patientId);
-            setSelectedPatient(result.data);
-            setShowRegisterModal(false);
-            setView("details");
-        } catch (error) {
-            console.error("Failed to load patient details:", error);
-            setError("Failed to load patient details");
-        } finally {
-            setLoading(false);
-        }
-    };
+    /*
+    |--------------------------------------------------------------------------
+    | View Duplicate Candidate
+    |--------------------------------------------------------------------------
+    */
 
-    // ====================================
-    // GO BACK TO SEARCH
-    // ====================================
+    const viewDuplicateCandidate =
+        async (patientId) => {
+            try {
+                setLoading(true);
+                setError("");
+
+                const result =
+                    await getPatientById(
+                        patientId
+                    );
+
+                setSelectedPatient(
+                    result.data
+                );
+
+                setShowRegisterModal(
+                    false
+                );
+
+                setView("details");
+            } catch (error) {
+                console.error(
+                    "Failed to load patient details:",
+                    error
+                );
+
+                setError(
+                    "Failed to load patient details"
+                );
+            } finally {
+                setLoading(false);
+            }
+        };
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Go Back to Search
+    |--------------------------------------------------------------------------
+    */
 
     const goBackToSearch = () => {
         setView("search");
         setSelectedPatient(null);
+        setError("");
+        setSuccess("");
+
+        if (!searchQuery.trim()) {
+            loadTodayPatients(
+                todayPagination.page
+            );
+        }
     };
 
-    // ====================================
-    // HANDLE AFTER UPDATE
-    // ====================================
 
-    const handleAfterUpdate = (updatedPatient) => {
-        setSelectedPatient(updatedPatient);
-        setSuccess("Patient updated successfully");
+    /*
+    |--------------------------------------------------------------------------
+    | Handle After Update
+    |--------------------------------------------------------------------------
+    */
+
+    const handleAfterUpdate = (
+        updatedPatient
+    ) => {
+        setSelectedPatient(
+            updatedPatient
+        );
+
+        setSuccess(
+            "Patient updated successfully"
+        );
+
         setView("details");
     };
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Render
+    |--------------------------------------------------------------------------
+    */
+
     return (
         <div className="patient-management">
-            {/* TOOLBAR */}
+
+            {/* ========================================================= */}
+            {/* SEARCH TOOLBAR */}
+            {/* ========================================================= */}
+
             {view === "search" && (
                 <div className="patient-toolbar">
+
                     <form
                         className="patient-search-box"
                         onSubmit={handleSearch}
@@ -211,226 +412,598 @@ function PatientManagement() {
                             maxWidth: "100%",
                         }}
                     >
+
                         <div
                             style={{
                                 display: "flex",
-                                flexDirection: "column",
+                                flexDirection:
+                                    "column",
                                 gap: "7px",
                                 flex: 1,
                             }}
                         >
-                            <label>Search Patients</label>
+
+                            <label>
+                                Search Patients
+                            </label>
+
                             <div
                                 style={{
                                     display: "flex",
                                     gap: "8px",
                                 }}
                             >
+
                                 <input
                                     type="text"
                                     placeholder="Enter UHID, name, or phone..."
-                                    value={searchQuery}
-                                    onChange={(e) =>
-                                        setSearchQuery(
-                                            e.target.value
-                                        )
+                                    value={
+                                        searchQuery
                                     }
-                                    style={{ flex: 1 }}
-                                />
-                                <select
-                                    value={searchField}
-                                    onChange={(e) =>
-                                        setSearchField(
-                                            e.target.value
-                                        )
-                                    }
-                                    style={{
-                                        width: "140px",
+                                    onChange={(e) =>{
+                                        setSearchQuery(e.target.value);
+                                        setHasSearched(false);
+                                        setSearchResults([]);
+                                        setError("");
                                     }}
-                                >
-                                    <option value="all">
-                                        All Fields
-                                    </option>
-                                    <option value="uhid">
-                                        UHID
-                                    </option>
-                                    <option value="name">
-                                        Name
-                                    </option>
-                                    <option value="phone">
-                                        Phone
-                                    </option>
-                                </select>
+                                    style={{
+                                        flex: 1,
+                                    }}
+                                />
                                 <button
                                     type="submit"
                                     className="search-btn"
-                                    disabled={loading}
+                                    disabled={
+                                        loading
+                                    }
                                 >
-                                    <FaSearch /> Search
+                                    <FaSearch />
+                                    {" "}
+                                    Search
                                 </button>
+
                             </div>
                         </div>
+
                     </form>
+
 
                     <button
                         className="register-btn"
-                        onClick={openRegisterModal}
+                        onClick={
+                            openRegisterModal
+                        }
+                        disabled={loading}
                     >
-                        <span>+</span> New Patient
+                        <span>+</span>
+                        {" "}
+                        New Patient
                     </button>
+
                 </div>
             )}
 
-            {/* CONTENT AREA */}
+
+            {/* ========================================================= */}
+            {/* CONTENT */}
+            {/* ========================================================= */}
+
             <div className="patient-content">
-                {/* ERROR MESSAGE */}
+
                 {error && (
                     <div className="patient-error">
                         {error}
                     </div>
                 )}
 
-                {/* SUCCESS MESSAGE */}
                 {success && (
                     <div className="patient-success">
                         {success}
                     </div>
                 )}
 
-                {/* SEARCH VIEW */}
+                                
+                {/* ===================================================== */}
+                {/* PATIENT LIST / SEARCH RESULTS */}
+                {/* ===================================================== */}
+
                 {view === "search" && (
                     <>
                         {loading ? (
                             <div className="patient-loading">
                                 Loading...
                             </div>
-                        ) : searchResults.length > 0 ? (
-                            <div className="patient-results-container">
-                                <table className="patient-table">
-                                    <thead>
-                                        <tr>
-                                            <th>UHID</th>
-                                            <th>Name</th>
-                                            <th>Phone</th>
-                                            <th>Gender</th>
-                                            <th>Category</th>
-                                            <th>Status</th>
-                                            <th>Action</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {searchResults.map(
-                                            (patient) => (
-                                                <tr
-                                                    key={
-                                                        patient.id
-                                                    }
-                                                >
-                                                    <td>
-                                                        {
-                                                            patient.uhid
-                                                        }
-                                                    </td>
-                                                    <td>
-                                                        {
-                                                            patient.firstName
-                                                        }{" "}
-                                                        {
-                                                            patient.lastName
-                                                        }
-                                                    </td>
-                                                    <td>
-                                                        {
-                                                            patient.phone
-                                                        }
-                                                    </td>
-                                                    <td>
-                                                        {
-                                                            patient.gender
-                                                        }
-                                                    </td>
-                                                    <td>
-                                                        {
-                                                            patient
-                                                                .category
-                                                                ?.name
-                                                        }
-                                                    </td>
-                                                    <td>
-                                                        {
-                                                            patient.status
-                                                        }
-                                                    </td>
-                                                    <td>
-                                                        <button
-                                                            className="action-btn"
-                                                            onClick={() =>
-                                                                viewPatientDetails(
-                                                                    patient.id
-                                                                )
+                        ) : searchQuery.trim() && hasSearched ? (
+
+                            /*
+                            |--------------------------------------------------------------------------
+                            | SEARCH RESULTS
+                            |--------------------------------------------------------------------------
+                            */
+
+                            searchResults.length > 0 ? (
+
+                                <div className="patient-results-container">
+
+                                    <div className="patient-list-header">
+                                        <div>
+                                            <h3 className="patient-list-title">
+                                                Search Results
+                                            </h3>
+
+                                            <p className="patient-list-subtitle">
+                                                Patients matching your search
+                                            </p>
+                                        </div>
+
+                                        <button
+                                            type="button"
+                                            className="action-btn"
+                                            onClick={handleClearSearch}
+                                        >
+                                            Clear Search
+                                        </button>
+                                    </div>
+
+                                     <div className="patient-table-wrapper">
+                                        <table className="patient-table">
+
+                                            <thead>
+                                                <tr>
+
+                                                    <th>
+                                                        UHID
+                                                    </th>
+
+                                                    <th>
+                                                        Name
+                                                    </th>
+
+                                                    <th>
+                                                        Age
+                                                    </th>
+
+                                                    <th>
+                                                        Gender
+                                                    </th>
+
+                                                    <th>
+                                                        Phone
+                                                    </th>
+
+                                                    <th>
+                                                        Scheme
+                                                    </th>
+
+                                                    <th>
+                                                        Status
+                                                    </th>
+
+                                                    <th>
+                                                        Action
+                                                    </th>
+
+                                                </tr>
+                                            </thead>
+
+
+                                            <tbody>
+
+                                                {searchResults.map(
+                                                    (patient) => (
+                                                        <tr
+                                                            key={
+                                                                patient.id
                                                             }
                                                         >
-                                                            View
-                                                        </button>
-                                                    </td>
+
+                                                            <td>
+                                                                {
+                                                                    patient.uhid
+                                                                }
+                                                            </td>
+
+                                                            <td>
+                                                                {
+                                                                    patient.firstName
+                                                                }{" "}
+                                                                {
+                                                                    patient.middleName
+                                                                }{" "}
+                                                                {
+                                                                    patient.lastName
+                                                                }
+                                                            </td>
+
+                                                            <td>
+                                                                {
+                                                                    patient.age
+                                                                }
+                                                            </td>
+
+                                                            <td>
+                                                                {
+                                                                    patient.gender
+                                                                }
+                                                            </td>
+
+                                                            <td>
+                                                                {
+                                                                    patient.phone
+                                                                }
+                                                            </td>
+
+                                                            <td>
+                                                                {
+                                                                    patient
+                                                                        .scheme
+                                                                        ?.name ||
+                                                                    "No scheme"
+                                                                }
+                                                            </td>
+
+                                                            <td>
+                                                                {
+                                                                    patient.status
+                                                                }
+                                                            </td>
+
+                                                            <td>
+                                                                <button
+                                                                    className="action-btn"
+                                                                    onClick={() =>
+                                                                        viewPatientDetails(
+                                                                            patient.id
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    View
+                                                                </button>
+                                                            </td>
+
+                                                        </tr>
+                                                    )
+                                                )}
+
+                                            </tbody>
+
+                                        </table>
+                                    </div>
+
+                                </div>
+
+                            ) : (
+
+                                <div className="patient-empty-state">
+                                    <div className="patient-empty-title">
+                                        No patients found
+                                    </div>
+
+                                    <p>
+                                        No patient matches "{searchQuery}".
+                                        Please check the spelling or try searching
+                                        by UHID or phone number.
+                                    </p>
+
+                                    <button
+                                        type="button"
+                                        className="action-btn"
+                                        onClick={handleClearSearch}
+                                    >
+                                        Back to Today's Patients
+                                    </button>
+                                </div>
+                                
+
+                            )
+
+                        ) : (
+
+                            /*
+                            |--------------------------------------------------------------------------
+                            | TODAY'S PATIENTS
+                            |--------------------------------------------------------------------------
+                            */
+
+                            <div className="patient-results-container">
+
+                                <div className="patient-list-header">
+                                    <div>
+                                        <h3 className="patient-list-title">
+                                            Today's Registered Patients
+                                        </h3>
+
+                                        <p className="patient-list-subtitle">
+                                            Patients registered today
+                                        </p>
+                                    </div>
+                                </div>
+
+
+                                {todayPatients.length === 0 ? (
+
+                                    <div className="patient-empty-state">
+                                        <div className="patient-empty-title">
+                                            No patients registered today
+                                        </div>
+
+                                        <p>
+                                            Patients registered today will appear here.
+                                        </p>
+                                    </div>
+
+                                ) : (
+
+                                    <>
+                                        <table className="patient-table">
+
+                                            <thead>
+
+                                                <tr>
+
+                                                    <th>
+                                                        UHID
+                                                    </th>
+
+                                                    <th>
+                                                        Name
+                                                    </th>
+
+                                                    <th>
+                                                        Age
+                                                    </th>
+
+                                                    <th>
+                                                        Gender
+                                                    </th>
+
+                                                    <th>
+                                                        Phone
+                                                    </th>
+
+                                                    <th>
+                                                        Scheme
+                                                    </th>
+
+                                                    <th>
+                                                        Status
+                                                    </th>
+
+                                                    <th>
+                                                        Action
+                                                    </th>
+
                                                 </tr>
-                                            )
+
+                                            </thead>
+
+
+                                            <tbody>
+
+                                                {todayPatients.map(
+                                                    (patient) => (
+                                                        <tr
+                                                            key={
+                                                                patient.id
+                                                            }
+                                                        >
+
+                                                            <td>
+                                                                {
+                                                                    patient.uhid
+                                                                }
+                                                            </td>
+
+                                                            <td>
+                                                                {
+                                                                    patient.firstName
+                                                                }{" "}
+                                                                {
+                                                                    patient.middleName
+                                                                }{" "}
+                                                                {
+                                                                    patient.lastName
+                                                                }
+                                                            </td>
+
+                                                            <td>
+                                                                {
+                                                                    patient.age
+                                                                }
+                                                            </td>
+
+                                                            <td>
+                                                                {
+                                                                    patient.gender
+                                                                }
+                                                            </td>
+
+                                                            <td>
+                                                                {
+                                                                    patient.phone
+                                                                }
+                                                            </td>
+
+                                                            <td>
+                                                                {
+                                                                    patient
+                                                                        .scheme
+                                                                        ?.name ||
+                                                                    "No scheme"
+                                                                }
+                                                            </td>
+
+                                                            <td>
+                                                                {
+                                                                    patient.status
+                                                                }
+                                                            </td>
+
+                                                            <td>
+                                                                <button
+                                                                    className="action-btn"
+                                                                    onClick={() =>
+                                                                        viewPatientDetails(
+                                                                            patient.id
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    View
+                                                                </button>
+                                                            </td>
+
+                                                        </tr>
+                                                    )
+                                                )}
+
+                                            </tbody>
+
+                                        </table>
+
+
+                                        {/* ================================================= */}
+                                        {/* PAGINATION */}
+                                        {/* ================================================= */}
+
+                                        {todayPagination.totalPages >
+                                            1 && (
+
+                                            <div className="patient-pagination" >
+
+                                                <button
+                                                    className="action-btn"
+                                                    disabled={
+                                                        !todayPagination.hasPreviousPage
+                                                    }
+                                                    onClick={() =>
+                                                        loadTodayPatients(
+                                                            todayPagination.page -
+                                                            1
+                                                        )
+                                                    }
+                                                >
+                                                    Previous
+                                                </button>
+
+
+                                                <span className="patient-pagination-info">
+                                                    Page{" "}
+                                                    {
+                                                        todayPagination.page
+                                                    }{" "}
+                                                    of{" "}
+                                                    {
+                                                        todayPagination.totalPages
+                                                    }
+                                                </span>
+
+
+                                                <button
+                                                    className="action-btn"
+                                                    disabled={
+                                                        !todayPagination.hasNextPage
+                                                    }
+                                                    onClick={() =>
+                                                        loadTodayPatients(
+                                                            todayPagination.page +
+                                                            1
+                                                        )
+                                                    }
+                                                >
+                                                    Next
+                                                </button>
+
+                                            </div>
+
                                         )}
-                                    </tbody>
-                                </table>
+
+                                    </>
+
+                                )}
+
                             </div>
-                        ) : searchQuery === "" ? null : (
-                            <div style={{
-                                textAlign: "center",
-                                padding: "40px",
-                                color: "#667999",
-                            }}>
-                                No patients found
-                            </div>
+
                         )}
                     </>
                 )}
 
+
+                {/* ===================================================== */}
                 {/* DETAILS VIEW */}
-                {view === "details" && selectedPatient && (
-                    <PatientDetails
-                        patient={selectedPatient}
-                        onBack={goBackToSearch}
-                        onAfterUpdate={handleAfterUpdate}
-                        categories={categories}
-                    />
-                )}
+                {/* ===================================================== */}
+
+                {view === "details" &&
+                    selectedPatient && (
+                        <PatientDetails
+                            patient={
+                                selectedPatient
+                            }
+                            onBack={
+                                goBackToSearch
+                            }
+                            onAfterUpdate={
+                                handleAfterUpdate
+                            }
+                            schemes={
+                                schemes
+                            }
+                        />
+                    )}
+
             </div>
 
+
+            {/* ========================================================= */}
             {/* REGISTER MODAL */}
+            {/* ========================================================= */}
+
             {showRegisterModal && (
                 <div className="modal-overlay">
+
                     <div className="modal-content">
+
                         <div className="modal-header">
-                            <h2>Register New Patient</h2>
+
+                            <h2>
+                                Register New Patient
+                            </h2>
+
                             <button
                                 className="modal-close-btn"
                                 onClick={() => {
                                     setShowRegisterModal(
                                         false
                                     );
-                                    setDuplicateCandidates([]);
+
+                                    setDuplicateCandidates(
+                                        []
+                                    );
+
                                     setError("");
                                 }}
                             >
                                 ×
                             </button>
+
                         </div>
 
+
                         <div className="modal-body">
+
+                            {/* ================================================= */}
                             {/* DUPLICATE WARNING */}
+                            {/* ================================================= */}
+
                             {duplicateCandidates.length >
                                 0 && (
+
                                 <div className="duplicate-warning">
+
                                     <h3>
                                         ⚠️ Possible Duplicate
                                         Phone Number
                                     </h3>
+
                                     <p>
                                         A patient with this
                                         phone number may
@@ -438,17 +1011,24 @@ function PatientManagement() {
                                         check the following
                                         candidates:
                                     </p>
+
+
                                     <div className="duplicate-candidates">
+
                                         {duplicateCandidates.map(
                                             (candidate) => (
+
                                                 <div
                                                     key={
                                                         candidate.id
                                                     }
                                                     className="duplicate-item"
                                                 >
+
                                                     <div className="duplicate-item-info">
+
                                                         <div className="duplicate-item-details">
+
                                                             <div className="duplicate-item-name">
                                                                 {
                                                                     candidate.firstName
@@ -457,10 +1037,16 @@ function PatientManagement() {
                                                                     candidate.lastName
                                                                 }
                                                             </div>
+
                                                             <div className="duplicate-item-meta">
                                                                 UHID:{" "}
                                                                 {
                                                                     candidate.uhid
+                                                                }
+                                                                {" | "}
+                                                                Age:{" "}
+                                                                {
+                                                                    candidate.age
                                                                 }
                                                                 {" | "}
                                                                 Phone:{" "}
@@ -473,7 +1059,10 @@ function PatientManagement() {
                                                                     candidate.status
                                                                 }
                                                             </div>
+
                                                         </div>
+
+
                                                         <button
                                                             className="duplicate-item-button"
                                                             onClick={() =>
@@ -484,47 +1073,79 @@ function PatientManagement() {
                                                         >
                                                             View
                                                         </button>
+
                                                     </div>
+
                                                 </div>
                                             )
                                         )}
+
                                     </div>
+
+
                                     <p
                                         style={{
-                                            marginTop: "12px",
-                                            fontStyle: "italic",
-                                            fontSize: "12px",
+                                            marginTop:
+                                                "12px",
+                                            fontStyle:
+                                                "italic",
+                                            fontSize:
+                                                "12px",
                                         }}
                                     >
-                                        If you are sure this is
-                                        a new patient, you can
+                                        If you are sure
+                                        this is a new
+                                        patient, you can
                                         continue with
                                         registration below.
                                     </p>
+
                                 </div>
                             )}
 
+
+                            {/* ================================================= */}
                             {/* REGISTRATION FORM */}
+                            {/* ================================================= */}
+
                             <PatientRegisterForm
-                                onRegister={handleRegister}
+                                onRegister={
+                                    handleRegister
+                                }
+
                                 onCancel={() => {
                                     setShowRegisterModal(
                                         false
                                     );
-                                    setDuplicateCandidates([]);
+
+                                    setDuplicateCandidates(
+                                        []
+                                    );
+
                                     setError("");
                                 }}
-                                loading={loading}
-                                categories={categories}
+
+                                loading={
+                                    loading
+                                }
+
+                                schemes={
+                                    schemes
+                                }
+
                                 showDuplicates={
                                     duplicateCandidates.length >
                                     0
                                 }
                             />
+
                         </div>
+
                     </div>
+
                 </div>
             )}
+
         </div>
     );
 }

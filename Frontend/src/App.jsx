@@ -7,7 +7,8 @@ import Login from './Login'
 import AdminDashboard from './admin/AdminDashboard'
 import DashboardHome from './admin/DashboardHome'
 import Users from './admin/Users'
-import PatientCategories from './admin/PatientCategories'
+import Schemes from './admin/Schemes'
+
 
 // Protected Route
 import ProtectedRoute from './admin/ProtectedRoute'
@@ -46,7 +47,7 @@ function App() {
                     <Route path="/dashboard"element={<AdminDashboard />}>
                         <Route index element={<DashboardHome />} />
                         <Route path="users" element={<Users />}/>
-                        <Route path="patient-categories" element={<PatientCategories />}/>
+                        <Route path="schemes" element={<Schemes />}/>
                     </Route>
                 </Route>
 

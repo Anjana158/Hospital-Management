@@ -16,8 +16,7 @@ enum UserStatus {
 enum Gender {
     MALE
     FEMALE
-    OTHER
-    UNKNOWN
+    TRANSGENDER
 }
 
 enum VisitType {
@@ -37,6 +36,12 @@ enum VisitStatus {
 enum RecordStatus {
     ACTIVE
     INACTIVE
+}
+
+enum SchemeDiscountType {
+  NONE
+  PERCENTAGE
+  FIXED
 }
 
 model Role {
@@ -81,17 +86,18 @@ model User {
     @@map("users") 
 }
 
-model PatientCategory {
-    id               Int          @id @default(autoincrement())
-    code             String       @unique
-    name             String       @unique
-    discountEligible Boolean      @default(false)
-    status           RecordStatus @default(ACTIVE)
+model PatientScheme {
+  id             Int                 @id @default(autoincrement())
+  code           String              @unique
+  name           String              @unique
+  discountType   SchemeDiscountType  @default(NONE)
+  discountValue  Decimal             @default(0) @db.Decimal(10, 2)
+  status         RecordStatus        @default(ACTIVE)
 
-    patients         Patient[]
+  patients       Patient[]
 
-    createdAt        DateTime     @default(now())
-    updatedAt        DateTime     @updatedAt
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
 }
 
 model Department {
@@ -133,7 +139,8 @@ model Patient {
     middleName     String?
     lastName       String?
     dateOfBirth    DateTime?
-    gender         Gender          @default(UNKNOWN)
+    age            Int
+    gender         Gender      
 
     phone          String
     alternatePhone String?
@@ -149,8 +156,8 @@ model Patient {
 
     status         RecordStatus    @default(ACTIVE)
 
-    categoryId     Int
-    category       PatientCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+    schemeId       Int?
+    scheme         PatientScheme? @relation(fields: [schemeId], references: [id], onDelete: Restrict)
 
     createdBy      Int
     createdByUser  User            @relation("PatientCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
@@ -163,7 +170,8 @@ model Patient {
 
     @@index([lastName, firstName])
     @@index([phone])
-    @@index([categoryId])
+    @@index([schemeId])
+    @@index([createdAt])
 }
 
 model PatientVisit {
