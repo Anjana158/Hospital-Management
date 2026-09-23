@@ -19,11 +19,8 @@ async function getPatientDetails(req, res) {
     } catch (error) {
         console.error("Get patient details error:", error);
 
-        const statusCode = error.code === "PATIENT_NOT_FOUND"
-            ? 404
-            : error.code === "PATIENT_DETAILS_VALIDATION_ERROR"
-                ? 400
-                : 500;
+        const statusCode = error.code === "PATIENT_NOT_FOUND" ? 404
+            : error.code === "PATIENT_DETAILS_VALIDATION_ERROR" ? 400 : 500;
 
         return res.status(statusCode).json({
             success: false,
@@ -60,34 +57,18 @@ async function searchPatients(req, res) {
 
 async function getTodayPatients(req, res) {
     try {
-        const page =
-            req.query.page || 1;
-
-        const limit =
-            req.query.limit || 20;
-
-        const results =
-            await getTodayPatientRecords(
-                page,
-                limit
-            );
+        const page = req.query.page || 1;
+        const limit = req.query.limit || 20;
+        const results = await getTodayPatientRecords(page,limit);
 
         return res.status(200).json({
             success: true,
             data: results,
         });
     } catch (error) {
-        console.error(
-            "Get today's patients error:",
-            error
-        );
+        console.error("Get today's patients error:", error);
 
-        return res.status(
-            error.code ===
-                "PATIENT_TODAY_VALIDATION_ERROR"
-                ? 400
-                : 500
-        ).json({
+        return res.status(error.code === "PATIENT_TODAY_VALIDATION_ERROR" ? 400 : 500 ).json({
             success: false,
             message: error.message,
         });
@@ -97,10 +78,7 @@ async function getTodayPatients(req, res) {
 
 async function registerPatient(req, res) {
     try {
-        const patient = await registerPatientRecord(
-            req.body,
-            req.user.userId
-        );
+        const patient = await registerPatientRecord( req.body, req.user.userId);
 
         return res.status(201).json({
             success: true,
@@ -110,11 +88,8 @@ async function registerPatient(req, res) {
     } catch (error) {
         console.error("Register patient error:", error);
 
-        const statusCode = error.name === "ZodError" || error.code === "PATIENT_VALIDATION_ERROR"
-            ? 400
-            : error.code === "PATIENT_DUPLICATE_PHONE"
-                ? 409
-                : 500;
+        const statusCode = error.name === "ZodError" || error.code === "PATIENT_VALIDATION_ERROR" ? 400
+            : error.code === "PATIENT_DUPLICATE_PHONE" ? 409 : 500;
 
         const response = {
             success: false,

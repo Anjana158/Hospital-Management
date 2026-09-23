@@ -8,11 +8,7 @@ const {getMyDashboard,} = require("./dashboardService");
 async function getMyDashboardData(req, res) {
 
     try {
-
-        const user =
-            await getMyDashboard(
-                req.user.userId
-            );
+        const user = await getMyDashboard(req.user.userId);
 
         return res.status(200).json({
             success: true,
@@ -20,11 +16,7 @@ async function getMyDashboardData(req, res) {
         });
 
     } catch (error) {
-
-        console.error(
-            "Dashboard error:",
-            error
-        );
+        console.error("Dashboard error:",error);
 
         return res.status(500).json({
             success: false,
@@ -33,6 +25,4 @@ async function getMyDashboardData(req, res) {
     }
 }
 
-module.exports = {
-    getMyDashboardData,
-};
+module.exports = { getMyDashboardData,};

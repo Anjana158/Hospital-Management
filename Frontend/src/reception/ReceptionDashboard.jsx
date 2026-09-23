@@ -18,6 +18,7 @@ function ReceptionDashboard() {
     const location = useLocation();
     const isDashboard = location.pathname === "/reception";
     const isPatientManagement = location.pathname.startsWith("/reception/patients");
+    const isTokenManagement = location.pathname.startsWith("/reception/token");
 
     const user =
         JSON.parse(
@@ -108,13 +109,12 @@ function ReceptionDashboard() {
                         </button>
 
                         <button
-                            className={`staff-nav-link${isPatientManagement ? " active" : ""}`}
-                            onClick={() =>
-                                navigate("/reception/patients")
-                            }
-                        >
-                            <span>⌕</span>
-                            <span>Patient Management</span>
+                            className={`staff-nav-link${isTokenManagement? " active": ""}`}
+                            onClick={() =>navigate("/reception/token"
+                                )
+                            }>
+                            <span>🎫</span>
+                            <span>Today's OP Token</span>
                         </button>
 
                     </nav>

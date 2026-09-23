@@ -1,0 +1,731 @@
+/* =========================================================
+   PAGE
+========================================================= */
+
+.op-ticket-page {
+    min-height: 100%;
+    padding: 25px;
+
+    background: #f5f6f8;
+}
+
+
+/* =========================================================
+   ACTION BUTTONS
+========================================================= */
+
+.op-ticket-actions {
+    width: min(148mm, 100%);
+
+    margin: 0 auto 20px;
+
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    gap: 15px;
+}
+
+
+.ticket-back-btn,
+.ticket-print-btn {
+    border: none;
+    border-radius: 6px;
+
+    padding: 9px 15px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 7px;
+
+    font-size: 13px;
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+
+.ticket-back-btn {
+    background: #e9edf2;
+    color: #4d5b6b;
+}
+
+
+.ticket-print-btn {
+    background: #547da6;
+    color: #ffffff;
+}
+
+
+/* =========================================================
+   A5 OP TICKET
+========================================================= */
+
+.op-ticket {
+    width: 148mm;
+    height: 210mm;
+
+    margin: 0 auto;
+
+    background: #ffffff;
+
+    box-sizing: border-box;
+
+    padding: 7mm 7mm 6mm;
+
+    color: #111111;
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+    font-size: 8px;
+
+    font-weight: 700;
+
+    position: relative;
+
+    overflow: hidden;
+}
+
+
+/* =========================================================
+   TOP HEADER SECTION
+   Approximately 1/4 of A5 page
+========================================================= */
+
+.ticket-header-section {
+    height: 50mm;
+
+    box-sizing: border-box;
+
+    border-bottom: 1px solid #111111;
+
+    position: relative;
+}
+
+
+/* =========================================================
+   HOSPITAL HEADING
+========================================================= */
+
+.hospital-heading {
+    position: absolute;
+
+    top: 0;
+    left: 0;
+
+    width: 60%;
+}
+
+
+.hospital-name {
+    font-size: 11.5px;
+
+    font-weight: 700;
+
+    line-height: 1.2;
+
+    text-transform: uppercase;
+}
+
+
+.hospital-address {
+    margin-top: 3px;
+
+    font-size: 7px;
+
+    font-weight: 700;
+
+    line-height: 1.25;
+}
+
+
+/* =========================================================
+   OP CARD
+========================================================= */
+
+.op-card-title {
+    position: absolute;
+
+    /*
+       Reduced from 27mm.
+       This brings OP Card much closer to
+       the hospital heading.
+    */
+
+    top: 12mm;
+
+    left: 50%;
+
+    transform: translateX(-50%);
+
+    font-size: 9px;
+
+    font-weight: 700;
+
+    white-space: nowrap;
+}
+
+
+/* =========================================================
+   PATIENT / VISIT INFORMATION
+========================================================= */
+
+.ticket-information {
+    position: absolute;
+
+    top: 23mm;
+
+    left: 0;
+    right: 0;
+
+    display: grid;
+
+    /*
+       minmax prevents one column from pushing
+       into the other column.
+    */
+
+    grid-template-columns:
+        minmax(0, 1fr)
+        minmax(0, 1fr);
+
+    column-gap: 5mm;
+
+    align-items: start;
+}
+
+
+/* =========================================================
+   LEFT / RIGHT COLUMNS
+========================================================= */
+
+.ticket-left-column,
+.ticket-right-column {
+    min-width: 0;
+
+    width: 100%;
+}
+
+
+/* =========================================================
+   INFORMATION ROW
+========================================================= */
+
+.ticket-row {
+    display: flex;
+
+    width: 100%;
+
+    min-height: 4.2mm;
+
+    line-height: 1.25;
+
+    align-items: flex-start;
+}
+
+
+/* =========================================================
+   LABEL
+========================================================= */
+
+.ticket-label {
+    /*
+       Smaller fixed width for A5.
+    */
+
+    flex: 0 0 15mm;
+
+    font-size: 7px;
+
+    font-weight: 700;
+
+    white-space: nowrap;
+}
+
+
+/* =========================================================
+   VALUE
+========================================================= */
+
+.ticket-value {
+    flex: 1;
+
+    min-width: 0;
+
+    font-size: 7px;
+
+    font-weight: 700;
+
+    line-height: 1.25;
+
+    overflow-wrap: anywhere;
+}
+
+
+/* =========================================================
+   OP DAYS
+========================================================= */
+
+/* =========================================================
+   OP DAYS
+   Positioned on the right side, aligned with Token No.
+========================================================= */
+
+.op-days-row {
+    position: absolute;
+    right: 0;
+    bottom: 4.5mm;
+    width: 50%;
+    text-align: right;
+    font-size: 5.2px;
+    font-weight: 700;
+    line-height: 1.1;
+}
+
+
+/* =========================================================
+   TOKEN NUMBER
+========================================================= */
+
+.token-row {
+    position: absolute;
+
+    left: 0;
+
+    bottom: 4.5mm;
+
+    display: flex;
+
+    align-items: baseline;
+
+    gap: 4px;
+}
+
+
+.token-label {
+    font-size: 16px;
+    font-weight: 700;
+}
+
+
+.token-number {
+    font-size: 16px;
+    font-weight: 700;
+}
+
+
+/* =========================================================
+   VISIT CHARGE
+========================================================= */
+
+.visit-charge-row {
+    position: absolute;
+
+    left: 0;
+
+    bottom: 0;
+
+    display: flex;
+
+    gap: 4px;
+
+    font-size: 6px;
+
+    font-weight: 700;
+
+    line-height: 1.2;
+}
+
+
+/* =========================================================
+   PRESCRIPTION / BODY AREA
+========================================================= */
+
+.ticket-prescription-area {
+    width: 100%;
+
+    height: 148mm;
+
+    box-sizing: border-box;
+
+    background: #ffffff;
+}
+
+
+/* =========================================================
+   PRINTED DATE
+========================================================= */
+
+.ticket-printed-date {
+    position: absolute;
+
+    right: 7mm;
+
+    bottom: 4mm;
+
+    font-size: 6px;
+
+    font-weight: 700;
+
+    color: #222222;
+}
+
+
+/* =========================================================
+   ERROR
+========================================================= */
+
+.op-ticket-error {
+    max-width: 500px;
+
+    margin: 80px auto;
+
+    padding: 30px;
+
+    background: #ffffff;
+
+    text-align: center;
+
+    border-radius: 8px;
+
+    box-shadow:
+        0 3px 15px
+        rgba(0, 0, 0, 0.08);
+}
+
+
+.op-ticket-error h2 {
+    margin-bottom: 10px;
+}
+
+
+.op-ticket-error p {
+    color: #667085;
+
+    font-size: 14px;
+
+    margin-bottom: 20px;
+}
+
+
+/* =========================================================
+   RESPONSIVE SCREEN PREVIEW
+========================================================= */
+
+/*
+   The ticket remains A5 ratio but scales down
+   when the available screen is smaller.
+*/
+
+@media (max-width: 700px) {
+
+    .op-ticket-page {
+        padding: 15px 8px;
+    }
+
+
+    .op-ticket-actions {
+        width: 100%;
+    }
+
+
+    .op-ticket {
+        width: 100%;
+
+        height: auto;
+
+        aspect-ratio: 148 / 210;
+
+        padding: 5%;
+
+        overflow: hidden;
+    }
+
+
+    .ticket-header-section {
+        height: 24%;
+
+        min-height: 0;
+    }
+
+
+    .hospital-heading {
+        width: 60%;
+    }
+
+
+    .hospital-name {
+        font-size: clamp(8px, 2.2vw, 11.5px);
+    }
+
+
+    .hospital-address {
+        font-size: clamp(5px, 1.4vw, 7px);
+    }
+
+
+    .op-card-title {
+        top: 10%;
+
+        font-size: clamp(6px, 1.8vw, 9px);
+    }
+
+
+    .ticket-information {
+        top: 44%;
+
+        column-gap: 4%;
+
+        grid-template-columns:
+            minmax(0, 1fr)
+            minmax(0, 1fr);
+    }
+
+
+    .ticket-row {
+        min-height: auto;
+
+        margin-bottom: 2px;
+    }
+
+
+    .ticket-label {
+        flex: 0 0 38%;
+
+        font-size: clamp(5px, 1.4vw, 7px);
+    }
+
+
+    .ticket-value {
+        font-size: clamp(5px, 1.4vw, 7px);
+    }
+
+
+    .op-days {
+        right: 5%;
+        width: 45%;
+        font-size: clamp(3.5px, 1vw, 5.2px);
+    }
+
+
+    .token-row {
+        bottom: 7%;
+    }
+
+
+    .token-label {
+        font-size: clamp(6px, 1.8vw, 9px);
+    }
+
+
+    .token-number {
+        font-size: clamp(10px, 3.2vw, 16px);
+    }
+
+
+    .visit-charge-row {
+        bottom: 1%;
+
+        font-size: clamp(4px, 1.2vw, 6px);
+    }
+
+
+    .ticket-prescription-area {
+        height: 70%;
+    }
+
+
+    .ticket-printed-date {
+        right: 5%;
+
+        bottom: 2%;
+
+        font-size: clamp(4px, 1.2vw, 6px);
+    }
+}
+
+
+/* =========================================================
+   VERY SMALL SCREENS
+========================================================= */
+
+@media (max-width: 430px) {
+
+    .op-ticket-actions {
+        flex-direction: column;
+
+        align-items: stretch;
+    }
+
+
+    .ticket-back-btn,
+    .ticket-print-btn {
+        width: 100%;
+    }
+
+
+    .ticket-information {
+        column-gap: 3%;
+    }
+
+
+    .ticket-label {
+        flex-basis: 35%;
+    }
+}
+
+
+/* =========================================================
+   PRINT
+========================================================= */
+
+@media print {
+
+    /* ---------------------------------------------
+       A5 PAGE
+    --------------------------------------------- */
+
+    @page {
+        size: A5 portrait;
+
+        margin: 0;
+    }
+
+
+    /* ---------------------------------------------
+       Hide everything
+    --------------------------------------------- */
+
+    body * {
+        visibility: hidden !important;
+    }
+
+
+    /* ---------------------------------------------
+       Show ONLY OP ticket
+    --------------------------------------------- */
+
+    .op-ticket,
+    .op-ticket * {
+        visibility: visible !important;
+    }
+
+
+    /* ---------------------------------------------
+       Remove application styling
+    --------------------------------------------- */
+
+    html,
+    body {
+        width: 148mm;
+
+        height: 210mm;
+
+        margin: 0 !important;
+
+        padding: 0 !important;
+
+        background: #ffffff !important;
+
+        overflow: hidden;
+    }
+
+
+    .op-ticket-page {
+        width: 148mm;
+
+        height: 210mm;
+
+        min-height: 210mm;
+
+        margin: 0;
+
+        padding: 0;
+
+        background: #ffffff;
+    }
+
+
+    /* ---------------------------------------------
+       A5 TICKET
+    --------------------------------------------- */
+
+    .op-ticket {
+        position: absolute;
+
+        left: 0;
+
+        top: 0;
+
+        width: 148mm;
+
+        height: 210mm;
+
+        min-height: 210mm;
+
+        margin: 0;
+
+        padding: 7mm 7mm 6mm;
+
+        border: none;
+
+        box-shadow: none;
+
+        border-radius: 0;
+
+        background: #ffffff;
+
+        overflow: hidden;
+    }
+
+
+    /* ---------------------------------------------
+       Header
+    --------------------------------------------- */
+
+    .ticket-header-section {
+        height: 50mm;
+
+        border-bottom: 1px solid #111111;
+    }
+
+
+    /* ---------------------------------------------
+       Prescription area
+    --------------------------------------------- */
+
+    .ticket-prescription-area {
+        height: 148mm;
+
+        min-height: 0;
+
+        background: #ffffff;
+    }
+
+
+    /* ---------------------------------------------
+       Printed date
+    --------------------------------------------- */
+
+    .ticket-printed-date {
+        position: absolute;
+
+        right: 7mm;
+
+        bottom: 4mm;
+    }
+
+
+    /* ---------------------------------------------
+       Never print controls
+    --------------------------------------------- */
+
+    .no-print {
+        display: none !important;
+    }
+}

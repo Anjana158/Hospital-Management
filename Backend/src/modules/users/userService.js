@@ -1,21 +1,15 @@
 const bcrypt = require("bcrypt");
 const { prisma } = require("../../config/prisma");
 
-
 // ========================================
 // GET ALL USERS
 // ========================================
 
 async function getAllUsers(roleId) {
     const where = {};
-
-    if (roleId) {
-        where.roleId = Number(roleId);
-    }
-
+    if (roleId) {where.roleId = Number(roleId);}
     const users = await prisma.user.findMany({
         where,
-
         select: {
             id: true,
             employeeId: true,
@@ -36,7 +30,6 @@ async function getAllUsers(roleId) {
                 },
             },
         },
-
         orderBy: {
             createdAt: "desc",
         },
@@ -44,7 +37,6 @@ async function getAllUsers(roleId) {
 
     return users;
 }
-
 
 // ========================================
 // GET ALL ROLES
@@ -58,21 +50,12 @@ async function getAllRoles() {
     });
 }
 
-
 // ========================================
 // CREATE USER
 // ========================================
 
 async function createUser(data, adminId) {
-    const {
-        employeeId,
-        fullName,
-        username,
-        password,
-        roleId,
-        status,
-    } = data;
-
+    const {employeeId,fullName,username,password,roleId,status,} = data;
     const existingEmployee = await prisma.user.findUnique({
         where: {
             employeeId,
@@ -137,7 +120,6 @@ async function createUser(data, adminId) {
 
 async function updateUser(id, data) {
     const userId = Number(id);
-
     const existingUser = await prisma.user.findUnique({
         where: {
             id: userId,
@@ -148,15 +130,7 @@ async function updateUser(id, data) {
         throw new Error("User not found");
     }
 
-    const {
-        employeeId,
-        fullName,
-        username,
-        password,
-        roleId,
-        status,
-    } = data;
-
+    const {employeeId,fullName,username,password,roleId,status,} = data;
 
     // Check employee ID
     if (employeeId && employeeId !== existingUser.employeeId) {
@@ -171,7 +145,6 @@ async function updateUser(id, data) {
         }
     }
 
-
     // Check username
     if (username && username !== existingUser.username) {
         const usernameExists = await prisma.user.findUnique({
@@ -179,12 +152,10 @@ async function updateUser(id, data) {
                 username,
             },
         });
-
         if (usernameExists) {
             throw new Error("Username already exists");
         }
     }
-
 
     // Check role
     if (roleId) {
@@ -193,12 +164,10 @@ async function updateUser(id, data) {
                 id: Number(roleId),
             },
         });
-
         if (!role) {
             throw new Error("Selected role does not exist");
         }
     }
-
 
     const updateData = {
         employeeId,
@@ -215,20 +184,14 @@ async function updateUser(id, data) {
 
     // Password only changes when admin provides one
     if (password && password.trim() !== "") {
-        updateData.password = await bcrypt.hash(
-            password,
-            10
-        );
+        updateData.password = await bcrypt.hash(password,10);
     }
-
 
     const updatedUser = await prisma.user.update({
         where: {
             id: userId,
         },
-
         data: updateData,
-
         select: {
             id: true,
             employeeId: true,
@@ -243,7 +206,6 @@ async function updateUser(id, data) {
 
     return updatedUser;
 }
-
 
 // ========================================
 // CHANGE USER STATUS
@@ -274,9 +236,7 @@ async function changeUserStatus(id, status, adminId) {
     ];
 
     if (!allowedStatuses.includes(status)) {
-        throw new Error(
-            "Invalid user status"
-        );
+        throw new Error("Invalid user status");
     }
 
     const updatedUser = await prisma.user.update({
@@ -297,12 +257,8 @@ async function changeUserStatus(id, status, adminId) {
                 updatedAt: true,
             },
         });
-
-
     return updatedUser;
-
 }
-
 
 module.exports = {
     getAllUsers,

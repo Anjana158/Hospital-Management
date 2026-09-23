@@ -9,43 +9,18 @@ const booleanField = z
 
 const createSchemeSchema = z
     .object({
-        code: z
-            .string()
-            .trim()
-            .min(1, "Scheme code is required")
-            .max(50),
-        name: z
-            .string()
-            .trim()
-            .min(1, "Scheme name is required")
-            .max(100),
-        discountType: z
-            .enum(["NONE", "PERCENTAGE", "FIXED"])
-            .default("NONE"),
-        discountValue: z
-            .coerce
-            .number()
-            .min(0, "Discount value cannot be negative")
-            .default(0),
+        code: z.string().trim().min(1, "Scheme code is required").max(50),
+        name: z.string().trim().min(1, "Scheme name is required").max(100),
+        discountType: z.enum(["NONE", "PERCENTAGE", "FIXED"]).default("NONE"),
+        discountValue: z.coerce.number().min(0, "Discount value cannot be negative").default(0),
     })
     .strict();
 
 const updateSchemeSchema = z
     .object({
-        name: z
-            .string()
-            .trim()
-            .min(1, "Scheme name is required")
-            .max(100)
-            .optional(),
-        discountType: z
-            .enum(["NONE", "PERCENTAGE", "FIXED"])
-            .optional(),
-        discountValue: z
-            .coerce
-            .number()
-            .min(0, "Discount value cannot be negative")
-            .optional(),
+        name: z.string().trim().min(1, "Scheme name is required").max(100).optional(),
+        discountType: z.enum(["NONE", "PERCENTAGE", "FIXED"]).optional(),
+        discountValue: z.coerce.number().min(0, "Discount value cannot be negative").optional(),
         status: z.enum(["ACTIVE", "INACTIVE"]).optional(),
     })
     .strict();
@@ -62,7 +37,6 @@ function getRequestRole(user) {
     if (user?.role && typeof user.role === "object") {
         return String(user.role.name || "").toUpperCase();
     }
-
     return String(user?.role || "").toUpperCase();
 }
 
@@ -81,27 +55,17 @@ function duplicateError(message) {
 function validateDiscount(discountType, discountValue) {
     if (discountType === "NONE") {
         if (discountValue !== 0) {
-            throw validationError(
-                "Discount value must be 0 when discount type is NONE"
-            );
+            throw validationError("Discount value must be 0 when discount type is NONE");
         }
-
         return;
     }
 
     if (discountValue <= 0) {
-        throw validationError(
-            "Discount value must be greater than 0"
-        );
+        throw validationError("Discount value must be greater than 0");
     }
 
-    if (
-        discountType === "PERCENTAGE" &&
-        discountValue > 100
-    ) {
-        throw validationError(
-            "Percentage discount cannot exceed 100%"
-        );
+    if (discountType === "PERCENTAGE" &&discountValue > 100) {
+        throw validationError("Percentage discount cannot exceed 100%");
     }
 }
 
@@ -144,14 +108,10 @@ async function createPatientScheme(data) {
     const code = normalizeCode(validatedData.code);
 
     if (!isValidCode(code)) {
-        throw validationError(
-            "Scheme code may only contain letters, numbers, and underscores"
-        );
+        throw validationError("Scheme code may only contain letters, numbers, and underscores");
     }
 
-    validateDiscount(
-        validatedData.discountType,
-        validatedData.discountValue
+    validateDiscount(validatedData.discountType,validatedData.discountValue
     );
 
     try {
@@ -175,11 +135,8 @@ async function createPatientScheme(data) {
         });
     } catch (error) {
         if (error.code === "P2002") {
-            throw duplicateError(
-                "A scheme with this code or name already exists"
-            );
+            throw duplicateError("A scheme with this code or name already exists");
         }
-
         throw error;
     }
 }
@@ -275,11 +232,8 @@ async function updatePatientScheme(id, data) {
         });
     } catch (error) {
         if (error.code === "P2002") {
-            throw duplicateError(
-                "A scheme with this name already exists"
-            );
+            throw duplicateError("A scheme with this name already exists");
         }
-
         throw error;
     }
 }

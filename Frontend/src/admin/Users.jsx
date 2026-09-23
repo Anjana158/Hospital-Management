@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-
 import {
     getUsers,
     getRoles,
@@ -7,43 +6,31 @@ import {
     updateUser,
     changeUserStatus,
 } from "./services/userService";
-
 import "../styles/Users.css";
 
 
 function Users() {
+    const [users, setUsers] = useState([]);
 
-    const [users, setUsers] =
-        useState([]);
+    const [roles, setRoles] = useState([]);
 
-    const [roles, setRoles] =
-        useState([]);
+    const [roleFilter, setRoleFilter] = useState("");
 
-    const [roleFilter, setRoleFilter] =
-        useState("");
+    const [showModal, setShowModal] = useState(false);
 
-    const [showModal, setShowModal] =
-        useState(false);
+    const [editingUser, setEditingUser] = useState(null);
 
-    const [editingUser, setEditingUser] =
-        useState(null);
+    const [loading, setLoading] = useState(false);
 
-    const [loading, setLoading] =
-        useState(false);
+    const [error, setError] = useState("");
 
-    const [error, setError] =
-        useState("");
-
-    const [formData, setFormData] =
-        useState({
-
+    const [formData, setFormData] = useState({
             employeeId: "",
             fullName: "",
             username: "",
             password: "",
             roleId: "",
             status: "ACTIVE",
-
         });
 
 
@@ -52,94 +39,52 @@ function Users() {
     // ====================================
 
     const loadUsers = async () => {
-
         try {
-
             setLoading(true);
             setError("");
 
             const result =
-                await getUsers(
-                    roleFilter
-                );
-
-            setUsers(
-                result.data || []
-            );
-
+                await getUsers(roleFilter);
+            setUsers(result.data || []);
         } catch (error) {
-
             console.error(error);
+            setError(error.response?.data?.message ||"Failed to load users");
 
-            setError(
-                error.response?.data?.message ||
-                "Failed to load users"
-            );
-
-        } finally {
-
-            setLoading(false);
-
-        }
+        } finally {setLoading(false);}
     };
-
 
     // ====================================
     // LOAD ROLES
     // ====================================
 
     const loadRoles = async () => {
-
         try {
-
-            const result =
-                await getRoles();
-
-            setRoles(
-                result.data || []
-            );
-
+            const result =await getRoles();
+            setRoles(result.data || []);
         } catch (error) {
-
             console.error(error);
-
-            setError(
-                "Failed to load roles"
-            );
+            setError("Failed to load roles");
         }
     };
-
 
     // ====================================
     // INITIAL LOAD
     // ====================================
 
     useEffect(() => {
-
         loadRoles();
-
     }, []);
 
-
     useEffect(() => {
-
         loadUsers();
-
     }, [roleFilter]);
-
 
     // ====================================
     // INPUT CHANGE
     // ====================================
 
     const handleChange = (e) => {
-
-        const {
-            name,
-            value,
-        } = e.target;
-
-
+        const {name,value,} = e.target;
         setFormData(
             previous => ({
 

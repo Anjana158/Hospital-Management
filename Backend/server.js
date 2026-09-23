@@ -11,7 +11,9 @@ const userRoutes = require("./src/modules/users/userRoutes");
 const dashboardRoutes = require("./src/modules/dashboard/dashboardRoutes");
 const patientRoutes = require("./src/modules/patients/patientRoutes");
 const patientSchemeRoutes = require("./src/modules/patientSchemes/patientSchemeRoutes");
-
+const departmentRoutes = require("./src/modules/departments/departmentRoutes");
+const doctorRoutes = require("./src/modules/doctors/doctorRoutes");
+const visitRoutes = require("./src/modules/visits/visitRoute");
 const app = express()
 
 app.use(express.json())
@@ -22,6 +24,10 @@ app.use("/api/users",userRoutes);
 app.use("/api/dashboard",dashboardRoutes);
 app.use("/api/patients",patientRoutes);
 app.use("/api/schemes",patientSchemeRoutes);
+app.use("/api/departments",departmentRoutes);
+app.use("/api/doctors",doctorRoutes);
+app.use("/api/visits",visitRoutes);
+
 
 const PORT = process.env.PORT || 5000
 

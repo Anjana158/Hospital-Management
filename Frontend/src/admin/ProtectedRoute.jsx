@@ -32,11 +32,8 @@ function ProtectedRoute({ allowedRoles }) {
     if(userRole === "BILLING"){
       return <Navigate to="/billing" replace />;
     }
-
     return <Navigate to="/" replace />;
-    
   }
-
   return <Outlet />;
 }
 

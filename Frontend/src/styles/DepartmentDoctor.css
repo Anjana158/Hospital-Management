@@ -1,0 +1,463 @@
+/* =========================================
+   MANAGEMENT GRID
+========================================= */
+
+.management-grid {
+    display: grid;
+    grid-template-columns: 390px minmax(0, 1fr);
+    gap: 24px;
+    align-items: start;
+}
+
+
+/* =========================================
+   MANAGEMENT CARD
+========================================= */
+
+.management-card {
+    background: #ffffff;
+    border: 1px solid #e8edf5;
+    border-radius: 18px;
+    padding: 25px;
+    box-shadow:
+        0 10px 30px rgba(67, 90, 145, 0.05);
+}
+
+
+/* =========================================
+   CARD HEADER
+========================================= */
+
+.management-card-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 24px;
+}
+
+.management-title-icon {
+    width: 48px;
+    height: 48px;
+
+    flex-shrink: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 13px;
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(240, 93, 161, 0.12),
+            rgba(116, 136, 223, 0.16)
+        );
+
+    color: #1455a8;
+    font-size: 20px;
+}
+
+.management-card-header h2 {
+    margin: 0;
+
+    color: #124b9b;
+
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.management-card-header p {
+    margin: 4px 0 0;
+
+    color: #7d8ba5;
+
+    font-size: 12px;
+}
+
+
+/* =========================================
+   FORM
+========================================= */
+
+.form-group {
+    margin-bottom: 18px;
+}
+
+.form-group label {
+    display: block;
+
+    margin-bottom: 7px;
+
+    color: #4d6083;
+
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    height: 44px;
+
+    box-sizing: border-box;
+
+    padding: 0 13px;
+
+    border: 1px solid #dfe6f0;
+    border-radius: 9px;
+
+    outline: none;
+
+    background: #fbfcfe;
+
+    color: #344b75;
+
+    font-family: inherit;
+    font-size: 13px;
+
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease,
+        background 0.2s ease;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    border-color: #8ca7d9;
+
+    background: #ffffff;
+
+    box-shadow:
+        0 0 0 3px rgba(116, 136, 223, 0.10);
+}
+
+.form-group input::placeholder {
+    color: #a4afc0;
+}
+
+
+/* =========================================
+   FORM MESSAGE
+========================================= */
+
+.form-message {
+    padding: 11px 13px;
+
+    margin-bottom: 18px;
+
+    border-radius: 8px;
+
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.form-message.error {
+    background: #fff1f3;
+    border: 1px solid #ffd4dc;
+    color: #c64d6a;
+}
+
+.form-message.success {
+    background: #effaf4;
+    border: 1px solid #ccebd8;
+    color: #37855a;
+}
+
+
+/* =========================================
+   BUTTONS
+========================================= */
+
+.form-actions {
+    display: flex;
+    gap: 10px;
+
+    margin-top: 23px;
+}
+
+.primary-button,
+.secondary-button {
+    height: 43px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 8px;
+
+    padding: 0 16px;
+
+    border-radius: 9px;
+
+    font-family: inherit;
+
+    font-size: 13px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease,
+        background 0.2s ease;
+}
+
+.primary-button {
+    border: none;
+
+    background:
+        linear-gradient(
+            100deg,
+            #1455a8,
+            #607ac7
+        );
+
+    color: #ffffff;
+
+    box-shadow:
+        0 5px 14px rgba(20, 85, 168, 0.18);
+}
+
+.primary-button:hover {
+    transform: translateY(-1px);
+
+    box-shadow:
+        0 7px 17px rgba(20, 85, 168, 0.23);
+}
+
+.primary-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.secondary-button {
+    border: 1px solid #dce3ee;
+
+    background: #ffffff;
+
+    color: #687995;
+}
+
+.secondary-button:hover {
+    background: #f6f8fc;
+}
+
+
+/* =========================================
+   LIST HEADER
+========================================= */
+
+.list-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    margin-bottom: 20px;
+}
+
+.list-header h2 {
+    margin: 0;
+
+    color: #124b9b;
+
+    font-size: 19px;
+    font-weight: 700;
+}
+
+.list-header p {
+    margin: 4px 0 0;
+
+    color: #8996ac;
+
+    font-size: 12px;
+}
+
+
+/* =========================================
+   TABLE
+========================================= */
+
+.management-table-wrapper {
+    width: 100%;
+
+    overflow-x: auto;
+}
+
+.management-table {
+    width: 100%;
+
+    border-collapse: collapse;
+
+    font-size: 13px;
+}
+
+.management-table th {
+    padding: 12px 10px;
+
+    text-align: left;
+
+    background: #f7f9fc;
+
+    border-bottom: 1px solid #e5eaf2;
+
+    color: #6e7f9f;
+
+    font-size: 11px;
+    font-weight: 700;
+
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.management-table td {
+    padding: 14px 10px;
+
+    border-bottom: 1px solid #edf0f5;
+
+    color: #526584;
+
+    white-space: nowrap;
+}
+
+.management-table tbody tr:hover {
+    background: #fafcff;
+}
+
+.management-table td strong {
+    color: #344b75;
+    font-weight: 600;
+}
+
+
+/* =========================================
+   STATUS
+========================================= */
+
+.status-badge {
+    display: inline-flex;
+
+    align-items: center;
+    justify-content: center;
+
+    min-width: 62px;
+
+    padding: 5px 9px;
+
+    border-radius: 20px;
+
+    font-size: 10px;
+    font-weight: 700;
+
+    letter-spacing: 0.3px;
+}
+
+.status-badge.active {
+    background: #eaf8f0;
+    color: #39845b;
+}
+
+.status-badge.inactive {
+    background: #f3f4f7;
+    color: #7d8798;
+}
+
+
+/* =========================================
+   EDIT BUTTON
+========================================= */
+
+.icon-button {
+    width: 34px;
+    height: 34px;
+
+    display: inline-flex;
+
+    align-items: center;
+    justify-content: center;
+
+    border: 1px solid #e0e6f0;
+
+    border-radius: 8px;
+
+    background: #ffffff;
+
+    color: #5872b7;
+
+    cursor: pointer;
+
+    transition:
+        background 0.2s ease,
+        color 0.2s ease,
+        transform 0.2s ease;
+}
+
+.icon-button:hover {
+    background: #f1f5fc;
+    color: #1455a8;
+
+    transform: translateY(-1px);
+}
+
+
+/* =========================================
+   EMPTY STATE
+========================================= */
+
+.empty-state {
+    min-height: 180px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border: 1px dashed #dfe5ef;
+    border-radius: 12px;
+
+    color: #8996ac;
+
+    font-size: 13px;
+}
+
+
+/* =========================================
+   HELPER
+========================================= */
+
+.helper-text {
+    margin: 12px 0 0;
+
+    color: #8996ac;
+
+    font-size: 11px;
+
+    line-height: 1.5;
+}
+
+
+/* =========================================
+   RESPONSIVE
+========================================= */
+
+@media (max-width: 1100px) {
+
+    .management-grid {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+
+@media (max-width: 700px) {
+
+    .management-card {
+        padding: 18px;
+    }
+
+    .management-table th,
+    .management-table td {
+        padding: 11px 8px;
+    }
+
+}

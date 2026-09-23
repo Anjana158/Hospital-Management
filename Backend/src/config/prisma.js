@@ -13,7 +13,4 @@ async function connectPrisma() {
     }
 }
 
-module.exports = { 
-    prisma, 
-    connectPrisma, 
-};
+module.exports = { prisma, connectPrisma, };

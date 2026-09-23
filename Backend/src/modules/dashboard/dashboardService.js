@@ -1,6 +1,5 @@
 const { prisma } = require("../../config/prisma");
 
-
 // ========================================
 // GET LOGGED-IN USER DASHBOARD
 // ========================================
@@ -39,6 +38,4 @@ async function getMyDashboard(userId) {
     return user;
 }
 
-module.exports = {
-    getMyDashboard,
-};
+module.exports = {getMyDashboard,};

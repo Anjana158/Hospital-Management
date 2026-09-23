@@ -29,7 +29,6 @@ function errorMessage(error) {
     if (error.name === "ZodError") {
         return error.issues.map((issue) => issue.message).join(", ");
     }
-
     return error.message;
 }
 

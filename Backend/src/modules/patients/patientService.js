@@ -3,22 +3,13 @@ const { z } = require("zod");
 
 const { prisma } = require("../../config/prisma");
 
-const patientSearchSchema = z.object({
-    q: z
-        .string()
-        .trim()
-        .min(2, "Search query must contain at least 2 characters")
-        .max(100),
+const patientSearchSchema = z.object({q: z.string().trim().min(2, "Search query must contain at least 2 characters").max(100),
     field: z.enum(["all", "uhid", "name", "phone"]).default("all"),
     page: z.coerce.number().int().min(1).default(1),
     limit: z.coerce.number().int().min(1).max(50).default(20),
 }).strict();
 
-const phoneSchema = z
-    .string()
-    .trim()
-    .min(1, "Phone number is required")
-    .max(30, "Phone number is too long")
+const phoneSchema = z.string().trim().min(1, "Phone number is required").max(30, "Phone number is too long")
     .refine((value) => /^[+\d\s().-]+$/.test(value), {
         message: "Phone number contains invalid characters",
     })
@@ -47,115 +38,28 @@ const phoneSchema = z
 |
 */
 const patientRegistrationSchema = z.object({
-    firstName: z
-        .string()
-        .trim()
-        .min(1, "First name is required")
-        .max(100),
-
-    middleName: z
-        .string()
-        .trim()
-        .max(100)
-        .optional()
-        .or(z.literal("")),
-
-    lastName: z
-        .string()
-        .trim()
-        .max(100)
-        .optional()
-        .or(z.literal("")),
-
-    dateOfBirth: z
-        .string()
-        .trim()
-        .optional()
-        .or(z.literal("")),
-
-    age: z.coerce
-        .number()
-        .int("Age must be a whole number")
-        .min(0, "Age cannot be negative")
-        .max(150, "Age cannot exceed 150")
-        .optional(),
-
-    gender: z.enum(
-        ["MALE", "FEMALE", "TRANSGENDER"],
-        {
+    firstName: z.string().trim().min(1, "First name is required").max(100),
+    middleName: z.string().trim().max(100).optional().or(z.literal("")),
+    lastName: z.string().trim().max(100).optional().or(z.literal("")),
+    dateOfBirth: z.string().trim().optional().or(z.literal("")),
+    age: z.coerce.number().int("Age must be a whole number").min(0, "Age cannot be negative").max(150, "Age cannot exceed 150").optional(),
+    gender: z.enum(["MALE", "FEMALE", "TRANSGENDER"],{
             message: "Gender is required",
         }
     ),
-
     phone: phoneSchema,
-
-    alternatePhone: phoneSchema
-        .optional()
-        .or(z.literal("")),
-
-    email: z
-        .string()
-        .trim()
-        .email("Email must be valid")
-        .max(255)
-        .optional()
-        .or(z.literal("")),
-
-    addressLine1: z
-        .string()
-        .trim()
-        .max(255)
-        .optional()
-        .or(z.literal("")),
-
-    addressLine2: z
-        .string()
-        .trim()
-        .max(255)
-        .optional()
-        .or(z.literal("")),
-
-    city: z
-        .string()
-        .trim()
-        .max(100)
-        .optional()
-        .or(z.literal("")),
-
-    district: z
-        .string()
-        .trim()
-        .max(100)
-        .optional()
-        .or(z.literal("")),
-
-    state: z
-        .string()
-        .trim()
-        .max(100)
-        .optional()
-        .or(z.literal("")),
-
-    postalCode: z
-        .string()
-        .trim()
-        .max(20)
-        .optional()
-        .or(z.literal("")),
-
-    country: z
-        .string()
-        .trim()
-        .max(100)
-        .optional()
-        .or(z.literal("")),
+    alternatePhone: phoneSchema.optional().or(z.literal("")),
+    email: z.string().trim().email("Email must be valid").max(255).optional().or(z.literal("")),
+    addressLine1: z.string().trim().max(255).optional().or(z.literal("")),
+    addressLine2: z.string().trim().max(255).optional().or(z.literal("")),
+    city: z.string().trim().max(100).optional().or(z.literal("")),
+    district: z.string().trim().max(100).optional().or(z.literal("")),
+    state: z.string().trim().max(100).optional().or(z.literal("")),
+    postalCode: z.string().trim().max(20).optional().or(z.literal("")),
+    country: z.string().trim().max(100).optional().or(z.literal("")),
 
     // Scheme is OPTIONAL
-    schemeId: z.coerce
-        .number()
-        .int()
-        .positive()
-        .optional(),
+    schemeId: z.coerce.number().int().positive().optional(),
 }).strict();
 
 
@@ -166,115 +70,29 @@ const patientRegistrationSchema = z.object({
 */
 
 const patientUpdateSchema = z.object({
-    firstName: z
-        .string()
-        .trim()
-        .min(1, "First name is required")
-        .max(100)
-        .optional(),
-
-    middleName: z
-        .string()
-        .trim()
-        .max(100)
-        .optional()
-        .or(z.literal("")),
-
-    lastName: z
-        .string()
-        .trim()
-        .max(100)
-        .optional()
-        .or(z.literal("")),
-
-    dateOfBirth: z
-        .string()
-        .trim()
-        .optional()
-        .or(z.literal("")),
-
-    age: z.coerce
-        .number()
-        .int("Age must be a whole number")
-        .min(0, "Age cannot be negative")
-        .max(150, "Age cannot exceed 150")
-        .optional(),
-
-    gender: z
-        .enum(["MALE", "FEMALE", "TRANSGENDER"])
-        .optional(),
-
+    firstName: z.string().trim().min(1, "First name is required").max(100).optional(),
+    middleName: z.string().trim().max(100).optional().or(z.literal("")),
+    lastName: z.string().trim().max(100).optional().or(z.literal("")),
+    dateOfBirth: z.string().trim().optional().or(z.literal("")),
+    age: z.coerce.number().int("Age must be a whole number").min(0, "Age cannot be negative").max(150, "Age cannot exceed 150").optional(),
+    gender: z.enum(["MALE", "FEMALE", "TRANSGENDER"]).optional(),
     phone: phoneSchema.optional(),
-
-    alternatePhone: phoneSchema
-        .optional()
-        .or(z.literal("")),
-
-    email: z
-        .string()
-        .trim()
-        .email("Email must be valid")
-        .max(255)
-        .optional()
-        .or(z.literal("")),
-
-    addressLine1: z
-        .string()
-        .trim()
-        .max(255)
-        .optional()
-        .or(z.literal("")),
-
-    addressLine2: z
-        .string()
-        .trim()
-        .max(255)
-        .optional()
-        .or(z.literal("")),
-
-    city: z
-        .string()
-        .trim()
-        .max(100)
-        .optional()
-        .or(z.literal("")),
-
-    district: z
-        .string()
-        .trim()
-        .max(100)
-        .optional()
-        .or(z.literal("")),
-
-    state: z
-        .string()
-        .trim()
-        .max(100)
-        .optional()
-        .or(z.literal("")),
-
-    postalCode: z
-        .string()
-        .trim()
-        .max(20)
-        .optional()
-        .or(z.literal("")),
-
-    country: z
-        .string()
-        .trim()
-        .max(100)
-        .optional()
-        .or(z.literal("")),
+    alternatePhone: phoneSchema.optional().or(z.literal("")),
+    email: z.string().trim().email("Email must be valid").max(255).optional().or(z.literal("")),
+    addressLine1: z.string().trim().max(255).optional().or(z.literal("")),
+    addressLine2: z.string().trim().max(255).optional().or(z.literal("")),
+    city: z.string().trim().max(100).optional().or(z.literal("")),
+    district: z.string().trim().max(100).optional().or(z.literal("")),
+    state: z.string().trim().max(100).optional().or(z.literal("")),
+    postalCode: z.string().trim().max(20).optional().or(z.literal("")),
+    country: z.string().trim().max(100).optional().or(z.literal("")),
 
     // Optional scheme.
     // Empty string means remove scheme.
-    schemeId: z
-        .union([
+    schemeId: z.union([
             z.coerce.number().int().positive(),
             z.literal(""),
-        ])
-        .optional(),
+        ]).optional(),
 }).strict();
 
 
@@ -284,29 +102,21 @@ const patientUpdateSchema = z.object({
 |--------------------------------------------------------------------------
 */
 
-function parseDateOfBirth(
-    value,
-    errorCode = "PATIENT_UPDATE_VALIDATION_ERROR"
-) {
+function parseDateOfBirth(value, errorCode = "PATIENT_UPDATE_VALIDATION_ERROR") {
     if (!value) {
         return undefined;
     }
-
     const date = new Date(`${value}T00:00:00`);
 
     if (Number.isNaN(date.getTime()) || date > new Date()) {
         const error = new Error(
             "Date of birth must be a valid past date"
         );
-
         error.code = errorCode;
-
         throw error;
     }
-
     return date;
 }
-
 
 /*
 |--------------------------------------------------------------------------
@@ -316,81 +126,43 @@ function parseDateOfBirth(
 
 function calculateAge(dateOfBirth) {
     const today = new Date();
-
-    let age =
-        today.getFullYear() -
-        dateOfBirth.getFullYear();
-
-    const monthDifference =
-        today.getMonth() -
-        dateOfBirth.getMonth();
-
-    if (
-        monthDifference < 0 ||
-        (
+    let age = today.getFullYear() - dateOfBirth.getFullYear();
+    const monthDifference = today.getMonth() - dateOfBirth.getMonth();
+    if (monthDifference < 0 || (
             monthDifference === 0 &&
             today.getDate() < dateOfBirth.getDate()
         )
     ) {
         age--;
     }
-
     return age;
 }
-
 
 /*
 |--------------------------------------------------------------------------
 | Create Approximate DOB from Age
 |--------------------------------------------------------------------------
-|
-| Example:
-|
-| Age = 30
-| Current year = 2026
-|
-| DOB = 1996-01-01
-|
 */
 
 function createApproximateDateOfBirth(age) {
     const currentYear = new Date().getFullYear();
-
-    return new Date(
-        currentYear - age,
-        0,
-        1
-    );
+    return new Date(currentYear - age,0,1);
 }
-
 
 /*
 |--------------------------------------------------------------------------
 | Resolve DOB + Age
 |--------------------------------------------------------------------------
-|
 */
 
-function resolveAgeAndDateOfBirth(
-    dateOfBirthValue,
-    ageValue,
-    errorCode = "PATIENT_VALIDATION_ERROR"
-) {
-    const hasDob =
-        Boolean(dateOfBirthValue);
+function resolveAgeAndDateOfBirth(dateOfBirthValue,ageValue,errorCode = "PATIENT_VALIDATION_ERROR") {
+    const hasDob = Boolean(dateOfBirthValue);
 
-    const hasAge =
-        ageValue !== undefined &&
-        ageValue !== null &&
-        ageValue !== "";
+    const hasAge = ageValue !== undefined && ageValue !== null && ageValue !== "";
 
     if (!hasDob && !hasAge) {
-        const error = new Error(
-            "Date of birth or age is required"
-        );
-
+        const error = new Error("Date of birth or age is required");
         error.code = errorCode;
-
         throw error;
     }
 
@@ -401,45 +173,25 @@ function resolveAgeAndDateOfBirth(
     */
 
     if (hasDob) {
-        const dateOfBirth = parseDateOfBirth(
-            dateOfBirthValue,
-            errorCode
-        );
-
-        const calculatedAge =
-            calculateAge(dateOfBirth);
+        const dateOfBirth = parseDateOfBirth(dateOfBirthValue,errorCode);
+        const calculatedAge = calculateAge(dateOfBirth);
 
         if (calculatedAge < 0 || calculatedAge > 150) {
-            const error = new Error(
-                "Date of birth results in an invalid age"
-            );
-
+            const error = new Error("Date of birth results in an invalid age");
             error.code = errorCode;
-
             throw error;
         }
 
         /*
         | If age was also supplied, make sure it matches.
         */
-
-        if (
-            hasAge &&
-            Number(ageValue) !== calculatedAge
-        ) {
-            const error = new Error(
-                `Age does not match date of birth. Expected age: ${calculatedAge}`
-            );
-
+        if (hasAge && Number(ageValue) !== calculatedAge) {
+            const error = new Error(`Age does not match date of birth. Expected age: ${calculatedAge}`);
             error.code = errorCode;
-
             throw error;
         }
 
-        return {
-            dateOfBirth,
-            age: calculatedAge,
-        };
+        return {dateOfBirth, age: calculatedAge, };
     }
 
     /*
@@ -450,29 +202,14 @@ function resolveAgeAndDateOfBirth(
 
     const age = Number(ageValue);
 
-    if (
-        !Number.isInteger(age) ||
-        age < 0 ||
-        age > 150
-    ) {
-        const error = new Error(
-            "Age must be a whole number between 0 and 150"
-        );
-
+    if ( !Number.isInteger(age) || age < 0 || age > 150 ) {
+        const error = new Error("Age must be a whole number between 0 and 150" );
         error.code = errorCode;
-
         throw error;
     }
-
-    const dateOfBirth =
-        createApproximateDateOfBirth(age);
-
-    return {
-        dateOfBirth,
-        age,
-    };
+    const dateOfBirth = createApproximateDateOfBirth(age);
+    return {dateOfBirth,age,};
 }
-
 
 /*
 |--------------------------------------------------------------------------
@@ -481,19 +218,10 @@ function resolveAgeAndDateOfBirth(
 */
 
 function generateUhid() {
-    const datePart = new Date()
-        .toISOString()
-        .slice(0, 10)
-        .replaceAll("-", "");
-
-    const randomPart = crypto
-        .randomBytes(5)
-        .toString("hex")
-        .toUpperCase();
-
+    const datePart = new Date().toISOString().slice(0, 10).replaceAll("-", "");
+    const randomPart = crypto.randomBytes(5).toString("hex").toUpperCase();
     return `UHID-${datePart}-${randomPart}`;
 }
-
 
 /*
 |--------------------------------------------------------------------------
@@ -504,7 +232,6 @@ function generateUhid() {
 function normalizePhone(phone) {
     return phone.replace(/\D/g, "");
 }
-
 
 /*
 |--------------------------------------------------------------------------
@@ -542,7 +269,6 @@ const patientSummarySelect = {
 
     updatedAt: true,
 };
-
 
 /*
 |--------------------------------------------------------------------------
@@ -605,17 +331,9 @@ async function getPatientDetails(identifier, lookupType) {
     if (lookupType === "id") {
         const patientId = Number(identifier);
 
-        if (
-            !Number.isInteger(patientId) ||
-            patientId < 1
-        ) {
-            const error = new Error(
-                "Patient ID must be a positive integer"
-            );
-
-            error.code =
-                "PATIENT_DETAILS_VALIDATION_ERROR";
-
+        if (!Number.isInteger(patientId) || patientId < 1 ) {
+            const error = new Error("Patient ID must be a positive integer" );
+            error.code = "PATIENT_DETAILS_VALIDATION_ERROR";
             throw error;
         }
 
@@ -630,13 +348,8 @@ async function getPatientDetails(identifier, lookupType) {
         const uhid = String(identifier).trim();
 
         if (!uhid) {
-            const error = new Error(
-                "UHID is required"
-            );
-
-            error.code =
-                "PATIENT_DETAILS_VALIDATION_ERROR";
-
+            const error = new Error("UHID is required");
+            error.code = "PATIENT_DETAILS_VALIDATION_ERROR";
             throw error;
         }
 
@@ -653,12 +366,8 @@ async function getPatientDetails(identifier, lookupType) {
     }
 
     if (!patient) {
-        const error = new Error(
-            "Patient not found"
-        );
-
+        const error = new Error("Patient not found");
         error.code = "PATIENT_NOT_FOUND";
-
         throw error;
     }
 
@@ -673,18 +382,13 @@ async function getPatientDetails(identifier, lookupType) {
 */
 
 async function searchPatients(query) {
-    const validatedQuery =
-        patientSearchSchema.parse(query);
+    const validatedQuery = patientSearchSchema.parse(query);
 
-    const normalizedQuery =
-        normalizePhone(validatedQuery.q);
+    const normalizedQuery = normalizePhone(validatedQuery.q);
 
     const searchConditions = [];
 
-    if (
-        validatedQuery.field === "uhid" ||
-        validatedQuery.field === "all"
-    ) {
+    if (validatedQuery.field === "uhid" || validatedQuery.field === "all") {
         searchConditions.push({
             uhid: {
                 contains: validatedQuery.q,
@@ -693,50 +397,26 @@ async function searchPatients(query) {
         });
     }
 
-    if (
-        validatedQuery.field === "name" ||
-        validatedQuery.field === "all"
-    ) {
+    if (validatedQuery.field === "name" || validatedQuery.field === "all") {
         searchConditions.push(
             {
-                firstName: {
-                    contains: validatedQuery.q,
-                    mode: "insensitive",
-                },
+                firstName: {contains: validatedQuery.q,mode: "insensitive",},
             },
             {
-                middleName: {
-                    contains: validatedQuery.q,
-                    mode: "insensitive",
-                },
+                middleName: {contains: validatedQuery.q,mode: "insensitive",},
             },
             {
-                lastName: {
-                    contains: validatedQuery.q,
-                    mode: "insensitive",
-                },
+                lastName: {contains: validatedQuery.q,mode: "insensitive",},
             }
         );
     }
 
-    if (
-        validatedQuery.field === "phone" ||
-        (
-            validatedQuery.field === "all" &&
-            normalizedQuery.length >= 3
-        )
-    ) {
+    if (validatedQuery.field === "phone" || ( validatedQuery.field === "all" && normalizedQuery.length >= 3)) {
         if (normalizedQuery.length < 3) {
-            const error = new Error(
-                "Phone search must contain at least 3 digits"
-            );
-
-            error.code =
-                "PATIENT_SEARCH_VALIDATION_ERROR";
-
+            const error = new Error("Phone search must contain at least 3 digits");
+            error.code ="PATIENT_SEARCH_VALIDATION_ERROR";
             throw error;
         }
-
         searchConditions.push(
             {
                 phone: {
@@ -752,59 +432,36 @@ async function searchPatients(query) {
     }
 
     if (searchConditions.length === 0) {
-        const error = new Error(
-            "Search conditions are required"
-        );
-
-        error.code =
-            "PATIENT_SEARCH_VALIDATION_ERROR";
-
+        const error = new Error("Search conditions are required");
+        error.code ="PATIENT_SEARCH_VALIDATION_ERROR";
         throw error;
     }
 
-    const where = {
-        OR: searchConditions,
-    };
+    const where = {OR: searchConditions,};
+    const skip = (validatedQuery.page - 1) * validatedQuery.limit;
 
-    const skip =
-        (validatedQuery.page - 1) *
-        validatedQuery.limit;
-
-    const [items, total] =
-        await prisma.$transaction([
+    const [items, total] = await prisma.$transaction([
             prisma.patient.findMany({
                 where,
-
                 select: patientSummarySelect,
-
                 orderBy: {
                     updatedAt: "desc",
                 },
-
                 skip,
-
                 take: validatedQuery.limit,
             }),
 
-            prisma.patient.count({
-                where,
-            }),
+            prisma.patient.count({where,}),
         ]);
 
-    const totalPages =
-        Math.ceil(
-            total / validatedQuery.limit
-        );
+    const totalPages = Math.ceil(total / validatedQuery.limit);
 
-    return {
-        items,
-
+    return {items,
         pagination: {
             page: validatedQuery.page,
             limit: validatedQuery.limit,
             total,
             totalPages,
-
             hasNextPage:
                 validatedQuery.page <
                 totalPages,
@@ -817,45 +474,21 @@ async function searchPatients(query) {
 |--------------------------------------------------------------------------
 | Get Today's Registered Patients
 |--------------------------------------------------------------------------
-|
-| Returns patients who were registered today.
-|
-| This is NOT the same as the Reports feature.
-| Reports will later handle arbitrary date ranges,
-| monthly reports, daily reports, etc.
-|
 */
 
 async function getTodayPatients(page = 1, limit = 20) {
     const parsedPage = Number(page);
     const parsedLimit = Number(limit);
 
-    if (
-        !Number.isInteger(parsedPage) ||
-        parsedPage < 1
-    ) {
-        const error = new Error(
-            "Page must be a positive integer"
-        );
-
-        error.code =
-            "PATIENT_TODAY_VALIDATION_ERROR";
-
+    if (!Number.isInteger(parsedPage) || parsedPage < 1) {
+        const error = new Error("Page must be a positive integer");
+        error.code = "PATIENT_TODAY_VALIDATION_ERROR";
         throw error;
     }
 
-    if (
-        !Number.isInteger(parsedLimit) ||
-        parsedLimit < 1 ||
-        parsedLimit > 50
-    ) {
-        const error = new Error(
-            "Limit must be between 1 and 50"
-        );
-
-        error.code =
-            "PATIENT_TODAY_VALIDATION_ERROR";
-
+    if (!Number.isInteger(parsedLimit) || parsedLimit < 1 || parsedLimit > 50 ) {
+        const error = new Error("Limit must be between 1 and 50");
+        error.code ="PATIENT_TODAY_VALIDATION_ERROR";
         throw error;
     }
 
@@ -863,36 +496,11 @@ async function getTodayPatients(page = 1, limit = 20) {
     |--------------------------------------------------------------------------
     | Today's date boundaries
     |--------------------------------------------------------------------------
-    |
-    | Uses the server's local timezone.
-    |
-    | For your hospital LAN, the backend/server machine
-    | should use the hospital's local timezone.
-    |
     */
 
     const now = new Date();
-
-    const startOfToday = new Date(
-        now.getFullYear(),
-        now.getMonth(),
-        now.getDate(),
-        0,
-        0,
-        0,
-        0
-    );
-
-    const startOfTomorrow = new Date(
-        now.getFullYear(),
-        now.getMonth(),
-        now.getDate() + 1,
-        0,
-        0,
-        0,
-        0
-    );
-
+    const startOfToday = new Date(now.getFullYear(),now.getMonth(),now.getDate(),0,0,0,0);
+    const startOfTomorrow = new Date(now.getFullYear(),now.getMonth(),now.getDate() + 1,0,0,0,0);
     const where = {
         createdAt: {
             gte: startOfToday,
@@ -900,47 +508,30 @@ async function getTodayPatients(page = 1, limit = 20) {
         },
     };
 
-    const skip =
-        (parsedPage - 1) * parsedLimit;
+    const skip = (parsedPage - 1) * parsedLimit;
 
-    const [items, total] =
-        await prisma.$transaction([
+    const [items, total] = await prisma.$transaction([
             prisma.patient.findMany({
                 where,
-
                 select: patientSummarySelect,
-
-                orderBy: {
-                    createdAt: "desc",
-                },
-
+                orderBy: { createdAt: "desc",},
                 skip,
-
                 take: parsedLimit,
             }),
-
-            prisma.patient.count({
-                where,
-            }),
+            prisma.patient.count({where,}),
         ]);
 
-    const totalPages =
-        Math.ceil(
-            total / parsedLimit
-        );
+    const totalPages = Math.ceil(total / parsedLimit);
 
     return {
         items,
-
         pagination: {
             page: parsedPage,
             limit: parsedLimit,
             total,
             totalPages,
-
             hasNextPage:
                 parsedPage < totalPages,
-
             hasPreviousPage:
                 parsedPage > 1,
         },
@@ -953,12 +544,8 @@ async function getTodayPatients(page = 1, limit = 20) {
 |--------------------------------------------------------------------------
 */
 
-async function registerPatientRecord(
-    data,
-    createdBy
-) {
-    const validatedData =
-        patientRegistrationSchema.parse(data);
+async function registerPatientRecord(data,createdBy) {
+    const validatedData = patientRegistrationSchema.parse(data);
 
     /*
     |--------------------------------------------------------------------------
@@ -966,10 +553,7 @@ async function registerPatientRecord(
     |--------------------------------------------------------------------------
     */
 
-    const {
-        dateOfBirth,
-        age,
-    } = resolveAgeAndDateOfBirth(
+    const {dateOfBirth,age,} = resolveAgeAndDateOfBirth(
         validatedData.dateOfBirth,
         validatedData.age,
         "PATIENT_VALIDATION_ERROR"
@@ -979,19 +563,12 @@ async function registerPatientRecord(
     |--------------------------------------------------------------------------
     | Validate Scheme
     |--------------------------------------------------------------------------
-    |
-    | Scheme is optional.
-    |
     */
 
     let schemeId = null;
 
-    if (
-        validatedData.schemeId !== undefined &&
-        validatedData.schemeId !== null
-    ) {
-        const scheme =
-            await prisma.patientScheme.findFirst({
+    if (validatedData.schemeId !== undefined && validatedData.schemeId !== null) {
+        const scheme = await prisma.patientScheme.findFirst({
                 where: {
                     id: Number(
                         validatedData.schemeId
@@ -1005,16 +582,10 @@ async function registerPatientRecord(
             });
 
         if (!scheme) {
-            const error = new Error(
-                "Selected scheme does not exist or is inactive"
-            );
-
-            error.code =
-                "PATIENT_VALIDATION_ERROR";
-
+            const error = new Error("Selected scheme does not exist or is inactive");
+            error.code ="PATIENT_VALIDATION_ERROR";
             throw error;
         }
-
         schemeId = scheme.id;
     }
 
@@ -1024,13 +595,9 @@ async function registerPatientRecord(
     |--------------------------------------------------------------------------
     */
 
-    const normalizedPhone =
-        normalizePhone(
-            validatedData.phone
-        );
+    const normalizedPhone =normalizePhone(validatedData.phone);
 
-    const normalizedAlternatePhone =
-        validatedData.alternatePhone
+    const normalizedAlternatePhone = validatedData.alternatePhone
             ? normalizePhone(
                 validatedData.alternatePhone
             )
@@ -1042,18 +609,9 @@ async function registerPatientRecord(
     |--------------------------------------------------------------------------
     */
 
-    if (
-        normalizedAlternatePhone &&
-        normalizedPhone ===
-        normalizedAlternatePhone
-    ) {
-        const error = new Error(
-            "Primary and alternate phone numbers cannot be the same"
-        );
-
-        error.code =
-            "PATIENT_VALIDATION_ERROR";
-
+    if (normalizedAlternatePhone && normalizedPhone === normalizedAlternatePhone) {
+        const error = new Error("Primary and alternate phone numbers cannot be the same");
+        error.code ="PATIENT_VALIDATION_ERROR";
         throw error;
     }
 
@@ -1063,8 +621,7 @@ async function registerPatientRecord(
     |--------------------------------------------------------------------------
     */
 
-    const possibleDuplicates =
-        await prisma.patient.findMany({
+    const possibleDuplicates = await prisma.patient.findMany({
             where: {
                 OR: [
                     {
@@ -1115,16 +672,9 @@ async function registerPatientRecord(
         });
 
     if (possibleDuplicates.length > 0) {
-        const error = new Error(
-            "A patient with this phone number may already exist"
-        );
-
-        error.code =
-            "PATIENT_DUPLICATE_PHONE";
-
-        error.duplicates =
-            possibleDuplicates;
-
+        const error = new Error("A patient with this phone number may already exist");
+        error.code ="PATIENT_DUPLICATE_PHONE";
+        error.duplicates = possibleDuplicates;
         throw error;
     }
 
@@ -1136,47 +686,21 @@ async function registerPatientRecord(
 
     const patientData = {
         firstName: validatedData.firstName,
-
         middleName: validatedData.middleName || undefined,
-
         lastName:  validatedData.lastName || undefined,
-
         dateOfBirth,
-
         age,
-
-        gender:
-            validatedData.gender,
-
-        phone:
-            normalizedPhone,
-
-        alternatePhone:
-            normalizedAlternatePhone,
-
-        email:
-            validatedData.email || undefined,
-
-        addressLine1:
-            validatedData.addressLine1 || undefined,
-
-        addressLine2:
-            validatedData.addressLine2 || undefined,
-
-        city:
-            validatedData.city || undefined,
-
-        district:
-            validatedData.district || undefined,
-
-        state:
-            validatedData.state || undefined,
-
-        postalCode:
-            validatedData.postalCode || undefined,
-
-        country:
-            validatedData.country || undefined,
+        gender:validatedData.gender,
+        phone:normalizedPhone,
+        alternatePhone:normalizedAlternatePhone,
+        email:validatedData.email || undefined,
+        addressLine1:validatedData.addressLine1 || undefined,
+        addressLine2:validatedData.addressLine2 || undefined,
+        city:validatedData.city || undefined,
+        district:validatedData.district || undefined,
+        state:validatedData.state || undefined,
+        postalCode:validatedData.postalCode || undefined,
+        country:validatedData.country || undefined,
     };
     
     /*
@@ -1185,18 +709,12 @@ async function registerPatientRecord(
     |--------------------------------------------------------------------------
     */
 
-    for (
-        let attempt = 0;
-        attempt < 3;
-        attempt += 1
-    ) {
+    for (let attempt = 0; attempt < 3; attempt += 1) {
         try {
             return await prisma.patient.create({
                 data: {
                     ...patientData,
-
                     uhid: generateUhid(),
-
                     scheme: schemeId ? {
                         connect: {
                             id: schemeId,
@@ -1250,20 +768,12 @@ async function registerPatientRecord(
                 },
             });
         } catch (error) {
-            /*
-            | UHID collision protection
-            */
-
-            if (
-                error.code !== "P2002" ||
-                attempt === 2
-            ) {
+            if (error.code !== "P2002" || attempt === 2) {
                 throw error;
             }
         }
     }
 }
-
 
 /*
 |--------------------------------------------------------------------------
@@ -1271,30 +781,15 @@ async function registerPatientRecord(
 |--------------------------------------------------------------------------
 */
 
-async function updatePatientRecord(
-    patientId,
-    data
-) {
-    const patientIdNum =
-        Number(patientId);
-
-    if (
-        !Number.isInteger(patientIdNum) ||
-        patientIdNum < 1
-    ) {
-        const error = new Error(
-            "Patient ID must be a positive integer"
-        );
-
-        error.code =
-            "PATIENT_UPDATE_VALIDATION_ERROR";
-
+async function updatePatientRecord(patientId,data) {
+    const patientIdNum = Number(patientId);
+    if (!Number.isInteger(patientIdNum) || patientIdNum < 1) {
+        const error = new Error("Patient ID must be a positive integer");
+        error.code ="PATIENT_UPDATE_VALIDATION_ERROR";
         throw error;
     }
 
-    const validatedData =
-        patientUpdateSchema.parse(data);
-
+    const validatedData = patientUpdateSchema.parse(data);
     const editableFields =
         Object.keys(validatedData).filter(
             (key) =>
@@ -1302,13 +797,8 @@ async function updatePatientRecord(
         );
 
     if (editableFields.length === 0) {
-        const error = new Error(
-            "At least one editable field must be provided"
-        );
-
-        error.code =
-            "PATIENT_UPDATE_VALIDATION_ERROR";
-
+        const error = new Error("At least one editable field must be provided");
+        error.code ="PATIENT_UPDATE_VALIDATION_ERROR";
         throw error;
     }
 
@@ -1318,8 +808,7 @@ async function updatePatientRecord(
     |--------------------------------------------------------------------------
     */
 
-    const existingPatient =
-        await prisma.patient.findUnique({
+    const existingPatient = await prisma.patient.findUnique({
             where: {
                 id: patientIdNum,
             },
@@ -1338,38 +827,19 @@ async function updatePatientRecord(
         });
 
     if (!existingPatient) {
-        const error = new Error(
-            "Patient not found"
-        );
-
-        error.code =
-            "PATIENT_NOT_FOUND";
-
+        const error = new Error("Patient not found");
+        error.code ="PATIENT_NOT_FOUND";
         throw error;
     }
 
     const updateData = {};
 
-    /*
-    |--------------------------------------------------------------------------
-    | Basic Fields
-    |--------------------------------------------------------------------------
-    */
-
-    if (
-        validatedData.firstName !==
-        undefined
-    ) {
-        updateData.firstName =
-            validatedData.firstName;
+    if (validatedData.firstName !== undefined) {
+        updateData.firstName = validatedData.firstName;
     }
 
-    if (
-        validatedData.gender !==
-        undefined
-    ) {
-        updateData.gender =
-            validatedData.gender;
+    if (validatedData.gender !== undefined) {
+        updateData.gender = validatedData.gender;
     }
 
     /*
@@ -1393,10 +863,7 @@ async function updatePatientRecord(
 
     optionalStringFields.forEach(
         (field) => {
-            if (
-                validatedData[field] !==
-                undefined
-            ) {
+            if (validatedData[field] !== undefined ) {
                 updateData[field] =
                     validatedData[field] ||
                     null;
@@ -1408,19 +875,10 @@ async function updatePatientRecord(
     |--------------------------------------------------------------------------
     | Resolve DOB + Age During Update
     |--------------------------------------------------------------------------
-    |
-    | If either DOB or age is changed, both are
-    | resolved together.
-    |
     */
 
-    const dobWasProvided =
-        validatedData.dateOfBirth !==
-        undefined;
-
-    const ageWasProvided =
-        validatedData.age !==
-        undefined;
+    const dobWasProvided = validatedData.dateOfBirth !== undefined;
+    const ageWasProvided = validatedData.age !== undefined;
 
     if (dobWasProvided || ageWasProvided) {
         let finalDateOfBirth;
@@ -1430,10 +888,7 @@ async function updatePatientRecord(
         | Both fields sent
         */
 
-        if (
-            validatedData.dateOfBirth &&
-            ageWasProvided
-        ) {
+        if ( validatedData.dateOfBirth && ageWasProvided ) {
             const resolved =
                 resolveAgeAndDateOfBirth(
                     validatedData.dateOfBirth,
@@ -1441,92 +896,45 @@ async function updatePatientRecord(
                     "PATIENT_UPDATE_VALIDATION_ERROR"
                 );
 
-            finalDateOfBirth =
-                resolved.dateOfBirth;
-
-            finalAge =
-                resolved.age;
+            finalDateOfBirth = resolved.dateOfBirth;
+            finalAge = resolved.age;
         }
 
         /*
         | DOB changed only
         */
 
-        else if (
-            validatedData.dateOfBirth
-        ) {
-            const dateOfBirth =
-                parseDateOfBirth(
-                    validatedData.dateOfBirth
-                );
-
-            finalDateOfBirth =
-                dateOfBirth;
-
-            finalAge =
-                calculateAge(
-                    dateOfBirth
-                );
+        else if (validatedData.dateOfBirth) {
+            const dateOfBirth = parseDateOfBirth(validatedData.dateOfBirth);
+            finalDateOfBirth = dateOfBirth;
+            finalAge =calculateAge(dateOfBirth);
         }
 
         /*
         | Age changed only
         */
 
-        else if (
-            ageWasProvided
-        ) {
-            finalAge =
-                Number(
-                    validatedData.age
-                );
-
-            if (
-                !Number.isInteger(
-                    finalAge
-                ) ||
-                finalAge < 0 ||
-                finalAge > 150
-            ) {
-                const error = new Error(
-                    "Age must be a whole number between 0 and 150"
-                );
-
-                error.code =
-                    "PATIENT_UPDATE_VALIDATION_ERROR";
-
+        else if (ageWasProvided) {
+            finalAge =Number(validatedData.age);
+            if (!Number.isInteger(finalAge) || finalAge < 0 || finalAge > 150) {
+                const error = new Error("Age must be a whole number between 0 and 150");
+                error.code ="PATIENT_UPDATE_VALIDATION_ERROR";
                 throw error;
             }
-
-            finalDateOfBirth =
-                createApproximateDateOfBirth(
-                    finalAge
-                );
+            finalDateOfBirth = createApproximateDateOfBirth(finalAge);
         }
 
         /*
         | Empty DOB sent without age
-        |
-        | Do not allow the patient to end up without
-        | DOB because age is required in the database.
         */
 
         else {
-            const error = new Error(
-                "Date of birth or age is required"
-            );
-
-            error.code =
-                "PATIENT_UPDATE_VALIDATION_ERROR";
-
+            const error = new Error("Date of birth or age is required");
+            error.code ="PATIENT_UPDATE_VALIDATION_ERROR";
             throw error;
         }
-
-        updateData.dateOfBirth =
-            finalDateOfBirth;
-
-        updateData.age =
-            finalAge;
+        updateData.dateOfBirth =finalDateOfBirth;
+        updateData.age =finalAge;
     }
 
     /*
@@ -1535,33 +943,16 @@ async function updatePatientRecord(
     |--------------------------------------------------------------------------
     */
 
-    let newPhone =
-        existingPatient.phone;
+    let newPhone =existingPatient.phone;
+    let newAltPhone =existingPatient.alternatePhone;
 
-    let newAltPhone =
-        existingPatient.alternatePhone;
-
-    if (
-        validatedData.phone !==
-        undefined
-    ) {
-        newPhone =
-            normalizePhone(
-                validatedData.phone
-            );
-
-        updateData.phone =
-            newPhone;
+    if (validatedData.phone !== undefined) {
+        newPhone = normalizePhone(validatedData.phone);
+        updateData.phone = newPhone;
     }
 
-    if (
-        validatedData.alternatePhone !==
-        undefined
-    ) {
-        if (
-            validatedData.alternatePhone ===
-            ""
-        ) {
+    if (validatedData.alternatePhone !== undefined) {
+        if (validatedData.alternatePhone === "") {
             newAltPhone = null;
         } else {
             newAltPhone =
@@ -1569,9 +960,7 @@ async function updatePatientRecord(
                     validatedData.alternatePhone
                 );
         }
-
-        updateData.alternatePhone =
-            newAltPhone;
+        updateData.alternatePhone = newAltPhone;
     }
 
     /*
@@ -1580,18 +969,9 @@ async function updatePatientRecord(
     |--------------------------------------------------------------------------
     */
 
-    if (
-        newPhone &&
-        newAltPhone &&
-        newPhone === newAltPhone
-    ) {
-        const error = new Error(
-            "Primary and alternate phone numbers cannot be the same"
-        );
-
-        error.code =
-            "PATIENT_UPDATE_VALIDATION_ERROR";
-
+    if (newPhone && newAltPhone && newPhone === newAltPhone) {
+        const error = new Error("Primary and alternate phone numbers cannot be the same");
+        error.code ="PATIENT_UPDATE_VALIDATION_ERROR";
         throw error;
     }
 
@@ -1601,20 +981,13 @@ async function updatePatientRecord(
     |--------------------------------------------------------------------------
     */
 
-    if (
-        validatedData.phone !==
-        undefined ||
-        validatedData.alternatePhone !==
-        undefined
-    ) {
+    if (validatedData.phone !== undefined || validatedData.alternatePhone !== undefined) {
         const phonesToCheck = [];
-
         if (newPhone) {
             phonesToCheck.push(
                 newPhone
             );
         }
-
         if (newAltPhone) {
             phonesToCheck.push(
                 newAltPhone
@@ -1622,8 +995,7 @@ async function updatePatientRecord(
         }
 
         if (phonesToCheck.length > 0) {
-            const duplicates =
-                await prisma.patient.findMany({
+            const duplicates = await prisma.patient.findMany({
                     where: {
                         id: {
                             not: patientIdNum,
@@ -1662,16 +1034,9 @@ async function updatePatientRecord(
             if (
                 duplicates.length > 0
             ) {
-                const error = new Error(
-                    "A patient with this phone number may already exist"
-                );
-
-                error.code =
-                    "PATIENT_DUPLICATE_PHONE";
-
-                error.duplicates =
-                    duplicates;
-
+                const error = new Error("A patient with this phone number may already exist");
+                error.code ="PATIENT_DUPLICATE_PHONE";
+                error.duplicates =duplicates;
                 throw error;
             }
         }
@@ -1684,15 +1049,11 @@ async function updatePatientRecord(
     
     */
 
-    if (
-        validatedData.schemeId !== undefined
-    ) {
-        if (
-            validatedData.schemeId === "" ) {
+    if (validatedData.schemeId !== undefined) {
+        if (validatedData.schemeId === "" ) {
             updateData.schemeId = null;
         } else {
-            const scheme =
-                await prisma.patientScheme.findFirst({
+            const scheme = await prisma.patientScheme.findFirst({
                     where: {
                         id: Number(
                             validatedData.schemeId
@@ -1707,18 +1068,11 @@ async function updatePatientRecord(
                 });
 
             if (!scheme) {
-                const error = new Error(
-                    "Selected scheme does not exist or is inactive"
-                );
-
-                error.code =
-                    "PATIENT_UPDATE_VALIDATION_ERROR";
-
+                const error = new Error("Selected scheme does not exist or is inactive");
+                error.code ="PATIENT_UPDATE_VALIDATION_ERROR";
                 throw error;
             }
-
-            updateData.schemeId =
-                scheme.id;
+            updateData.schemeId = scheme.id;
         }
     }
 
@@ -1728,8 +1082,7 @@ async function updatePatientRecord(
     |--------------------------------------------------------------------------
     */
 
-    const updatedPatient =
-        await prisma.patient.update({
+    const updatedPatient = await prisma.patient.update({
             where: {
                 id: patientIdNum,
             },

@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 
 import { updatePatient } from "./services/patientService";
 
+import { useNavigate } from "react-router-dom";
+
 const KERALA_DISTRICTS = [
     "Alappuzha",
     "Ernakulam",
@@ -273,20 +275,12 @@ function PatientDetails({
     onAfterUpdate,
     schemes = [],
 }) {
-    const [isEditing, setIsEditing] =
-        useState(false);
 
-    const [formData, setFormData] =
-        useState(
-            () => buildForm(patient)
-        );
-
-    const [saving, setSaving] =
-        useState(false);
-
-    const [error, setError] =
-        useState("");
-
+    const navigate = useNavigate();
+    const [isEditing, setIsEditing] = useState(false);
+    const [formData, setFormData] =useState(() => buildForm(patient));
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState("");
 
     /*
     |--------------------------------------------------------------------------
@@ -790,28 +784,38 @@ function PatientDetails({
                 <div className="patient-details-actions">
 
                     {!isEditing && (
-                        <button
-                            type="button"
-                            className="btn btn-primary"
-                            onClick={() =>
-                                setIsEditing(
-                                    true
-                                )
-                            }
-                        >
-                            Edit
-                        </button>
+                        <>
+                            <button
+                                type="button"
+                                className="btn btn-primary"
+                                onClick={() =>
+                                    setIsEditing(true)
+                                }
+                            >
+                                Edit
+                            </button>
+
+                            {patient.status === "ACTIVE" && (
+                                <button
+                                    type="button"
+                                    className="btn btn-primary"
+                                    onClick={() =>
+                                        navigate(
+                                            `/reception/op/${patient.id}`
+                                        )
+                                    }
+                                >
+                                    Register OP Visit
+                                </button>
+                            )}
+                        </>
                     )}
 
                     <button
                         type="button"
                         className="btn btn-secondary"
-                        onClick={
-                            onBack
-                        }
-                        disabled={
-                            saving
-                        }
+                        onClick={onBack}
+                        disabled={saving}
                     >
                         Back
                     </button>

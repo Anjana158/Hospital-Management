@@ -1,0 +1,383 @@
+.op-registration-page {
+    padding: 25px;
+    min-height: 100%;
+    background: #f7f9fc;
+}
+
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.op-page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 22px;
+}
+
+
+.op-page-title {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+
+.op-title-icon {
+    width: 48px;
+    height: 48px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background: #eaf3ff;
+    color: #4779b8;
+
+    border-radius: 12px;
+
+    font-size: 22px;
+}
+
+
+.op-page-title h2 {
+    margin: 0;
+    color: #27364b;
+    font-size: 25px;
+}
+
+
+.op-page-title p {
+    margin: 4px 0 0;
+    color: #718096;
+    font-size: 13px;
+}
+
+
+/* =========================================================
+   CARD
+========================================================= */
+
+.op-card {
+    background: #ffffff;
+    border: 1px solid #e5eaf1;
+    border-radius: 12px;
+    padding: 22px;
+    margin-bottom: 20px;
+
+    box-shadow:
+        0 2px 8px rgba(40, 60, 90, 0.04);
+}
+
+
+.op-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    padding-bottom: 16px;
+    margin-bottom: 20px;
+
+    border-bottom: 1px solid #edf0f5;
+}
+
+
+.op-card-header h3 {
+    margin: 0;
+    color: #34445a;
+    font-size: 18px;
+}
+
+
+.op-card-header p {
+    margin: 5px 0 0;
+    color: #7a8798;
+    font-size: 13px;
+}
+
+
+.op-card-header svg {
+    color: #7ca6d8;
+    font-size: 22px;
+}
+
+
+/* =========================================================
+   PATIENT GRID
+========================================================= */
+
+.op-patient-grid {
+    display: grid;
+    grid-template-columns:
+        repeat(3, 1fr);
+
+    gap: 18px;
+}
+
+
+.op-detail {
+    background: #f8fafc;
+    border: 1px solid #edf1f6;
+    border-radius: 9px;
+    padding: 13px;
+}
+
+
+.op-detail label {
+    display: block;
+    color: #7a8798;
+    font-size: 12px;
+    margin-bottom: 5px;
+}
+
+
+.op-detail strong {
+    color: #334155;
+    font-size: 14px;
+}
+
+
+/* =========================================================
+   FORM
+========================================================= */
+
+.op-form-grid {
+    display: grid;
+    grid-template-columns:
+        repeat(2, 1fr);
+
+    gap: 20px;
+}
+
+
+.op-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+
+.op-form-group label {
+    color: #44546a;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+
+.op-form-group label span {
+    color: #e27b8d;
+    margin-left: 3px;
+}
+
+
+.op-form-group input,
+.op-form-group select {
+    width: 100%;
+    box-sizing: border-box;
+
+    padding: 11px 12px;
+
+    border: 1px solid #d8e0ea;
+    border-radius: 7px;
+
+    background: #ffffff;
+    color: #344054;
+
+    font-size: 14px;
+
+    outline: none;
+}
+
+
+.op-form-group input:focus,
+.op-form-group select:focus {
+    border-color: #8bb4df;
+
+    box-shadow:
+        0 0 0 3px
+        rgba(139, 180, 223, 0.15);
+}
+
+
+.op-form-group input:disabled,
+.op-form-group select:disabled {
+    background: #f1f4f8;
+    cursor: not-allowed;
+}
+
+
+/* =========================================================
+   FEE
+========================================================= */
+
+.op-fee-summary {
+    margin-top: 25px;
+
+    background: #f8fafc;
+
+    border: 1px solid #e5eaf1;
+
+    border-radius: 9px;
+
+    padding: 15px;
+}
+
+
+.op-fee-summary > div {
+    display: flex;
+    justify-content: space-between;
+
+    padding: 8px 0;
+
+    color: #667085;
+    font-size: 14px;
+}
+
+
+.op-fee-summary strong {
+    color: #344054;
+}
+
+
+.op-fee-summary .op-final-fee {
+    margin-top: 7px;
+    padding-top: 13px;
+
+    border-top: 1px solid #dfe5ed;
+
+    color: #334155;
+    font-weight: 600;
+}
+
+
+.op-final-fee strong {
+    font-size: 17px;
+    color: #4779b8;
+}
+
+
+/* =========================================================
+   BUTTONS
+========================================================= */
+
+.op-form-actions {
+    display: flex;
+    justify-content: flex-end;
+
+    gap: 10px;
+
+    margin-top: 25px;
+}
+
+
+.op-primary-btn,
+.op-secondary-btn {
+    border: none;
+    border-radius: 7px;
+
+    padding: 10px 17px;
+
+    font-size: 13px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+}
+
+
+.op-primary-btn {
+    background: #6f9fcf;
+    color: #ffffff;
+}
+
+
+.op-primary-btn:hover {
+    background: #5f90c2;
+}
+
+
+.op-secondary-btn {
+    background: #edf2f7;
+    color: #506176;
+}
+
+
+.op-secondary-btn:hover {
+    background: #e2e8f0;
+}
+
+
+.op-primary-btn:disabled,
+.op-secondary-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+
+/* =========================================================
+   ERROR / LOADING
+========================================================= */
+
+.op-error {
+    background: #fff1f3;
+    border: 1px solid #f2c6cf;
+    color: #a64b5c;
+
+    border-radius: 8px;
+
+    padding: 12px 15px;
+
+    margin-bottom: 18px;
+
+    font-size: 13px;
+}
+
+
+.op-loading {
+    padding: 50px;
+
+    text-align: center;
+
+    color: #667085;
+
+    font-size: 14px;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 900px) {
+
+    .op-patient-grid {
+        grid-template-columns:
+            repeat(2, 1fr);
+    }
+
+}
+
+
+@media (max-width: 650px) {
+
+    .op-registration-page {
+        padding: 15px;
+    }
+
+
+    .op-page-header {
+        align-items: flex-start;
+        gap: 15px;
+    }
+
+
+    .op-patient-grid,
+    .op-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+}

@@ -3,11 +3,14 @@ import { FaSearch } from "react-icons/fa";
 
 import {
     searchPatients,
-    getTodayPatients,
     getPatientById,
     registerPatient,
     getPatientSchemes,
 } from "./services/patientService";
+
+import {
+    getTodayVisits,
+} from "./services/visitService";
 
 import "../styles/PatientManagement.css";
 import PatientRegisterForm from "./PatientRegisterForm";
@@ -27,15 +30,20 @@ function PatientManagement() {
 
     const [selectedPatient, setSelectedPatient] = useState(null);
 
-    const [showRegisterModal, setShowRegisterModal] =
-        useState(false);
+    const [showRegisterModal, setShowRegisterModal] = useState(false);
 
-    const [duplicateCandidates, setDuplicateCandidates] =
-        useState([]);
+    const [duplicateCandidates, setDuplicateCandidates] = useState([]);
 
-    const [todayPatients, setTodayPatients] =  useState([]);
+    const [todayVisits, setTodayVisits] = useState([]);
 
-    const [todayPagination, setTodayPagination] =  useState({ page: 1,limit: 20,total: 0, totalPages: 0,hasNextPage: false,hasPreviousPage: false,});
+    const [todayPagination, setTodayPagination] = useState({
+        page: 1,
+        limit: 20,
+        total: 0,
+        totalPages: 0,
+        hasNextPage: false,
+        hasPreviousPage: false,
+    });
 
     /*
     |--------------------------------------------------------------------------
@@ -54,7 +62,7 @@ function PatientManagement() {
 
     useEffect(() => {
         loadSchemes();
-        loadTodayPatients();
+        loadTodayVisits();
     }, []);
 
     const loadSchemes = async () => {
@@ -76,25 +84,26 @@ function PatientManagement() {
     };
 
     /*
-|--------------------------------------------------------------------------
-| Load Today's Patients
-|--------------------------------------------------------------------------
-*/
+    |--------------------------------------------------------------------------
+    | Load Today's OP Visits
+    |--------------------------------------------------------------------------
+    */
 
-const loadTodayPatients = async (
-        page = 1
+    const loadTodayVisits = async (
+        page = 1,
+        limit = 20
     ) => {
         try {
             setLoading(true);
             setError("");
 
             const result =
-                await getTodayPatients(
+                await getTodayVisits(
                     page,
-                    20
+                    limit
                 );
 
-            setTodayPatients(
+            setTodayVisits(
                 result.data?.items || []
             );
 
@@ -110,16 +119,16 @@ const loadTodayPatients = async (
             );
         } catch (error) {
             console.error(
-                "Failed to load today's patients:",
+                "Failed to load today's OP visits:",
                 error
             );
 
             setError(
                 error.response?.data?.message ||
-                "Failed to load today's patients"
+                "Failed to load today's OP visits"
             );
 
-            setTodayPatients([]);
+            setTodayVisits([]);
         } finally {
             setLoading(false);
         }
@@ -185,7 +194,7 @@ const loadTodayPatients = async (
         setError("");
         setSuccess("");
 
-        loadTodayPatients(1);
+        loadTodayVisits(1, 20);
     };
 
     /*
@@ -248,55 +257,31 @@ const loadTodayPatients = async (
     |--------------------------------------------------------------------------
     */
 
-    const handleRegister = async (
-        formData
-    ) => {
+    const handleRegister = async (formData) => {
         try {
             setLoading(true);
             setError("");
 
-            const result =
-                await registerPatient(
-                    formData
-                );
+            const result =await registerPatient(formData);
 
-            setSuccess(
-                "Patient registered successfully! UHID: " +
-                result.data.uhid
-            );
-
+            setSuccess("Patient registered successfully! UHID: " + result.data.uhid);
             setShowRegisterModal(false);
 
             setSearchQuery("");
             setSearchResults([]);
 
-            await loadTodayPatients(1);
-
-            setSelectedPatient(result.data);
+            const patientResult = await getPatientById(result.data.id);
+            setSelectedPatient(patientResult.data);
 
             setView("details");
         } catch (error) {
-            console.error(
-                "Registration error:",
-                error
-            );
+            console.error("Registration error:",error);
 
-            if (
-                error.response?.status === 409 &&
-                error.response?.data?.code ===
-                    "PATIENT_DUPLICATE_PHONE"
-            ) {
-                setDuplicateCandidates(
-                    error.response.data.duplicates ||
-                    []
-                );
-
+            if (error.response?.status === 409 && error.response?.data?.code === "PATIENT_DUPLICATE_PHONE") {
+                setDuplicateCandidates(error.response.data.duplicates || []);
                 setError("");
             } else {
-                setError(
-                    error.response?.data?.message ||
-                    "Failed to register patient"
-                );
+                setError(error.response?.data?.message || "Failed to register patient");
             }
         } finally {
             setLoading(false);
@@ -358,8 +343,9 @@ const loadTodayPatients = async (
         setSuccess("");
 
         if (!searchQuery.trim()) {
-            loadTodayPatients(
-                todayPagination.page
+            loadTodayVisits(
+                todayPagination.page,
+                20
             );
         }
     };
@@ -701,7 +687,7 @@ const loadTodayPatients = async (
 
                             /*
                             |--------------------------------------------------------------------------
-                            | TODAY'S PATIENTS
+                            | TODAY'S OP VISITS
                             |--------------------------------------------------------------------------
                             */
 
@@ -710,25 +696,25 @@ const loadTodayPatients = async (
                                 <div className="patient-list-header">
                                     <div>
                                         <h3 className="patient-list-title">
-                                            Today's Registered Patients
+                                            TODAY'S OP VISITS
                                         </h3>
 
                                         <p className="patient-list-subtitle">
-                                            Patients registered today
+                                            Patients with OP tickets today
                                         </p>
                                     </div>
                                 </div>
 
 
-                                {todayPatients.length === 0 ? (
+                                {todayVisits.length === 0 ? (
 
                                     <div className="patient-empty-state">
                                         <div className="patient-empty-title">
-                                            No patients registered today
+                                            No OP visits today.
                                         </div>
 
                                         <p>
-                                            Patients registered today will appear here.
+                                            Today's OP visits will appear here.
                                         </p>
                                     </div>
 
@@ -742,11 +728,15 @@ const loadTodayPatients = async (
                                                 <tr>
 
                                                     <th>
+                                                        Token
+                                                    </th>
+
+                                                    <th>
                                                         UHID
                                                     </th>
 
                                                     <th>
-                                                        Name
+                                                        Patient Name
                                                     </th>
 
                                                     <th>
@@ -758,11 +748,15 @@ const loadTodayPatients = async (
                                                     </th>
 
                                                     <th>
-                                                        Phone
+                                                        Department
                                                     </th>
 
                                                     <th>
-                                                        Scheme
+                                                        Doctor
+                                                    </th>
+
+                                                    <th>
+                                                        Visit Type
                                                     </th>
 
                                                     <th>
@@ -780,62 +774,71 @@ const loadTodayPatients = async (
 
                                             <tbody>
 
-                                                {todayPatients.map(
-                                                    (patient) => (
+                                                {todayVisits.map(
+                                                    (visit) => (
                                                         <tr
                                                             key={
-                                                                patient.id
+                                                                visit.id
                                                             }
                                                         >
 
                                                             <td>
                                                                 {
-                                                                    patient.uhid
+                                                                    visit.tokenNumber
                                                                 }
                                                             </td>
 
                                                             <td>
                                                                 {
-                                                                    patient.firstName
-                                                                }{" "}
+                                                                    visit.patient?.uhid
+                                                                }
+                                                            </td>
+
+                                                            <td>
+                                                                {[
+                                                                    visit.patient?.firstName,
+                                                                    visit.patient?.middleName,
+                                                                    visit.patient?.lastName,
+                                                                ]
+                                                                    .filter(Boolean)
+                                                                    .join(" ")}
+                                                            </td>
+
+                                                            <td>
                                                                 {
-                                                                    patient.middleName
-                                                                }{" "}
-                                                                {
-                                                                    patient.lastName
+                                                                    visit.patient?.age
                                                                 }
                                                             </td>
 
                                                             <td>
                                                                 {
-                                                                    patient.age
+                                                                    visit.patient?.gender
                                                                 }
                                                             </td>
 
                                                             <td>
                                                                 {
-                                                                    patient.gender
+                                                                    visit.department?.name ||
+                                                                    "—"
                                                                 }
                                                             </td>
 
                                                             <td>
                                                                 {
-                                                                    patient.phone
+                                                                    visit.doctor?.fullName ||
+                                                                    "—"
                                                                 }
                                                             </td>
 
                                                             <td>
                                                                 {
-                                                                    patient
-                                                                        .scheme
-                                                                        ?.name ||
-                                                                    "No scheme"
+                                                                    visit.visitType
                                                                 }
                                                             </td>
 
                                                             <td>
                                                                 {
-                                                                    patient.status
+                                                                    visit.status
                                                                 }
                                                             </td>
 
@@ -844,8 +847,11 @@ const loadTodayPatients = async (
                                                                     className="action-btn"
                                                                     onClick={() =>
                                                                         viewPatientDetails(
-                                                                            patient.id
+                                                                            visit.patient?.id
                                                                         )
+                                                                    }
+                                                                    disabled={
+                                                                        !visit.patient?.id
                                                                     }
                                                                 >
                                                                     View
@@ -876,9 +882,10 @@ const loadTodayPatients = async (
                                                         !todayPagination.hasPreviousPage
                                                     }
                                                     onClick={() =>
-                                                        loadTodayPatients(
+                                                        loadTodayVisits(
                                                             todayPagination.page -
-                                                            1
+                                                            1,
+                                                            20
                                                         )
                                                     }
                                                 >
@@ -904,9 +911,10 @@ const loadTodayPatients = async (
                                                         !todayPagination.hasNextPage
                                                     }
                                                     onClick={() =>
-                                                        loadTodayPatients(
+                                                        loadTodayVisits(
                                                             todayPagination.page +
-                                                            1
+                                                            1,
+                                                            20
                                                         )
                                                     }
                                                 >

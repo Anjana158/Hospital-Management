@@ -12,10 +12,7 @@ const { requireRole } = require("../../middleware/roleMiddleware");
 
 const router = express.Router();
 
-router.use(
-    authenticateToken,
-    requireRole("RECEPTION")
-);
+router.use(authenticateToken, requireRole("RECEPTION"));
 
 router.get("/search", searchPatients);
 router.get("/today",getTodayPatients);

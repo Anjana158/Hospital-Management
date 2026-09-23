@@ -103,9 +103,7 @@ async function loginUser(username, password) {
     };
 }
 
-module.exports = {
-    loginUser,
-};
+module.exports = {loginUser,};
 
 
 
