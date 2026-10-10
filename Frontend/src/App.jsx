@@ -9,7 +9,7 @@ import DashboardHome from './admin/DashboardHome'
 import Users from './admin/Users'
 import Schemes from './admin/Schemes'
 import DepartmentManagement from './admin/DepartmentManagement'
-import DoctorManagement from './admin/DoctorManagement'
+import AdminReports from './admin/AdminReports'
 
 // Protected Route
 import ProtectedRoute from './admin/ProtectedRoute'
@@ -20,7 +20,7 @@ import ReceptionHome from './reception/ReceptionHome'
 import PatientManagement from './reception/PatientManagement'
 import OpRegistration from './reception/OpRegistration'
 import OPTicket from './reception/OPTicket'
-import ReceptionToken from './reception/ReceptionToken'
+import ReceptionistReports from './reception/ReceptionistReports'
 
 
 // BILLING
@@ -54,7 +54,7 @@ function App() {
                         <Route path="users" element={<Users />}/>
                         <Route path="schemes" element={<Schemes />}/>
                         <Route path="departments" element={<DepartmentManagement />} />
-                        <Route path="doctors" element={<DoctorManagement />}/>
+                        <Route path="reports" element={<AdminReports />} />
                     </Route>
                 </Route>
 
@@ -69,7 +69,7 @@ function App() {
                         <Route path="patients" element={<PatientManagement />}/>
                         <Route path="/reception/op/:patientId" element={<OpRegistration />}/>
                         <Route path="/reception/op-ticket/:visitId" element={<OPTicket />}/>
-                        <Route path="/reception/token" element={<ReceptionToken/>}/>
+                        <Route path="/reception/reports" element={<ReceptionistReports />}/>
                     </Route>
                 </Route>
 

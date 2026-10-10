@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import { updatePatient } from "./services/patientService";
+import { getPatientVisitHistory } from "./services/visitService";
 
-import { useNavigate } from "react-router-dom";
 
 const KERALA_DISTRICTS = [
     "Alappuzha",
@@ -40,6 +41,34 @@ function formatDate(value) {
     }
 
     return date.toLocaleDateString();
+}
+
+function formatVisitDate(value) {
+    if (!value) {
+        return "—";
+    }
+
+    return new Date(value).toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+    });
+}
+
+function formatVisitTime(value) {
+    if (!value) {
+        return "—";
+    }
+
+    return new Date(value).toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+    });
+}
+
+function formatVisitAmount(value) {
+    return `₹${Number(value || 0).toFixed(2)}`;
 }
 
 
@@ -88,8 +117,8 @@ function displayValue(value) {
 */
 
 function isValidPhone(value) {
-    if (!value) {
-        return false;
+    if (!value || !String(value).trim()) {
+        return true;
     }
 
     if (
@@ -273,14 +302,18 @@ function PatientDetails({
     patient,
     onBack,
     onAfterUpdate,
+    onRegisterOp,
     schemes = [],
 }) {
-
     const navigate = useNavigate();
+
     const [isEditing, setIsEditing] = useState(false);
     const [formData, setFormData] =useState(() => buildForm(patient));
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
+    const [opVisits, setOpVisits] = useState([]);
+    const [loadingOpVisits, setLoadingOpVisits] = useState(true);
+    const [opVisitError, setOpVisitError] = useState("");
 
     /*
     |--------------------------------------------------------------------------
@@ -296,6 +329,40 @@ function PatientDetails({
         setIsEditing(false);
         setError("");
     }, [patient]);
+
+    useEffect(() => {
+        let active = true;
+
+        const loadOpVisits = async () => {
+            setLoadingOpVisits(true);
+            setOpVisitError("");
+
+            try {
+                const result = await getPatientVisitHistory(patient.id);
+                if (active) {
+                    setOpVisits(result.data || []);
+                }
+            } catch (loadError) {
+                if (active) {
+                    setOpVisits([]);
+                    setOpVisitError(
+                        loadError.response?.data?.message ||
+                        "Failed to load OP visit history"
+                    );
+                }
+            } finally {
+                if (active) {
+                    setLoadingOpVisits(false);
+                }
+            }
+        };
+
+        loadOpVisits();
+
+        return () => {
+            active = false;
+        };
+    }, [patient.id]);
 
 
     /*
@@ -591,6 +658,7 @@ function PatientDetails({
         */
 
         if (
+            formData.phone.trim() &&
             formData.alternatePhone &&
             formData.phone.replace(
                 /\D/g,
@@ -799,13 +867,9 @@ function PatientDetails({
                                 <button
                                     type="button"
                                     className="btn btn-primary"
-                                    onClick={() =>
-                                        navigate(
-                                            `/reception/op/${patient.id}`
-                                        )
-                                    }
+                                    onClick={onRegisterOp}
                                 >
-                                    Register OP Visit
+                                    OP Register
                                 </button>
                             )}
                         </>
@@ -1155,7 +1219,7 @@ function PatientDetails({
 
                         <div className="form-group">
 
-                            <label className="required">
+                            <label>
                                 Phone
                             </label>
 
@@ -1990,6 +2054,64 @@ function PatientDetails({
 
                         </div>
 
+                    </div>
+
+                    <div className="detail-section">
+                        <h3>OP Visit History</h3>
+
+                        {loadingOpVisits ? (
+                            <p>Loading OP visit history...</p>
+                        ) : opVisitError ? (
+                            <div className="patient-error">{opVisitError}</div>
+                        ) : opVisits.length === 0 ? (
+                            <p>No OP visit history found.</p>
+                        ) : (
+                            <div className="patient-table-wrapper">
+                                <table className="patient-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Visit Date</th>
+                                            <th>Visit Time</th>
+                                            <th>Department</th>
+                                            <th>Token Number</th>
+                                            <th>Visit Type</th>
+                                            <th>OP Fee</th>
+                                            <th>Discount</th>
+                                            <th>Final Fee</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {opVisits.map((visit) => (
+                                            <tr key={visit.id}>
+                                                <td>{formatVisitDate(visit.visitDate)}</td>
+                                                <td>{formatVisitTime(visit.visitDate)}</td>
+                                                <td>{visit.department?.name || "—"}</td>
+                                                <td>{visit.tokenLabel || visit.tokenNumber || "—"}</td>
+                                                <td>{visit.visitType === "REVISIT" ? "Revisit" : "New"}</td>
+                                                <td>{formatVisitAmount(visit.opFee)}</td>
+                                                <td>{formatVisitAmount(visit.discountAmount)}</td>
+                                                <td>{formatVisitAmount(visit.finalFee)}</td>
+                                                <td>
+                                                    <button
+                                                        type="button"
+                                                        className="action-btn"
+                                                        onClick={() =>
+                                                            navigate(
+                                                                `/reception/op-ticket/${visit.id}`,
+                                                                { state: { autoPrint: true } }
+                                                            )
+                                                        }
+                                                    >
+                                                        Reprint OP Ticket
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
                     </div>
 
                 </>

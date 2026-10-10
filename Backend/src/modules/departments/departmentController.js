@@ -18,13 +18,6 @@ const getDepartments = async (req, res) => {
             orderBy: {
                 name: "asc",
             },
-            include: {
-                _count: {
-                    select: {
-                        doctors: true,
-                    },
-                },
-            },
         });
 
         res.status(200).json({

@@ -1,7 +1,7 @@
 import axios from "axios";
 
-const API_URL = "http://localhost:5000/api/patients";
-const SCHEMES_API_URL = "http://localhost:5000/api/schemes";
+const API_URL = "http://100.103.223.11:5000/api/patients";
+const SCHEMES_API_URL = "http://100.103.223.11:5000/api/schemes";
 
 const getAuthConfig = () => {
     const token = localStorage.getItem("token");
@@ -43,12 +43,14 @@ export const searchPatients = async (
     query,
     field = "all",
     page = 1,
-    limit = 20
+    limit = 20,
+    gender = "ALL",
+    ageGroup = "ALL"
 ) => {
     const response = await axios.get(
         `${API_URL}/search`,
         {
-            params: { q: query, field, page, limit },
+            params: { q: query, field, page, limit, gender, ageGroup },
             ...getAuthConfig(),
         }
     );

@@ -2,10 +2,10 @@ const express = require("express");
 
 const {
     registerVisit,
-    getPatientDoctorHistory,
+    getPatientDepartmentHistory,
     getTodayVisits,
-    getTodayToken,
-    setTodayToken,
+    getVisit,
+    getPatientVisits,
 } = require("./visitController");
 
 const {authenticateToken,} = require("../../middleware/authMiddleware");
@@ -30,7 +30,8 @@ router.use(authenticateToken,requireRole("RECEPTION"));
 
 router.post("/",registerVisit);
 
-router.get("/patient/:patientId/doctor/:doctorId/history", getPatientDoctorHistory);
+router.get("/patient/:patientId/department/:departmentId/history", getPatientDepartmentHistory);
+router.get("/patient/:patientId/history", getPatientVisits);
 
 /*
 |--------------------------------------------------------------------------
@@ -39,23 +40,6 @@ router.get("/patient/:patientId/doctor/:doctorId/history", getPatientDoctorHisto
 */
 
 router.get("/today", getTodayVisits);
-
-/*
-|--------------------------------------------------------------------------
-| Today's Token
-|--------------------------------------------------------------------------
-*/
-
-router.get("/token/today",getTodayToken);
-
-
-/*
-|--------------------------------------------------------------------------
-| Set Today's Starting Token
-|--------------------------------------------------------------------------
-*/
-
-router.put("/token/today", setTodayToken);
-
+router.get("/:id", getVisit);
 
 module.exports = router;

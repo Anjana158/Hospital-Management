@@ -20,11 +20,7 @@ import {
 } from "../admin/services/departmentService";
 
 import {
-    getDoctors,
-} from "../admin/services/doctorService";
-
-import {
-    getPatientDoctorVisitHistory,
+    getPatientDepartmentVisitHistory,
     registerVisit,
 } from "./services/visitService";
 
@@ -46,14 +42,8 @@ function OPRegistration() {
     const [departments, setDepartments] =
         useState([]);
 
-    const [doctors, setDoctors] =
-        useState([]);
-
 
     const [departmentId, setDepartmentId] =
-        useState("");
-
-    const [doctorId, setDoctorId] =
         useState("");
 
     const [visitType, setVisitType] =
@@ -68,6 +58,7 @@ function OPRegistration() {
         });
 
     const [opFee, setOpFee] = useState("10");
+    const [paymentMethod, setPaymentMethod] = useState("CASH");
 
 
     const [loading, setLoading] =
@@ -102,11 +93,9 @@ function OPRegistration() {
                 const [
                     patientResult,
                     departmentResult,
-                    doctorResult,
                 ] = await Promise.all([
                     getPatientById(patientId),
                     getDepartments(),
-                    getDoctors(),
                 ]);
 
 
@@ -117,12 +106,6 @@ function OPRegistration() {
 
                 setDepartments(
                     departmentResult.departments ||
-                    []
-                );
-
-
-                setDoctors(
-                    doctorResult.doctors ||
                     []
                 );
 
@@ -160,7 +143,6 @@ function OPRegistration() {
                 event.target.value;
 
             setDepartmentId(value);
-            setDoctorId("");
             setVisitHistory({
                 hasPreviousVisit: false,
                 hasVisitToday: false,
@@ -171,8 +153,8 @@ function OPRegistration() {
         };
 
     useEffect(() => {
-        const syncDoctorVisitState = async () => {
-            if (!patientId || !doctorId) {
+        const syncDepartmentVisitState = async () => {
+            if (!patientId || !departmentId) {
                 setVisitHistory({
                     hasPreviousVisit: false,
                     hasVisitToday: false,
@@ -184,9 +166,9 @@ function OPRegistration() {
             }
 
             try {
-                const response = await getPatientDoctorVisitHistory(
+                const response = await getPatientDepartmentVisitHistory(
                     Number(patientId),
-                    Number(doctorId)
+                    Number(departmentId)
                 );
 
                 const history = response.data || {};
@@ -196,12 +178,12 @@ function OPRegistration() {
                 setVisitType(nextVisitType);
 
                 if (history.hasVisitToday) {
-                    setError("Patient has already registered an OP visit with this doctor today.");
+                    setError("Patient has already registered an OP visit in this department today.");
                 } else {
                     setError("");
                 }
             } catch (error) {
-                console.error("Failed to load patient-doctor visit history:", error);
+                console.error("Failed to load patient visit history:", error);
                 setVisitType("NEW");
                 setVisitHistory({
                     hasPreviousVisit: false,
@@ -211,33 +193,13 @@ function OPRegistration() {
                 });
                 setError(
                     error.response?.data?.message ||
-                    "Failed to load doctor visit history"
+                    "Failed to load visit history"
                 );
             }
         };
 
-        syncDoctorVisitState();
-    }, [patientId, doctorId]);
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Filter Doctors
-    |--------------------------------------------------------------------------
-    */
-
-    const filteredDoctors =
-        doctors.filter(
-            (doctor) =>
-                doctor.status ===
-                    "ACTIVE" &&
-                String(
-                    doctor.departmentId
-                ) ===
-                    String(
-                        departmentId
-                    )
-        );
+        syncDepartmentVisitState();
+    }, [patientId, departmentId]);
 
 
     /*
@@ -324,18 +286,9 @@ function OPRegistration() {
             }
 
 
-            if (!doctorId) {
-
-                setError(
-                    "Please select a doctor"
-                );
-
-                return;
-            }
-
             if (visitHistory.hasVisitToday) {
                 setError(
-                    "Patient has already registered an OP visit with this doctor today."
+                    "Patient has already registered an OP visit in this department today."
                 );
                 return;
             }
@@ -369,13 +322,11 @@ function OPRegistration() {
                                 departmentId
                             ),
 
-                        doctorId:
-                            Number(
-                                doctorId
-                            ),
-
                         opFee:
                             numericFee,
+
+                        paymentMethod:
+                            finalFee > 0 ? paymentMethod : null,
                     });
 
                 navigate(
@@ -663,7 +614,7 @@ function OPRegistration() {
                         </h3>
 
                         <p>
-                            Select department, doctor and visit type
+                            Select department and visit type
                         </p>
                     </div>
 
@@ -719,63 +670,6 @@ function OPRegistration() {
                                         </option>
                                     )
                                 )}
-
-                        </select>
-
-                    </div>
-
-
-                    {/* Doctor */}
-
-                    <div className="op-form-group">
-
-                        <label>
-                            Doctor
-                            <span>*</span>
-                        </label>
-
-                        <select
-                            value={
-                                doctorId
-                            }
-                            onChange={(event) => {
-                                setDoctorId(
-                                    event.target.value
-                                );
-                                setError("");
-                            }}
-                            disabled={
-                                saving ||
-                                !departmentId
-                            }
-                        >
-
-                            <option value="">
-                                {!departmentId
-                                    ? "Select department first"
-                                    : "Select doctor"}
-                            </option>
-
-                            {filteredDoctors.map(
-                                (doctor) => (
-                                    <option
-                                        key={
-                                            doctor.id
-                                        }
-                                        value={
-                                            doctor.id
-                                        }
-                                    >
-                                        Dr.{" "}
-                                        {
-                                            doctor.fullName
-                                        }
-                                        {doctor.specialization
-                                            ? ` - ${doctor.specialization}`
-                                            : ""}
-                                    </option>
-                                )
-                            )}
 
                         </select>
 
@@ -882,6 +776,25 @@ function OPRegistration() {
                             )}
                         </strong>
 
+                    </div>
+
+                    <div>
+                        <span>
+                            {finalFee > 0 ? "Payment Method" : "Payment"}
+                        </span>
+
+                        {finalFee > 0 ? (
+                            <select
+                                value={paymentMethod}
+                                onChange={(event) => setPaymentMethod(event.target.value)}
+                                disabled={saving}
+                            >
+                                <option value="CASH">Cash</option>
+                                <option value="GPAY">G-Pay</option>
+                            </select>
+                        ) : (
+                            <strong>FREE - No payment required</strong>
+                        )}
                     </div>
 
                 </div>

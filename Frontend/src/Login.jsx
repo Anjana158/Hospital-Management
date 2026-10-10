@@ -1,35 +1,103 @@
 import "./styles/login.css";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   FaUser,
   FaLock,
   FaEye,
   FaEyeSlash,
   FaArrowRight,
+  FaIdBadge,
 } from "react-icons/fa";
 
 
 import hospitalImage from "./assets/ThrissurDistrictHospital.jpg";
 import { useNavigate } from "react-router-dom";
+import { saveAccessToken } from "./auth/session";
 
 function Login() {
   const navigate = useNavigate();
   
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [selectedRole, setSelectedRole] = useState("");
+  const [assignedRoles, setAssignedRoles] = useState([]);
+  const [rolesLoading, setRolesLoading] = useState(false);
 
   const [showPassword, setShowPassword] = useState(false);
 
+  const isAdminAccount = assignedRoles.some(
+    (role) => role.name.toUpperCase() === "ADMIN"
+  );
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const roleRequestId = useRef(0);
+
+  useEffect(() => {
+    const trimmedUsername = username.trim();
+
+    if (!trimmedUsername) {
+      setAssignedRoles([]);
+      setSelectedRole("");
+      setRolesLoading(false);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      const requestId = ++roleRequestId.current;
+
+      try {
+        setRolesLoading(true);
+
+        const response = await fetch(
+          `/api/auth/roles?username=${encodeURIComponent(trimmedUsername)}`
+        );
+        const data = await response.json();
+
+        if (requestId !== roleRequestId.current) {
+          return;
+        }
+
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to load roles");
+        }
+
+        const roles = data.data || [];
+        setAssignedRoles(roles);
+        setSelectedRole((current) => {
+          if (roles.some((role) => role.name === current)) {
+            return current;
+          }
+          return roles.length === 1 ? roles[0].name : "";
+        });
+      } catch (loadError) {
+        if (requestId !== roleRequestId.current) {
+          return;
+        }
+        setAssignedRoles([]);
+        setSelectedRole("");
+        setError(loadError.message);
+      } finally {
+        if (requestId === roleRequestId.current) {
+          setRolesLoading(false);
+        }
+      }
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [username]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
 
     setError("");
 
-    if (!username || !password) {
-      setError("Please enter username and password.");
+    if (
+      !username ||
+      !password ||
+      (!selectedRole && !isAdminAccount && assignedRoles.length > 0)
+    ) {
+      setError("Please enter username, password and select a role.");
       return;
     }
 
@@ -37,15 +105,17 @@ function Login() {
       setLoading(true);
 
       const response = await fetch(
-        "http://localhost:5000/api/auth/login",
+        "/api/auth/login",
         {
           method: "POST",
+          credentials: "include",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            username,
+            username: username.trim(),
             password,
+            role: isAdminAccount ? undefined : selectedRole,
           }),
         }
       );
@@ -56,8 +126,7 @@ function Login() {
         throw new Error(data.message || "Login failed");
       }
 
-      // Save JWT token
-      localStorage.setItem("token", data.data.token);
+      saveAccessToken(data.data.token);
 
       // Save logged-in user
       localStorage.setItem(
@@ -171,6 +240,8 @@ function Login() {
                   value={username}
                   onChange={(e) => {
                     setUsername(e.target.value);
+                    setAssignedRoles([]);
+                    setSelectedRole("");
                     setError("");
                   }}
                   autoComplete="username"
@@ -211,6 +282,36 @@ function Login() {
                 </button>
 
               </div>
+
+
+              {!isAdminAccount && (
+                <div className="input-wrapper">
+                  <FaIdBadge className="input-icon" />
+
+                  <select
+                    value={selectedRole}
+                    onChange={(e) => {
+                      setSelectedRole(e.target.value);
+                      setError("");
+                    }}
+                    disabled={rolesLoading || assignedRoles.length === 0}
+                  >
+                    <option value="">
+                      {rolesLoading
+                        ? "Loading roles..."
+                        : username.trim()
+                          ? "Select Role"
+                          : "Enter username to load roles"}
+                    </option>
+
+                    {assignedRoles.map((role) => (
+                      <option key={role.id} value={role.name}>
+                        {role.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
 
               {/* ERROR */}

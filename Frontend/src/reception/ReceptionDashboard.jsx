@@ -10,6 +10,7 @@ import {
 } from "react-router-dom";
 
 import "../styles/StaffDashboard.css";
+import { logout } from "../auth/session";
 
 
 function ReceptionDashboard() {
@@ -18,18 +19,15 @@ function ReceptionDashboard() {
     const location = useLocation();
     const isDashboard = location.pathname === "/reception";
     const isPatientManagement = location.pathname.startsWith("/reception/patients");
-    const isTokenManagement = location.pathname.startsWith("/reception/token");
+    const isReportsPage = location.pathname.startsWith("/reception/reports");
 
     const user =
         JSON.parse(
             localStorage.getItem("user")
         );
 
-    const handleLogout = () => {
-
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-
+    const handleLogout = async () => {
+        await logout();
         navigate("/");
     };
 
@@ -109,12 +107,11 @@ function ReceptionDashboard() {
                         </button>
 
                         <button
-                            className={`staff-nav-link${isTokenManagement? " active": ""}`}
-                            onClick={() =>navigate("/reception/token"
-                                )
-                            }>
-                            <span>🎫</span>
-                            <span>Today's OP Token</span>
+                            className={`staff-nav-link${isReportsPage ? " active" : ""}`}
+                            onClick={() => navigate("/reception/reports")}
+                        >
+                            <span>📊</span>
+                            <span>Reports</span>
                         </button>
 
                     </nav>

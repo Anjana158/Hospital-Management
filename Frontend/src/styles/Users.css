@@ -172,6 +172,12 @@
    ROLE BADGE
 ======================================== */
 
+.role-badge-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
 .role-badge {
     display: inline-flex;
     align-items: center;
@@ -422,6 +428,47 @@
 
     box-shadow:
         0 0 0 3px rgba(113, 135, 201, 0.08);
+}
+
+.form-group.roles-field {
+    grid-column: 1 / -1;
+}
+
+.role-checkbox-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 16px;
+
+    min-height: 42px;
+    box-sizing: border-box;
+
+    padding: 10px 12px;
+
+    border: 1px solid #dfe6f1;
+    border-radius: 8px;
+
+    background: #ffffff;
+}
+
+.role-checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    color: #344b75;
+
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.form-group .role-checkbox-item input {
+    width: 16px;
+    height: 16px;
+
+    margin: 0;
+    padding: 0;
+
+    accent-color: #1455a8;
 }
 
 

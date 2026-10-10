@@ -3,17 +3,17 @@ import {
   FaUsers,
   FaTags,
   FaBuilding,
-  FaUserMd,
+  FaChartBar,
   FaSignOutAlt,
 } from "react-icons/fa";
 
 import { NavLink, useNavigate } from "react-router-dom";
+import { logout } from "../auth/session";
 
 function AdminSidebar() {
   const navigate = useNavigate();
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+  const handleLogout = async () => {
+    await logout();
     navigate("/");
   };
 
@@ -40,9 +40,9 @@ function AdminSidebar() {
           <span>Departments</span>
         </NavLink>
 
-        <NavLink to="/dashboard/doctors" className={({ isActive }) =>`sidebar-link ${isActive ? "active" : ""}`}>
-          <FaUserMd />
-          <span>Doctors</span>
+        <NavLink to="/dashboard/reports" className={({ isActive }) => `sidebar-link ${isActive ? "active" : ""}`}>
+          <FaChartBar />
+          <span>Reports</span>
         </NavLink>
       </nav>
 

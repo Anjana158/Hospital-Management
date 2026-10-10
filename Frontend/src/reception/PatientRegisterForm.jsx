@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
+import { getPatientDepartmentVisitHistory } from "./services/visitService";
 
 const KERALA_DISTRICTS = [
     "Alappuzha",
@@ -41,6 +43,10 @@ const emptyForm = {
     country: "India",
 
     schemeId: "",
+
+    departmentId: "",
+    visitType: "NEW",
+    opFee: "10",
 };
 
 
@@ -51,8 +57,8 @@ const emptyForm = {
 */
 
 function isValidPhone(value) {
-    if (!value) {
-        return false;
+    if (!value || !value.trim()) {
+        return true;
     }
 
     if (!/^[+\d\s().-]+$/.test(value.trim())) {
@@ -155,18 +161,81 @@ function calculateApproximateDob(
 |--------------------------------------------------------------------------
 */
 
+function toDateInputValue(value) {
+    if (!value) {
+        return "";
+    }
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+        return "";
+    }
+
+    return date.toISOString().slice(0, 10);
+}
+
+function buildInitialForm(patient) {
+    if (!patient) {
+        return emptyForm;
+    }
+
+    return {
+        ...emptyForm,
+        firstName: patient.firstName || "",
+        middleName: patient.middleName || "",
+        lastName: patient.lastName || "",
+        dateOfBirth: toDateInputValue(patient.dateOfBirth),
+        age: patient.age !== null && patient.age !== undefined
+            ? String(patient.age)
+            : "",
+        gender: patient.gender || "",
+        phone: patient.phone || "",
+        alternatePhone: patient.alternatePhone || "",
+        email: patient.email || "",
+        addressLine1: patient.addressLine1 || "",
+        addressLine2: patient.addressLine2 || "",
+        city: patient.city || "",
+        district: patient.district || "Thrissur",
+        state: patient.state || "Kerala",
+        postalCode: patient.postalCode || "",
+        country: patient.country || "India",
+        schemeId: patient.scheme?.id
+            ? String(patient.scheme.id)
+            : patient.schemeId
+                ? String(patient.schemeId)
+                : "",
+        departmentId: "",
+        visitType: "NEW",
+        opFee: "10",
+    };
+}
+
 function PatientRegisterForm({
     onRegister,
+    onOpTicket,
     onCancel,
     loading,
     schemes = [],
+    departments = [],
+    initialPatient = null,
     showDuplicates = false,
+    serverError = "",
 }) {
     const [formData, setFormData] =
-        useState(emptyForm);
+        useState(() => buildInitialForm(initialPatient));
+
+    const [visitHistory, setVisitHistory] = useState({
+        hasPreviousVisit: false,
+        hasVisitToday: false,
+        visitType: "NEW",
+        revisitCount: 0,
+    });
 
     const [formError, setFormError] =
         useState("");
+    const [paymentMethod, setPaymentMethod] =
+        useState("CASH");
 
 
     /*
@@ -289,11 +358,7 @@ function PatientRegisterForm({
     |--------------------------------------------------------------------------
     */
 
-    const handleSubmit = (
-        event
-    ) => {
-        event.preventDefault();
-
+    const buildPatientPayload = () => {
         setFormError("");
 
 
@@ -409,6 +474,7 @@ function PatientRegisterForm({
         */
 
         if (
+            formData.phone.trim() &&
             !isValidPhone(
                 formData.phone
             )
@@ -448,6 +514,7 @@ function PatientRegisterForm({
         */
 
         if (
+            formData.phone.trim() &&
             formData.alternatePhone &&
             formData.phone.replace(
                 /\D/g,
@@ -472,20 +539,152 @@ function PatientRegisterForm({
         |--------------------------------------------------------------------------
         */
 
-        onRegister({
-            ...formData,
+        const {
+            departmentId,
+            visitType,
+            opFee,
+            ...patientFields
+        } = formData;
 
-            age:
-                numericAge,
+        return {
+            ...patientFields,
+            age: numericAge,
+            schemeId: formData.schemeId
+                ? Number(formData.schemeId)
+                : undefined,
+            departmentId,
+            visitType,
+            opFee,
+        };
+    };
 
-            schemeId:
-                formData.schemeId
-                    ? Number(
-                        formData.schemeId
-                    )
-                    : undefined,
+    const handleRegister = (event) => {
+        event.preventDefault();
+        const payload = buildPatientPayload();
+
+        if (!payload) {
+            return;
+        }
+
+        onRegister(payload);
+    };
+
+    const handleOpTicket = (event) => {
+        event.preventDefault();
+        const payload = buildPatientPayload();
+
+        if (!payload) {
+            return;
+        }
+
+        if (!payload.departmentId) {
+            setFormError("Please select a department");
+            return;
+        }
+
+        if (visitHistory.hasVisitToday) {
+            setFormError(
+                "Patient has already registered an OP visit in this department today."
+            );
+            return;
+        }
+
+        const numericFee = Number(payload.opFee);
+
+        if (
+            payload.opFee === "" ||
+            Number.isNaN(numericFee) ||
+            numericFee < 0
+        ) {
+            setFormError("OP fee cannot be negative");
+            return;
+        }
+
+        onOpTicket({
+            ...payload,
+            opFee: numericFee,
+            departmentId: Number(payload.departmentId),
+            paymentMethod: finalFee > 0 ? paymentMethod : null,
         });
     };
+
+    useEffect(() => {
+        const syncDepartmentVisitState = async () => {
+            if (!initialPatient?.id || !formData.departmentId) {
+                setVisitHistory({
+                    hasPreviousVisit: false,
+                    hasVisitToday: false,
+                    visitType: "NEW",
+                    revisitCount: 0,
+                });
+                setFormData((previous) => (
+                    previous.visitType === "NEW"
+                        ? previous
+                        : {
+                            ...previous,
+                            visitType: "NEW",
+                        }
+                ));
+                return;
+            }
+
+            try {
+                const response = await getPatientDepartmentVisitHistory(
+                    initialPatient.id,
+                    Number(formData.departmentId)
+                );
+                const history = response.data || {};
+                const nextVisitType = history.visitType || "NEW";
+
+                setVisitHistory(history);
+                setFormData((previous) => ({
+                    ...previous,
+                    visitType: nextVisitType,
+                }));
+
+                if (history.hasVisitToday) {
+                    setFormError(
+                        "Patient has already registered an OP visit in this department today."
+                    );
+                } else {
+                    setFormError("");
+                }
+            } catch (error) {
+                setVisitHistory({
+                    hasPreviousVisit: false,
+                    hasVisitToday: false,
+                    visitType: "NEW",
+                    revisitCount: 0,
+                });
+                setFormError(
+                    error.response?.data?.message ||
+                    "Failed to load visit history"
+                );
+            }
+        };
+
+        syncDepartmentVisitState();
+    }, [initialPatient?.id, formData.departmentId]);
+
+    const selectedScheme = schemes.find(
+        (scheme) => String(scheme.id) === String(formData.schemeId)
+    ) || initialPatient?.scheme;
+
+    const numericFee = Number(formData.opFee) || 0;
+    let discountAmount = 0;
+
+    if (selectedScheme && selectedScheme.status === "ACTIVE") {
+        if (selectedScheme.discountType === "PERCENTAGE") {
+            discountAmount = (
+                numericFee * Number(selectedScheme.discountValue)
+            ) / 100;
+        } else if (selectedScheme.discountType === "FIXED") {
+            discountAmount = Number(selectedScheme.discountValue);
+        }
+    }
+
+    discountAmount = Math.min(discountAmount, numericFee);
+    const finalFee = numericFee - discountAmount;
 
 
     /*
@@ -497,12 +696,12 @@ function PatientRegisterForm({
     return (
         <form
             className="patient-form"
-            onSubmit={handleSubmit}
+            onSubmit={handleRegister}
         >
 
-            {formError && (
+            {(formError || serverError) && (
                 <div className="form-error">
-                    {formError}
+                    {formError || serverError}
                 </div>
             )}
 
@@ -743,7 +942,7 @@ function PatientRegisterForm({
 
                 <div className="form-group">
 
-                    <label className="required">
+                    <label>
                         Phone
                     </label>
 
@@ -983,6 +1182,114 @@ function PatientRegisterForm({
             </div>
 
 
+            <div className="form-row">
+                <div className="form-group">
+                    <label>
+                        Department
+                    </label>
+                    <select
+                        name="departmentId"
+                        value={formData.departmentId}
+                        onChange={handleChange}
+                        disabled={loading}
+                    >
+                        <option value="">
+                            Select department
+                        </option>
+                        {departments
+                            .filter((department) => department.status === "ACTIVE")
+                            .map((department) => (
+                                <option
+                                    key={department.id}
+                                    value={department.id}
+                                >
+                                    {department.name}
+                                </option>
+                            ))}
+                    </select>
+                </div>
+
+                <div className="form-group">
+                    <label>
+                        Visit Type
+                    </label>
+                    <select
+                        name="visitType"
+                        value={formData.visitType}
+                        disabled
+                    >
+                        <option value="NEW">
+                            New Visit
+                        </option>
+                        <option value="REVISIT">
+                            Revisit
+                        </option>
+                    </select>
+                </div>
+            </div>
+
+            <div className="form-row">
+                <div className="form-group">
+                    <label>
+                        OP Fee
+                    </label>
+                    <input
+                        type="number"
+                        name="opFee"
+                        min="0"
+                        step="0.01"
+                        value={formData.opFee}
+                        onChange={handleChange}
+                        disabled={loading}
+                    />
+                </div>
+
+                <div className="form-group">
+                    <label>
+                        Scheme Discount
+                    </label>
+                    <input
+                        value={`₹${discountAmount.toFixed(2)}`}
+                        readOnly
+                        disabled
+                    />
+                </div>
+            </div>
+
+            <div className="form-row">
+                <div className="form-group">
+                    <label>
+                        Final Fee Amount
+                    </label>
+                    <input
+                        value={`₹${finalFee.toFixed(2)}`}
+                        readOnly
+                        disabled
+                    />
+                </div>
+            </div>
+
+            <div className="form-row">
+                {finalFee > 0 ? (
+                    <div className="form-group">
+                        <label>Payment Method</label>
+                        <select
+                            value={paymentMethod}
+                            onChange={(event) => setPaymentMethod(event.target.value)}
+                            disabled={loading}
+                        >
+                            <option value="CASH">Cash</option>
+                            <option value="GPAY">G-Pay</option>
+                        </select>
+                    </div>
+                ) : (
+                    <div className="form-group">
+                        <label>Payment</label>
+                        <input value="FREE - No payment required" readOnly disabled />
+                    </div>
+                )}
+            </div>
+
             {/* ------------------------------------------------------------ */}
             {/* Buttons */}
             {/* ------------------------------------------------------------ */}
@@ -1008,7 +1315,16 @@ function PatientRegisterForm({
                         ? "Saving..."
                         : showDuplicates
                             ? "Register anyway"
-                            : "Register patient"}
+                            : "Register Patient"}
+                </button>
+
+                <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={handleOpTicket}
+                    disabled={loading}
+                >
+                    {loading ? "Saving..." : "OP Ticket"}
                 </button>
 
             </div>

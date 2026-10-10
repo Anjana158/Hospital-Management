@@ -1,28 +1,72 @@
 import { useEffect, useState } from "react";
 import { FaSearch } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
 
 import {
     searchPatients,
     getPatientById,
     registerPatient,
+    updatePatient,
     getPatientSchemes,
 } from "./services/patientService";
 
 import {
     getTodayVisits,
+    registerVisit,
 } from "./services/visitService";
+
+import { getDepartments } from "../admin/services/departmentService";
 
 import "../styles/PatientManagement.css";
 import PatientRegisterForm from "./PatientRegisterForm";
 import PatientDetails from "./PatientDetails";
 
+function toPatientPayload(formData, existingPatient) {
+    const payload = {
+        firstName: formData.firstName,
+        middleName: formData.middleName,
+        lastName: formData.lastName,
+        dateOfBirth: formData.dateOfBirth,
+        age: formData.age,
+        gender: formData.gender,
+        phone: formData.phone?.trim() || "",
+        alternatePhone: formData.alternatePhone,
+        email: formData.email,
+        addressLine1: formData.addressLine1,
+        addressLine2: formData.addressLine2,
+        city: formData.city,
+        district: formData.district,
+        state: formData.state,
+        postalCode: formData.postalCode,
+        country: formData.country,
+        schemeId: formData.schemeId
+            ? Number(formData.schemeId)
+            : existingPatient
+                ? ""
+                : undefined,
+    };
+
+    return payload;
+}
+
 function PatientManagement() {
+    const navigate = useNavigate();
     const [view, setView] = useState("search");
 
     const [searchQuery, setSearchQuery] = useState("");
     const [searchField, setSearchField] = useState("all");
     const [searchResults, setSearchResults] = useState([]);
     const [hasSearched, setHasSearched] = useState(false);
+    const [genderFilter, setGenderFilter] = useState("ALL");
+    const [ageFilter, setAgeFilter] = useState("ALL");
+    const [searchPagination, setSearchPagination] = useState({
+        page: 1,
+        limit: 20,
+        total: 0,
+        totalPages: 0,
+        hasNextPage: false,
+        hasPreviousPage: false,
+    });
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
@@ -31,6 +75,10 @@ function PatientManagement() {
     const [selectedPatient, setSelectedPatient] = useState(null);
 
     const [showRegisterModal, setShowRegisterModal] = useState(false);
+    const [formPatient, setFormPatient] = useState(null);
+    const [formSession, setFormSession] = useState("new-patient");
+    const [departments, setDepartments] = useState([]);
+    const [modalError, setModalError] = useState("");
 
     const [duplicateCandidates, setDuplicateCandidates] = useState([]);
 
@@ -62,8 +110,19 @@ function PatientManagement() {
 
     useEffect(() => {
         loadSchemes();
+        loadDepartments();
         loadTodayVisits();
     }, []);
+
+    const loadDepartments = async () => {
+        try {
+            const result = await getDepartments();
+            setDepartments(result.departments || []);
+        } catch (error) {
+            console.error("Failed to load departments:", error);
+            setDepartments([]);
+        }
+    };
 
     const loadSchemes = async () => {
         try {
@@ -141,10 +200,14 @@ function PatientManagement() {
     |--------------------------------------------------------------------------
     */
 
-    const handleSearch = async (e) => {
-        e.preventDefault();
-
-        if (!searchQuery.trim()) {
+    const runPatientSearch = async (
+        query,
+        field,
+        page = 1,
+        gender = genderFilter,
+        ageGroup = ageFilter
+    ) => {
+        if (!query.trim()) {
             setError("Please enter a search query");
             setHasSearched(false);
             setSearchResults([]);
@@ -158,15 +221,25 @@ function PatientManagement() {
             setHasSearched(false);
 
             const result = await searchPatients(
-                searchQuery,
-                searchField,
-                1,
-                20
+                query,
+                field,
+                page,
+                20,
+                gender,
+                ageGroup
             );
 
             const results = result.data?.items || [];
 
             setSearchResults(results);
+            setSearchPagination(result.data?.pagination || {
+                page: 1,
+                limit: 20,
+                total: results.length,
+                totalPages: results.length ? 1 : 0,
+                hasNextPage: false,
+                hasPreviousPage: false,
+            });
             setHasSearched(true);
 
             if (results.length === 0) {
@@ -177,6 +250,14 @@ function PatientManagement() {
 
             setSearchResults([]);
             setHasSearched(false);
+            setSearchPagination({
+                page: 1,
+                limit: 20,
+                total: 0,
+                totalPages: 0,
+                hasNextPage: false,
+                hasPreviousPage: false,
+            });
 
             setError(
                 error.response?.data?.message ||
@@ -187,10 +268,45 @@ function PatientManagement() {
         }
     };
 
+    const handleSearch = (e) => {
+        e.preventDefault();
+        runPatientSearch(searchQuery, searchField, 1);
+    };
+
+    const handleGenderFilterChange = (e) => {
+        const gender = e.target.value;
+        setGenderFilter(gender);
+        if (hasSearched && searchQuery.trim()) {
+            runPatientSearch(searchQuery, searchField, 1, gender, ageFilter);
+        }
+    };
+
+    const handleAgeFilterChange = (e) => {
+        const ageGroup = e.target.value;
+        setAgeFilter(ageGroup);
+        if (hasSearched && searchQuery.trim()) {
+            runPatientSearch(searchQuery, searchField, 1, genderFilter, ageGroup);
+        }
+    };
+
+    const handleSearchPageChange = (page) => {
+        runPatientSearch(searchQuery, searchField, page);
+    };
+
     const handleClearSearch = () => {
         setSearchQuery("");
         setSearchResults([]);
         setHasSearched(false);
+        setGenderFilter("ALL");
+        setAgeFilter("ALL");
+        setSearchPagination({
+            page: 1,
+            limit: 20,
+            total: 0,
+            totalPages: 0,
+            hasNextPage: false,
+            hasPreviousPage: false,
+        });
         setError("");
         setSuccess("");
 
@@ -244,10 +360,50 @@ function PatientManagement() {
     */
 
     const openRegisterModal = () => {
+        setFormPatient(null);
+        setFormSession(`new-${Date.now()}`);
         setShowRegisterModal(true);
         setDuplicateCandidates([]);
+        setModalError("");
         setError("");
         setSuccess("");
+    };
+
+    const openOpRegister = async (patientId) => {
+        try {
+            setLoading(true);
+            setError("");
+            setSuccess("");
+            setModalError("");
+            setDuplicateCandidates([]);
+
+            const result = await getPatientById(patientId);
+            setFormPatient(result.data);
+            setFormSession(`patient-${result.data.id}`);
+            setShowRegisterModal(true);
+        } catch (error) {
+            console.error("Failed to open OP register:", error);
+            setError(
+                error.response?.data?.message ||
+                "Failed to load patient details"
+            );
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const savePatientFromForm = async (formData) => {
+        const payload = toPatientPayload(formData, formPatient);
+
+        if (formPatient?.id) {
+            const result = await updatePatient(formPatient.id, payload);
+            setFormPatient(result.data);
+            return result.data;
+        }
+
+        const result = await registerPatient(payload);
+        setFormPatient(result.data);
+        return result.data;
     };
 
 
@@ -261,16 +417,22 @@ function PatientManagement() {
         try {
             setLoading(true);
             setError("");
+            setModalError("");
 
-            const result =await registerPatient(formData);
+            const savedPatient = await savePatientFromForm(formData);
 
-            setSuccess("Patient registered successfully! UHID: " + result.data.uhid);
+            setSuccess(
+                formPatient?.id
+                    ? "Patient updated successfully"
+                    : "Patient registered successfully! UHID: " + savedPatient.uhid
+            );
             setShowRegisterModal(false);
+            setFormPatient(null);
 
             setSearchQuery("");
             setSearchResults([]);
 
-            const patientResult = await getPatientById(result.data.id);
+            const patientResult = await getPatientById(savedPatient.id);
             setSelectedPatient(patientResult.data);
 
             setView("details");
@@ -279,9 +441,56 @@ function PatientManagement() {
 
             if (error.response?.status === 409 && error.response?.data?.code === "PATIENT_DUPLICATE_PHONE") {
                 setDuplicateCandidates(error.response.data.duplicates || []);
-                setError("");
+                setModalError("");
             } else {
-                setError(error.response?.data?.message || "Failed to register patient");
+                setModalError(error.response?.data?.message || "Failed to register patient");
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleOpTicket = async (formData) => {
+        try {
+            setLoading(true);
+            setError("");
+            setModalError("");
+
+            const savedPatient = await savePatientFromForm(formData);
+
+            const visitResult = await registerVisit({
+                patientId: savedPatient.id,
+                departmentId: Number(formData.departmentId),
+                opFee: Number(formData.opFee),
+                paymentMethod: formData.paymentMethod,
+            });
+
+            setShowRegisterModal(false);
+            setFormPatient(null);
+            setDuplicateCandidates([]);
+
+            navigate(
+                `/reception/op-ticket/${visitResult.data.visit.id}`,
+                {
+                    state: {
+                        visit: visitResult.data.visit,
+                        tokenNumber: visitResult.data.tokenNumber,
+                        tokenLabel: visitResult.data.tokenLabel,
+                        autoPrint: true,
+                    },
+                }
+            );
+        } catch (error) {
+            console.error("OP ticket error:", error);
+
+            if (error.response?.status === 409 && error.response?.data?.code === "PATIENT_DUPLICATE_PHONE") {
+                setDuplicateCandidates(error.response.data.duplicates || []);
+                setModalError("");
+            } else {
+                setModalError(
+                    error.response?.data?.message ||
+                    "Failed to create the OP ticket"
+                );
             }
         } finally {
             setLoading(false);
@@ -391,68 +600,61 @@ function PatientManagement() {
                     <form
                         className="patient-search-box"
                         onSubmit={handleSearch}
-                        style={{
-                            display: "flex",
-                            gap: "10px",
-                            flex: 1,
-                            maxWidth: "100%",
-                        }}
                     >
-
-                        <div
-                            style={{
-                                display: "flex",
-                                flexDirection:
-                                    "column",
-                                gap: "7px",
-                                flex: 1,
+                        <input
+                            type="text"
+                            aria-label="Search patients"
+                            placeholder="Enter UHID, name, or phone..."
+                            value={searchQuery}
+                            onChange={(e) => {
+                                setSearchQuery(e.target.value);
+                                setHasSearched(false);
+                                setSearchResults([]);
+                                setSearchPagination({
+                                    page: 1,
+                                    limit: 20,
+                                    total: 0,
+                                    totalPages: 0,
+                                    hasNextPage: false,
+                                    hasPreviousPage: false,
+                                });
+                                setError("");
                             }}
+                        />
+                        <button
+                            type="submit"
+                            className="search-btn"
+                            disabled={loading}
                         >
-
-                            <label>
-                                Search Patients
-                            </label>
-
-                            <div
-                                style={{
-                                    display: "flex",
-                                    gap: "8px",
-                                }}
-                            >
-
-                                <input
-                                    type="text"
-                                    placeholder="Enter UHID, name, or phone..."
-                                    value={
-                                        searchQuery
-                                    }
-                                    onChange={(e) =>{
-                                        setSearchQuery(e.target.value);
-                                        setHasSearched(false);
-                                        setSearchResults([]);
-                                        setError("");
-                                    }}
-                                    style={{
-                                        flex: 1,
-                                    }}
-                                />
-                                <button
-                                    type="submit"
-                                    className="search-btn"
-                                    disabled={
-                                        loading
-                                    }
-                                >
-                                    <FaSearch />
-                                    {" "}
-                                    Search
-                                </button>
-
-                            </div>
-                        </div>
-
+                            <FaSearch />
+                            {" "}
+                            Search
+                        </button>
                     </form>
 
+                    <select
+                        className="patient-filter-select"
+                        aria-label="Filter by gender"
+                        value={genderFilter}
+                        onChange={handleGenderFilterChange}
+                    >
+                        <option value="ALL">All</option>
+                        <option value="MALE">Male</option>
+                        <option value="FEMALE">Female</option>
+                        <option value="TRANSGENDER">Transgender</option>
+                    </select>
+
+                    <select
+                        className="patient-filter-select"
+                        aria-label="Filter by age"
+                        value={ageFilter}
+                        onChange={handleAgeFilterChange}
+                    >
+                        <option value="ALL">All</option>
+                        <option value="0-13">0-13</option>
+                        <option value="13-18">13-18</option>
+                        <option value="above-18">Above 18</option>
+                    </select>
 
                     <button
                         className="register-btn"
@@ -645,6 +847,20 @@ function PatientManagement() {
                                                                 >
                                                                     View
                                                                 </button>
+                                                                {" "}
+                                                                <button
+                                                                    className="action-btn"
+                                                                    onClick={() =>
+                                                                        openOpRegister(
+                                                                            patient.id
+                                                                        )
+                                                                    }
+                                                                    disabled={
+                                                                        patient.status !== "ACTIVE"
+                                                                    }
+                                                                >
+                                                                    OP Register
+                                                                </button>
                                                             </td>
 
                                                         </tr>
@@ -655,6 +871,28 @@ function PatientManagement() {
 
                                         </table>
                                     </div>
+
+                                    {searchPagination.totalPages > 1 && (
+                                        <div className="patient-pagination">
+                                            <button
+                                                className="action-btn"
+                                                disabled={!searchPagination.hasPreviousPage}
+                                                onClick={() => handleSearchPageChange(searchPagination.page - 1)}
+                                            >
+                                                Previous
+                                            </button>
+                                            <span className="patient-pagination-info">
+                                                Page {searchPagination.page} of {searchPagination.totalPages}
+                                            </span>
+                                            <button
+                                                className="action-btn"
+                                                disabled={!searchPagination.hasNextPage}
+                                                onClick={() => handleSearchPageChange(searchPagination.page + 1)}
+                                            >
+                                                Next
+                                            </button>
+                                        </div>
+                                    )}
 
                                 </div>
 
@@ -752,10 +990,6 @@ function PatientManagement() {
                                                     </th>
 
                                                     <th>
-                                                        Doctor
-                                                    </th>
-
-                                                    <th>
                                                         Visit Type
                                                     </th>
 
@@ -784,7 +1018,10 @@ function PatientManagement() {
 
                                                             <td>
                                                                 {
-                                                                    visit.tokenNumber
+                                                                    visit.tokenLabel ||
+                                                                    (visit.tokenNumber
+                                                                        ? `HMS ${visit.tokenNumber}`
+                                                                        : "—")
                                                                 }
                                                             </td>
 
@@ -825,13 +1062,6 @@ function PatientManagement() {
 
                                                             <td>
                                                                 {
-                                                                    visit.doctor?.fullName ||
-                                                                    "—"
-                                                                }
-                                                            </td>
-
-                                                            <td>
-                                                                {
                                                                     visit.visitType
                                                                 }
                                                             </td>
@@ -855,6 +1085,17 @@ function PatientManagement() {
                                                                     }
                                                                 >
                                                                     View
+                                                                </button>
+                                                                <button
+                                                                    className="action-btn secondary"
+                                                                    onClick={() =>
+                                                                        navigate(
+                                                                            `/reception/op-ticket/${visit.id}`,
+                                                                            { state: { autoPrint: true } }
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    Reprint OP Ticket
                                                                 </button>
                                                             </td>
 
@@ -952,6 +1193,11 @@ function PatientManagement() {
                             onAfterUpdate={
                                 handleAfterUpdate
                             }
+                            onRegisterOp={() =>
+                                openOpRegister(
+                                    selectedPatient.id
+                                )
+                            }
                             schemes={
                                 schemes
                             }
@@ -973,7 +1219,9 @@ function PatientManagement() {
                         <div className="modal-header">
 
                             <h2>
-                                Register New Patient
+                                {formPatient
+                                    ? "OP Register"
+                                    : "Register New Patient"}
                             </h2>
 
                             <button
@@ -1117,18 +1365,24 @@ function PatientManagement() {
                             {/* ================================================= */}
 
                             <PatientRegisterForm
+                                key={formSession}
                                 onRegister={
                                     handleRegister
+                                }
+                                onOpTicket={
+                                    handleOpTicket
                                 }
 
                                 onCancel={() => {
                                     setShowRegisterModal(
                                         false
                                     );
+                                    setFormPatient(null);
 
                                     setDuplicateCandidates(
                                         []
                                     );
+                                    setModalError("");
 
                                     setError("");
                                 }}
@@ -1139,6 +1393,15 @@ function PatientManagement() {
 
                                 schemes={
                                     schemes
+                                }
+                                departments={
+                                    departments
+                                }
+                                initialPatient={
+                                    formPatient
+                                }
+                                serverError={
+                                    modalError
                                 }
 
                                 showDuplicates={

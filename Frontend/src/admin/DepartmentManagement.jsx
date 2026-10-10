@@ -224,7 +224,6 @@ function DepartmentManagement() {
                                     <tr>
                                         <th>Code</th>
                                         <th>Department</th>
-                                        <th>Doctors</th>
                                         <th>Status</th>
                                         <th>Action</th>
                                     </tr>
@@ -235,7 +234,6 @@ function DepartmentManagement() {
                                             <tr key={department.id}>
                                                 <td><strong>{department.code}</strong></td>
                                                 <td>{department.name}</td>
-                                                <td>{department._count?.doctors ?? 0}</td>
                                                 <td><span
                                                         className={
                                                             department.status ===

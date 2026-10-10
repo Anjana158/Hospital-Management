@@ -49,12 +49,13 @@ async function getRoles(req, res) {
 
 async function addUser(req, res) {
     try {
-        const {employeeId,fullName,username,password,roleId,status,} = req.body;
-        if (!employeeId || !fullName || !username || !password || !roleId
+        const {employeeId,fullName,username,password,roleIds,roleId,} = req.body;
+        const hasRoles = (Array.isArray(roleIds) && roleIds.length > 0) || roleId;
+        if (!employeeId || !fullName || !username || !password || !hasRoles
         ) {
             return res.status(400).json({
                 success: false,
-                message: "Employee ID, Full Name, Username, Password and Role are required",
+                message: "Employee ID, Full Name, Username, Password and at least one Role are required",
             });
         }
 

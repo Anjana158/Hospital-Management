@@ -33,6 +33,16 @@ enum VisitStatus {
     NO_SHOW
 }
 
+enum PaymentStatus {
+    PAID
+    FREE
+}
+
+enum PaymentMethod {
+    CASH
+    GPAY
+}
+
 enum RecordStatus {
     ACTIVE
     INACTIVE
@@ -52,9 +62,23 @@ model Role {
     createdAt   DateTime    @default(now())
     updatedAt   DateTime    @updatedAt
 
-    users   User[]
+    userRoles   UserRole[]
 
     @@map("roles")  
+}
+
+model UserRole {
+    userId      Int
+    roleId      Int
+
+    user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+    role        Role        @relation(fields: [roleId], references: [id], onDelete: Restrict)
+
+    assignedAt  DateTime    @default(now())
+
+    @@id([userId, roleId])
+    @@index([roleId])
+    @@map("user_roles")
 }
 
 
@@ -77,13 +101,28 @@ model User {
     createdAt       DateTime    @default(now())
     updatedAt       DateTime    @updatedAt
 
-    roleId          Int         
-    role            Role        @relation(fields: [roleId], references: [id])
+    userRoles       UserRole[]
+    refreshTokens   RefreshToken[]
 
     createdPatients Patient[]       @relation("PatientCreatedBy")
     createdVisits   PatientVisit[]  @relation("VisitCreatedBy")
 
     @@map("users") 
+}
+
+model RefreshToken {
+    id          Int       @id @default(autoincrement())
+    userId      Int
+    tokenHash   String    @unique
+    roleName    String
+    expiresAt   DateTime
+    revokedAt   DateTime?
+    createdAt   DateTime  @default(now())
+
+    user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@index([userId])
+    @@map("refresh_tokens")
 }
 
 model PatientScheme {
@@ -106,29 +145,11 @@ model Department {
     name       String         @unique
     status     RecordStatus   @default(ACTIVE)
 
-    doctors    Doctor[]
     visits     PatientVisit[]
+    tokenCounters DailyTokenCounter[]
 
     createdAt  DateTime       @default(now())
     updatedAt  DateTime       @updatedAt
-}
-
-model Doctor {
-    id             Int            @id @default(autoincrement())
-    employeeCode   String?        @unique
-    fullName       String
-    specialization String?
-    status         RecordStatus   @default(ACTIVE)
-
-    departmentId   Int
-    department     Department     @relation(fields: [departmentId], references: [id], onDelete: Restrict)
-
-    visits         PatientVisit[]
-
-    createdAt      DateTime       @default(now())
-    updatedAt      DateTime       @updatedAt
-
-    @@index([departmentId])
 }
 
 model Patient {
@@ -142,7 +163,7 @@ model Patient {
     age            Int
     gender         Gender      
 
-    phone          String
+    phone          String?
     alternatePhone String?
     email          String?
 
@@ -178,6 +199,9 @@ model PatientVisit {
     id             Int          @id @default(autoincrement())
     visitNumber    String       @unique
     tokenNumber    Int?
+    tokenPrefix    String       @default("HMS")
+    tokenLabel     String?
+    tokenDate      DateTime?    @db.Date
     visitDate      DateTime     @default(now())
 
     visitType      VisitType
@@ -190,9 +214,6 @@ model PatientVisit {
     departmentId   Int
     department     Department   @relation(fields: [departmentId], references: [id], onDelete: Restrict)
 
-    doctorId       Int
-    doctor         Doctor       @relation(fields: [doctorId], references: [id], onDelete: Restrict)
-
     createdBy      Int
     createdByUser  User         @relation("VisitCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
 
@@ -201,6 +222,8 @@ model PatientVisit {
     opFee          Decimal      @default(10) @db.Decimal(10, 2)
     discountAmount Decimal      @default(0) @db.Decimal(10, 2)
     finalFee       Decimal      @default(0) @db.Decimal(10, 2)
+    paymentStatus  PaymentStatus @default(PAID)
+    paymentMethod  PaymentMethod?
 
     createdAt      DateTime     @default(now())
     updatedAt      DateTime     @updatedAt
@@ -209,21 +232,24 @@ model PatientVisit {
 
     @@index([visitDate])
     @@index([patientId, visitDate])
-    @@index([patientId, doctorId, visitDate])
+    @@index([patientId, departmentId, visitDate])
     @@index([departmentId, visitDate])
-    @@index([doctorId, visitDate])
     @@index([createdBy, visitDate])
     @@index([visitDate, tokenNumber])
-    @@index([patientId, doctorId, revisitCount])
+    @@index([patientId, departmentId, revisitCount])
+    @@unique([departmentId, tokenDate, tokenNumber])
 }
 
 model DailyTokenCounter {
-    id          Int      @id @default(autoincrement())
-    tokenDate   DateTime @unique
-    nextToken   Int      @default(1)
+    id           Int        @id @default(autoincrement())
+    departmentId Int
+    department   Department @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+    tokenDate    DateTime   @db.Date
+    nextToken    Int        @default(1)
 
-    createdAt   DateTime @default(now())
-    updatedAt   DateTime @updatedAt
+    createdAt    DateTime   @default(now())
+    updatedAt    DateTime   @updatedAt
 
-    @@index([tokenDate])
+    @@unique([departmentId, tokenDate])
+    @@index([departmentId])
 }

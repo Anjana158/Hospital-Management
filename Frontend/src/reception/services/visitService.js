@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const API_URL =
-    "http://localhost:5000/api/visits";
+    "http://100.103.223.11:5000/api/visits";
 
 
 const getAuthConfig = () => {
@@ -38,13 +38,13 @@ export const registerVisit =
 
 /*
 |--------------------------------------------------------------------------
-| Get Patient-Doctor Visit History
+| Get Patient-Department Visit History
 |--------------------------------------------------------------------------
 */
 
-export const getPatientDoctorVisitHistory = async (patientId, doctorId) => {
+export const getPatientDepartmentVisitHistory = async (patientId, departmentId) => {
     const response = await axios.get(
-        `${API_URL}/patient/${patientId}/doctor/${doctorId}/history`,
+        `${API_URL}/patient/${patientId}/department/${departmentId}/history`,
         getAuthConfig()
     );
 
@@ -75,42 +75,20 @@ export const getTodayVisits = async (
     return response.data;
 };
 
-/*
-|--------------------------------------------------------------------------
-| Get Today's Token
-|--------------------------------------------------------------------------
-*/
+export const getVisitById = async (visitId) => {
+    const response = await axios.get(
+        `${API_URL}/${visitId}`,
+        getAuthConfig()
+    );
 
-export const getTodayToken =
-    async () => {
+    return response.data;
+};
 
-        const response =
-            await axios.get(
-                `${API_URL}/token/today`,
-                getAuthConfig()
-            );
+export const getPatientVisitHistory = async (patientId) => {
+    const response = await axios.get(
+        `${API_URL}/patient/${patientId}/history`,
+        getAuthConfig()
+    );
 
-        return response.data;
-    };
-
-
-/*
-|--------------------------------------------------------------------------
-| Set Today's Starting Token
-|--------------------------------------------------------------------------
-*/
-
-export const setTodayToken =
-    async (startingToken) => {
-
-        const response =
-            await axios.put(
-                `${API_URL}/token/today`,
-                {
-                    startingToken,
-                },
-                getAuthConfig()
-            );
-
-        return response.data;
-    };
+    return response.data;
+};

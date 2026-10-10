@@ -3,7 +3,7 @@ const axios = require('axios');
 
 const token = jwt.sign({ userId: 2, username: 'user1000', role: 'RECEPTION' }, 'secret_key');
 const api = axios.create({
-    baseURL: 'http://localhost:5000/api',
+    baseURL: 'http://100.103.223.11:5000/api',
     headers: { Authorization: 'Bearer ' + token }
 });
 
@@ -166,7 +166,7 @@ const api = axios.create({
         // TEST 15: Unauthorized (no token)
         console.log('TEST 15: Unauthorized (no JWT token)...');
         try {
-            const apiNoToken = axios.create({ baseURL: 'http://localhost:5000/api' });
+            const apiNoToken = axios.create({ baseURL: 'http://100.103.223.11:5000/api' });
             await apiNoToken.patch('/patients/' + patientId, { firstName: 'Test' });
             console.log('✗ ERROR: Should have returned 401\n');
         } catch (e) {

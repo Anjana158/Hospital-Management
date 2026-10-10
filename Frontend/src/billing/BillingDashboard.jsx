@@ -9,6 +9,7 @@ import {
 } from "react-router-dom";
 
 import "../styles/StaffDashboard.css";
+import { logout } from "../auth/session";
 
 
 function BillingDashboard() {
@@ -21,11 +22,8 @@ function BillingDashboard() {
         );
 
 
-    const handleLogout = () => {
-
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-
+    const handleLogout = async () => {
+        await logout();
         navigate("/");
     };
 

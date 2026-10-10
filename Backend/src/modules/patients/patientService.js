@@ -5,11 +5,13 @@ const { prisma } = require("../../config/prisma");
 
 const patientSearchSchema = z.object({q: z.string().trim().min(2, "Search query must contain at least 2 characters").max(100),
     field: z.enum(["all", "uhid", "name", "phone"]).default("all"),
+    gender: z.enum(["ALL", "MALE", "FEMALE", "TRANSGENDER"]).default("ALL"),
+    ageGroup: z.enum(["ALL", "0-13", "13-18", "above-18"]).default("ALL"),
     page: z.coerce.number().int().min(1).default(1),
     limit: z.coerce.number().int().min(1).max(50).default(20),
 }).strict();
 
-const phoneSchema = z.string().trim().min(1, "Phone number is required").max(30, "Phone number is too long")
+const phoneSchema = z.string().trim().min(1).max(30, "Phone number is too long")
     .refine((value) => /^[+\d\s().-]+$/.test(value), {
         message: "Phone number contains invalid characters",
     })
@@ -19,6 +21,11 @@ const phoneSchema = z.string().trim().min(1, "Phone number is required").max(30,
     }, {
         message: "Phone number must contain between 7 and 15 digits",
     });
+
+const optionalPhoneSchema = z.union([
+    z.literal(""),
+    phoneSchema,
+]).optional();
 
 /*
 |--------------------------------------------------------------------------
@@ -47,7 +54,7 @@ const patientRegistrationSchema = z.object({
             message: "Gender is required",
         }
     ),
-    phone: phoneSchema,
+    phone: optionalPhoneSchema,
     alternatePhone: phoneSchema.optional().or(z.literal("")),
     email: z.string().trim().email("Email must be valid").max(255).optional().or(z.literal("")),
     addressLine1: z.string().trim().max(255).optional().or(z.literal("")),
@@ -76,7 +83,7 @@ const patientUpdateSchema = z.object({
     dateOfBirth: z.string().trim().optional().or(z.literal("")),
     age: z.coerce.number().int("Age must be a whole number").min(0, "Age cannot be negative").max(150, "Age cannot exceed 150").optional(),
     gender: z.enum(["MALE", "FEMALE", "TRANSGENDER"]).optional(),
-    phone: phoneSchema.optional(),
+    phone: optionalPhoneSchema,
     alternatePhone: phoneSchema.optional().or(z.literal("")),
     email: z.string().trim().email("Email must be valid").max(255).optional().or(z.literal("")),
     addressLine1: z.string().trim().max(255).optional().or(z.literal("")),
@@ -230,7 +237,12 @@ function generateUhid() {
 */
 
 function normalizePhone(phone) {
-    return phone.replace(/\D/g, "");
+    return String(phone || "").replace(/\D/g, "");
+}
+
+function normalizeOptionalPhone(phone) {
+    const normalized = normalizePhone(phone);
+    return normalized ? normalized : null;
 }
 
 /*
@@ -437,7 +449,21 @@ async function searchPatients(query) {
         throw error;
     }
 
-    const where = {OR: searchConditions,};
+    const filters = [{ OR: searchConditions }];
+
+    if (validatedQuery.gender !== "ALL") {
+        filters.push({ gender: validatedQuery.gender });
+    }
+
+    if (validatedQuery.ageGroup === "0-13") {
+        filters.push({ age: { lte: 13 } });
+    } else if (validatedQuery.ageGroup === "13-18") {
+        filters.push({ age: { gt: 13, lte: 18 } });
+    } else if (validatedQuery.ageGroup === "above-18") {
+        filters.push({ age: { gt: 18 } });
+    }
+
+    const where = { AND: filters };
     const skip = (validatedQuery.page - 1) * validatedQuery.limit;
 
     const [items, total] = await prisma.$transaction([
@@ -462,6 +488,7 @@ async function searchPatients(query) {
             limit: validatedQuery.limit,
             total,
             totalPages,
+            hasPreviousPage: validatedQuery.page > 1,
             hasNextPage:
                 validatedQuery.page <
                 totalPages,
@@ -595,7 +622,7 @@ async function registerPatientRecord(data,createdBy) {
     |--------------------------------------------------------------------------
     */
 
-    const normalizedPhone =normalizePhone(validatedData.phone);
+    const normalizedPhone = normalizeOptionalPhone(validatedData.phone);
 
     const normalizedAlternatePhone = validatedData.alternatePhone
             ? normalizePhone(
@@ -621,29 +648,27 @@ async function registerPatientRecord(data,createdBy) {
     |--------------------------------------------------------------------------
     */
 
-    const possibleDuplicates = await prisma.patient.findMany({
+    const duplicatePhoneFilters = [];
+
+    if (normalizedPhone) {
+        duplicatePhoneFilters.push(
+            { phone: normalizedPhone },
+            { alternatePhone: normalizedPhone }
+        );
+    }
+
+    if (normalizedAlternatePhone) {
+        duplicatePhoneFilters.push(
+            { phone: normalizedAlternatePhone },
+            { alternatePhone: normalizedAlternatePhone }
+        );
+    }
+
+    const possibleDuplicates = duplicatePhoneFilters.length === 0
+        ? []
+        : await prisma.patient.findMany({
             where: {
-                OR: [
-                    {
-                        phone: normalizedPhone,
-                    },
-                    ...(normalizedAlternatePhone
-                        ? [
-                            {
-                                phone:
-                                    normalizedAlternatePhone,
-                            },
-                            {
-                                alternatePhone:
-                                    normalizedAlternatePhone,
-                            },
-                        ]
-                        : []),
-                    {
-                        alternatePhone:
-                            normalizedPhone,
-                    },
-                ],
+                OR: duplicatePhoneFilters,
             },
 
             select: {
@@ -947,7 +972,7 @@ async function updatePatientRecord(patientId,data) {
     let newAltPhone =existingPatient.alternatePhone;
 
     if (validatedData.phone !== undefined) {
-        newPhone = normalizePhone(validatedData.phone);
+        newPhone = normalizeOptionalPhone(validatedData.phone);
         updateData.phone = newPhone;
     }
 

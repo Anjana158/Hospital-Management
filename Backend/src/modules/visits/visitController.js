@@ -1,9 +1,9 @@
 const {
     registerVisitRecord,
-    getPatientDoctorVisitHistory,
-    getTodayTokenRecord,
-    setTodayTokenRecord,
+    getPatientDepartmentVisitHistory,
     getTodayVisitRecords,
+    getPatientVisitRecord,
+    getPatientVisitHistory,
 } = require("./visitService");
 
 
@@ -43,12 +43,10 @@ async function registerVisit(req, res) {
             "PATIENT_INACTIVE",
             "DEPARTMENT_NOT_FOUND",
             "DEPARTMENT_INACTIVE",
-            "DOCTOR_NOT_FOUND",
-            "DOCTOR_INACTIVE",
-            "DOCTOR_DEPARTMENT_MISMATCH",
             "REVISIT_NOT_FOUND",
             "TOKEN_ASSIGNMENT_FAILED",
             "DUPLICATE_SAME_DAY_VISIT",
+            "PAYMENT_METHOD_REQUIRED",
         ];
 
 
@@ -99,11 +97,11 @@ async function registerVisit(req, res) {
 |--------------------------------------------------------------------------
 */
 
-async function getPatientDoctorHistory(req, res) {
+async function getPatientDepartmentHistory(req, res) {
     try {
-        const data = await getPatientDoctorVisitHistory(
+        const data = await getPatientDepartmentVisitHistory(
             req.params.patientId,
-            req.params.doctorId
+            req.params.departmentId
         );
 
         return res.status(200).json({
@@ -111,13 +109,13 @@ async function getPatientDoctorHistory(req, res) {
             data,
         });
     } catch (error) {
-        console.error("Get patient-doctor visit history error:", error);
+        console.error("Get patient-department visit history error:", error);
 
         const knownErrors = [
             "PATIENT_NOT_FOUND",
-            "DOCTOR_NOT_FOUND",
+            "DEPARTMENT_NOT_FOUND",
             "PATIENT_HISTORY_VALIDATION_ERROR",
-            "DOCTOR_HISTORY_VALIDATION_ERROR",
+            "DEPARTMENT_HISTORY_VALIDATION_ERROR",
         ];
 
         const statusCode =
@@ -129,7 +127,7 @@ async function getPatientDoctorHistory(req, res) {
 
         return res.status(statusCode).json({
             success: false,
-            message: error.message || "Failed to load patient-doctor visit history",
+            message: error.message || "Failed to load patient visit history",
         });
     }
 }
@@ -154,106 +152,54 @@ async function getTodayVisits(req, res) {
     }
 }
 
-/*
-|--------------------------------------------------------------------------
-| Today's Token
-|--------------------------------------------------------------------------
-*/
-
-async function getTodayToken(
-    req,
-    res
-) {
+async function getVisit(req, res) {
     try {
-        const data =
-            await getTodayTokenRecord();
+        const data = await getPatientVisitRecord(req.params.id);
 
         return res.status(200).json({
             success: true,
             data,
         });
-
     } catch (error) {
-
-        console.error(
-            "Get today's token error:",
-            error
-        );
-
-        return res.status(500).json({
-            success: false,
-            message:
-                "Failed to load today's token",
-        });
-    }
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Set Today's Token
-|--------------------------------------------------------------------------
-*/
-
-async function setTodayToken(
-    req,
-    res
-) {
-    try {
-        const data =
-            await setTodayTokenRecord(
-                req.body.startingToken
-            );
-
-        return res.status(200).json({
-            success: true,
-
-            message:
-                "Today's starting token updated successfully",
-
-            data,
-        });
-
-    } catch (error) {
-
-        console.error(
-            "Set today's token error:",
-            error
-        );
-
-
-        let statusCode = 500;
-
-
-        if (
-            error.code ===
-                "TOKEN_VALIDATION_ERROR"
-        ) {
-            statusCode = 400;
-        }
-
-        if (
-            error.code ===
-                "TOKEN_ALREADY_STARTED"
-        ) {
-            statusCode = 409;
-        }
-
+        const statusCode = error.code === "VISIT_NOT_FOUND"
+            ? 404
+            : error.code === "VISIT_VALIDATION_ERROR"
+                ? 400
+                : 500;
 
         return res.status(statusCode).json({
             success: false,
-            message:
-                error.message ||
-                "Failed to update today's token",
+            message: error.message || "Failed to load OP visit",
         });
     }
 }
 
+async function getPatientVisits(req, res) {
+    try {
+        const data = await getPatientVisitHistory(req.params.patientId);
+
+        return res.status(200).json({
+            success: true,
+            data,
+        });
+    } catch (error) {
+        const statusCode = error.code === "PATIENT_NOT_FOUND"
+            ? 404
+            : error.code === "PATIENT_HISTORY_VALIDATION_ERROR"
+                ? 400
+                : 500;
+
+        return res.status(statusCode).json({
+            success: false,
+            message: error.message || "Failed to load patient OP visit history",
+        });
+    }
+}
 
 module.exports = {
     registerVisit,
-    getPatientDoctorHistory,
+    getPatientDepartmentHistory,
     getTodayVisits,
-    getTodayToken,
-    setTodayToken,
+    getVisit,
+    getPatientVisits,
 };

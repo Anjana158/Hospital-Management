@@ -25,7 +25,7 @@ function BillingHome() {
 
                 const response =
                     await fetch(
-                        "http://localhost:5000/api/dashboard/me",
+                        "http://100.103.223.11:5000/api/dashboard/me",
                         {
                             headers: {
                                 Authorization:

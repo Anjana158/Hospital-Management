@@ -1,7 +1,7 @@
 import {
     FaUser,
     FaUserPlus,
-    FaSearch,
+    FaChartBar,
     FaClock,
 } from "react-icons/fa";
 
@@ -27,7 +27,7 @@ function ReceptionHome() {
 
                 const response =
                     await fetch(
-                        "http://localhost:5000/api/dashboard/me",
+                        "http://100.103.223.11:5000/api/dashboard/me",
                         {
                             headers: {
                                 Authorization:
@@ -135,25 +135,25 @@ function ReceptionHome() {
                     className="staff-action-card"
                     role="button"
                     tabIndex={0}
-                    // onClick={() => navigate("/reception/patients")}
-                    // onKeyDown={(event) => {
-                    //     if (event.key === "Enter" || event.key === " ") {
-                    //         navigate("/reception/patients");
-                    //     }
-                    // }}
+                    onClick={() => navigate("/reception/reports")}
+                    onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                            navigate("/reception/reports");
+                        }
+                    }}
                 >
 
                     <div className="staff-action-icon">
-                        <FaSearch />
+                        <FaChartBar />
                     </div>
 
                     <div>
                         <strong>
-                            Patient Search
+                            Reports
                         </strong>
 
                         <span>
-                            Find existing patients
+                            View your patient statistics
                         </span>
                     </div>
 

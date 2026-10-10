@@ -29,7 +29,7 @@ function Users() {
             fullName: "",
             username: "",
             password: "",
-            roleId: "",
+            roleIds: [],
             status: "ACTIVE",
         });
 
@@ -111,7 +111,7 @@ function Users() {
             fullName: "",
             username: "",
             password: "",
-            roleId: "",
+            roleIds: [],
             status: "ACTIVE",
 
         });
@@ -143,8 +143,8 @@ function Users() {
 
             password: "",
 
-            roleId:
-                user.role.id,
+            roleIds:
+                (user.roles || []).map((role) => role.id),
 
             status:
                 user.status,
@@ -183,6 +183,11 @@ function Users() {
             try {
 
                 setError("");
+
+                if (!formData.roleIds.length) {
+                    setError("Select at least one role");
+                    return;
+                }
 
                 if (editingUser) {
 
@@ -391,7 +396,7 @@ function Users() {
                                 </th>
 
                                 <th>
-                                    Role
+                                    Roles
                                 </th>
 
                                 <th>
@@ -436,9 +441,16 @@ function Users() {
 
                                         <td>
 
-                                            <span className="role-badge">
-                                                {user.role.name}
-                                            </span>
+                                            <div className="role-badge-list">
+                                                {(user.roles || []).map((role) => (
+                                                    <span
+                                                        key={role.id}
+                                                        className="role-badge"
+                                                    >
+                                                        {role.name}
+                                                    </span>
+                                                ))}
+                                            </div>
 
                                         </td>
 
@@ -657,47 +669,37 @@ function Users() {
                                 </div>
 
 
-                                <div className="form-group">
+                                <div className="form-group roles-field">
 
                                     <label>
-                                        Role
+                                        Roles
                                     </label>
 
-                                    <select
-                                        name="roleId"
-                                        value={
-                                            formData.roleId
-                                        }
-                                        onChange={
-                                            handleChange
-                                        }
-                                        required
-                                    >
-
-                                        <option value="">
-                                            Select Role
-                                        </option>
-
-                                        {roles.map(
-                                            role => (
-
-                                                <option
-                                                    key={
-                                                        role.id
-                                                    }
-                                                    value={
-                                                        role.id
-                                                    }
-                                                >
-                                                    {
-                                                        role.name
-                                                    }
-                                                </option>
-
-                                            )
-                                        )}
-
-                                    </select>
+                                    <div className="role-checkbox-list">
+                                        {roles.map((role) => (
+                                            <label
+                                                key={role.id}
+                                                className="role-checkbox-item"
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    checked={formData.roleIds.includes(role.id)}
+                                                    onChange={() => {
+                                                        setFormData((previous) => {
+                                                            const selected = previous.roleIds.includes(role.id);
+                                                            return {
+                                                                ...previous,
+                                                                roleIds: selected
+                                                                    ? previous.roleIds.filter((id) => id !== role.id)
+                                                                    : [...previous.roleIds, role.id],
+                                                            };
+                                                        });
+                                                    }}
+                                                />
+                                                <span>{role.name}</span>
+                                            </label>
+                                        ))}
+                                    </div>
 
                                 </div>
 

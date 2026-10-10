@@ -8,7 +8,7 @@ const {getMyDashboard,} = require("./dashboardService");
 async function getMyDashboardData(req, res) {
 
     try {
-        const user = await getMyDashboard(req.user.userId);
+        const user = await getMyDashboard(req.user.userId, req.user.role);
 
         return res.status(200).json({
             success: true,

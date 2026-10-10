@@ -6,7 +6,7 @@ const { prisma } = require("../../config/prisma");
 const registerVisitSchema = z.object({
     patientId: z.coerce.number().int().positive(),
     departmentId: z.coerce.number().int().positive(),
-    doctorId: z.coerce.number().int().positive(),
+    paymentMethod: z.enum(["CASH", "GPAY"]).nullable().optional(),
     visitType: z.enum([
         "NEW",
         "REVISIT",
@@ -28,6 +28,22 @@ function getStartOfToday() {
     );
 }
 
+
+const TOKEN_PREFIX = "HMS";
+
+function formatTokenLabel(tokenNumber) {
+    return `${TOKEN_PREFIX} ${tokenNumber}`;
+}
+
+function getTokenDate() {
+    const now = new Date();
+
+    return new Date(Date.UTC(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate()
+    ));
+}
 
 function getTomorrow() {
     const tomorrow =
@@ -57,9 +73,9 @@ function createVisitNumber(date, id) {
 }
 
 
-async function getPatientDoctorVisitHistory(patientId, doctorId) {
+async function getPatientDepartmentVisitHistory(patientId, departmentId) {
     const parsedPatientId = Number(patientId);
-    const parsedDoctorId = Number(doctorId);
+    const parsedDepartmentId = Number(departmentId);
 
     if (!Number.isInteger(parsedPatientId) || parsedPatientId < 1) {
         const error = new Error("Patient ID is invalid");
@@ -67,9 +83,9 @@ async function getPatientDoctorVisitHistory(patientId, doctorId) {
         throw error;
     }
 
-    if (!Number.isInteger(parsedDoctorId) || parsedDoctorId < 1) {
-        const error = new Error("Doctor ID is invalid");
-        error.code = "DOCTOR_HISTORY_VALIDATION_ERROR";
+    if (!Number.isInteger(parsedDepartmentId) || parsedDepartmentId < 1) {
+        const error = new Error("Department ID is invalid");
+        error.code = "DEPARTMENT_HISTORY_VALIDATION_ERROR";
         throw error;
     }
 
@@ -83,13 +99,13 @@ async function getPatientDoctorVisitHistory(patientId, doctorId) {
         throw error;
     }
 
-    const doctor = await prisma.doctor.findUnique({
-        where: { id: parsedDoctorId },
+    const department = await prisma.department.findUnique({
+        where: { id: parsedDepartmentId },
     });
 
-    if (!doctor) {
-        const error = new Error("Doctor not found");
-        error.code = "DOCTOR_NOT_FOUND";
+    if (!department) {
+        const error = new Error("Department not found");
+        error.code = "DEPARTMENT_NOT_FOUND";
         throw error;
     }
 
@@ -99,7 +115,7 @@ async function getPatientDoctorVisitHistory(patientId, doctorId) {
     const previousVisits = await prisma.patientVisit.findMany({
         where: {
             patientId: parsedPatientId,
-            doctorId: parsedDoctorId,
+            departmentId: parsedDepartmentId,
             status: {
                 not: "CANCELLED",
             },
@@ -115,7 +131,7 @@ async function getPatientDoctorVisitHistory(patientId, doctorId) {
     const visitsToday = await prisma.patientVisit.findMany({
         where: {
             patientId: parsedPatientId,
-            doctorId: parsedDoctorId,
+            departmentId: parsedDepartmentId,
             status: {
                 not: "CANCELLED",
             },
@@ -136,7 +152,7 @@ async function getPatientDoctorVisitHistory(patientId, doctorId) {
 
     return {
         patientId: parsedPatientId,
-        doctorId: parsedDoctorId,
+        departmentId: parsedDepartmentId,
         hasPreviousVisit,
         hasVisitToday,
         visitType,
@@ -155,8 +171,8 @@ async function registerVisitRecord(
     const {
         patientId,
         departmentId,
-        doctorId,
         opFee,
+        paymentMethod,
     } = validated;
 
     const today = getStartOfToday();
@@ -251,69 +267,10 @@ async function registerVisitRecord(
             }
 
 
-            /*
-            |--------------------------------------------------------------------------
-            | Doctor
-            |--------------------------------------------------------------------------
-            */
-
-            const doctor =
-                await tx.doctor.findUnique({
-                    where: {
-                        id: doctorId,
-                    },
-                    include: {
-                        department: true,
-                    },
-                });
-
-            if (!doctor) {
-                const error =
-                    new Error(
-                        "Doctor not found"
-                    );
-
-                error.code =
-                    "DOCTOR_NOT_FOUND";
-
-                throw error;
-            }
-
-            if (
-                doctor.status !==
-                "ACTIVE"
-            ) {
-                const error =
-                    new Error(
-                        "Selected doctor is inactive"
-                    );
-
-                error.code =
-                    "DOCTOR_INACTIVE";
-
-                throw error;
-            }
-
-            if (
-                doctor.departmentId !==
-                departmentId
-            ) {
-                const error =
-                    new Error(
-                        "Selected doctor does not belong to the selected department"
-                    );
-
-                error.code =
-                    "DOCTOR_DEPARTMENT_MISMATCH";
-
-                throw error;
-            }
-
-
             const sameDayVisit = await tx.patientVisit.findFirst({
                 where: {
                     patientId,
-                    doctorId,
+                    departmentId,
                     status: {
                         not: "CANCELLED",
                     },
@@ -329,7 +286,7 @@ async function registerVisitRecord(
 
             if (sameDayVisit) {
                 const error = new Error(
-                    "Patient has already registered an OP visit with this doctor today."
+                    "Patient has already registered an OP visit in this department today."
                 );
                 error.code = "DUPLICATE_SAME_DAY_VISIT";
                 throw error;
@@ -338,7 +295,7 @@ async function registerVisitRecord(
             const previousVisits = await tx.patientVisit.findMany({
                 where: {
                     patientId,
-                    doctorId,
+                    departmentId,
                     status: {
                         not: "CANCELLED",
                     },
@@ -401,75 +358,50 @@ async function registerVisitRecord(
                 opFee -
                 discountAmount;
 
+            if (finalFee > 0 && !paymentMethod) {
+                const error = new Error("Payment method is required for paid OP visits");
+                error.code = "PAYMENT_METHOD_REQUIRED";
+                throw error;
+            }
+
 
             /*
             |--------------------------------------------------------------------------
-            | Daily Token
+            | Department token
             |--------------------------------------------------------------------------
+            |
+            | One counter per department per hospital day.
+            | INSERT ... ON CONFLICT increments that row atomically, so two
+            | receptionists cannot take the same number.
+            |
             */
 
-            let counter =
-                await tx.dailyTokenCounter.findUnique({
-                    where: {
-                        tokenDate: today,
-                    },
-                });
+            const tokenDate = getTokenDate();
+            const tokenDateValue = tokenDate.toISOString().slice(0, 10);
+            const tokenRows = await tx.$queryRaw`
+                INSERT INTO "DailyTokenCounter" (
+                    "departmentId",
+                    "tokenDate",
+                    "nextToken",
+                    "createdAt",
+                    "updatedAt"
+                )
+                VALUES (
+                    ${departmentId},
+                    ${tokenDateValue}::date,
+                    2,
+                    NOW(),
+                    NOW()
+                )
+                ON CONFLICT ("departmentId", "tokenDate")
+                DO UPDATE SET
+                    "nextToken" = "DailyTokenCounter"."nextToken" + 1,
+                    "updatedAt" = NOW()
+                RETURNING "nextToken"
+            `;
 
-
-            let tokenNumber;
-
-
-            if (!counter) {
-
-                tokenNumber = 1;
-
-                await tx.dailyTokenCounter.create({
-                    data: {
-                        tokenDate: today,
-                        nextToken: 2,
-                    },
-                });
-
-            } else {
-
-                tokenNumber =
-                    counter.nextToken;
-
-                const updateResult =
-                    await tx.dailyTokenCounter.updateMany({
-                        where: {
-                            id: counter.id,
-
-                            /*
-                            | Only update if this
-                            | counter is still the
-                            | current version.
-                            */
-                            nextToken:
-                                tokenNumber,
-                        },
-
-                        data: {
-                            nextToken:
-                                tokenNumber + 1,
-                        },
-                    });
-
-
-                if (
-                    updateResult.count !== 1
-                ) {
-                    const error =
-                        new Error(
-                            "Unable to assign token number. Please try again."
-                        );
-
-                    error.code =
-                        "TOKEN_ASSIGNMENT_FAILED";
-
-                    throw error;
-                }
-            }
+            const tokenNumber = Number(tokenRows[0].nextToken) - 1;
+            const tokenLabel = formatTokenLabel(tokenNumber);
 
 
             /*
@@ -489,6 +421,9 @@ async function registerVisitRecord(
                             temporaryVisitNumber,
 
                         tokenNumber,
+                        tokenPrefix: TOKEN_PREFIX,
+                        tokenLabel,
+                        tokenDate,
 
                         visitDate:
                             new Date(),
@@ -505,8 +440,6 @@ async function registerVisitRecord(
 
                         departmentId,
 
-                        doctorId,
-
                         createdBy:
                             userId,
 
@@ -518,6 +451,8 @@ async function registerVisitRecord(
                         discountAmount,
 
                         finalFee,
+                        paymentStatus: finalFee > 0 ? "PAID" : "FREE",
+                        paymentMethod: finalFee > 0 ? paymentMethod : null,
                     },
 
                     include: {
@@ -528,8 +463,6 @@ async function registerVisitRecord(
                         },
 
                         department: true,
-
-                        doctor: true,
                     },
                 });
 
@@ -565,8 +498,6 @@ async function registerVisitRecord(
                         },
 
                         department: true,
-
-                        doctor: true,
                     },
                 });
 
@@ -576,17 +507,30 @@ async function registerVisitRecord(
                         updatedVisit,
 
                     tokenNumber,
+                    tokenLabel,
                 };
-            },
-            {
-                isolationLevel:
-                    "Serializable",
             }
         );
     } catch (error) {
+        const target = error.meta?.target;
+        const targetText = Array.isArray(target)
+            ? target.join(",")
+            : String(target || "");
+
+        if (
+            error.code === "P2002" &&
+            targetText.includes("tokenNumber")
+        ) {
+            const tokenError = new Error(
+                "Unable to assign token number. Please try again."
+            );
+            tokenError.code = "TOKEN_ASSIGNMENT_FAILED";
+            throw tokenError;
+        }
+
         if (error.code === "P2002") {
             const duplicateError = new Error(
-                "Patient has already registered an OP visit with this doctor today."
+                "Patient has already registered an OP visit in this department today."
             );
             duplicateError.code = "DUPLICATE_SAME_DAY_VISIT";
             throw duplicateError;
@@ -597,135 +541,6 @@ async function registerVisitRecord(
 }
 
 
-
-
-/*
-|--------------------------------------------------------------------------
-| Today's Token
-|--------------------------------------------------------------------------
-*/
-
-async function getTodayTokenRecord() {
-    const today =
-        getStartOfToday();
-
-    const counter =
-        await prisma.dailyTokenCounter.findUnique({
-            where: {
-                tokenDate: today,
-            },
-        });
-
-    if (!counter) {
-        return {
-            currentToken: 0,
-            nextToken: 1,
-        };
-    }
-
-    return {
-        currentToken:
-            counter.nextToken - 1,
-
-        nextToken:
-            counter.nextToken,
-    };
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Set Today's Starting Token
-|--------------------------------------------------------------------------
-*/
-
-async function setTodayTokenRecord(
-    startingToken
-) {
-    const token =
-        Number(startingToken);
-
-    if (
-        !Number.isInteger(token) ||
-        token < 1 ||
-        token > 99999
-    ) {
-        const error =
-            new Error(
-                "Starting token must be a whole number between 1 and 99999"
-            );
-
-        error.code =
-            "TOKEN_VALIDATION_ERROR";
-
-        throw error;
-    }
-
-
-    const today =
-        getStartOfToday();
-
-    const tomorrow =
-        getTomorrow();
-
-
-    const existingVisits =
-        await prisma.patientVisit.count({
-            where: {
-                visitDate: {
-                    gte: today,
-                    lt: tomorrow,
-                },
-
-                status: {
-                    not: "CANCELLED",
-                },
-            },
-        });
-
-
-    if (existingVisits > 0) {
-        const error =
-            new Error(
-                "Today's starting token cannot be changed after OP registration has started."
-            );
-
-        error.code =
-            "TOKEN_ALREADY_STARTED";
-
-        throw error;
-    }
-
-
-    const counter =
-        await prisma.dailyTokenCounter.upsert({
-            where: {
-                tokenDate: today,
-            },
-
-            update: {
-                nextToken:
-                    token,
-            },
-
-            create: {
-                tokenDate:
-                    today,
-
-                nextToken:
-                    token,
-            },
-        });
-
-
-    return {
-        currentToken:
-            counter.nextToken - 1,
-
-        nextToken:
-            counter.nextToken,
-    };
-}
 
 
 /*
@@ -774,7 +589,6 @@ async function getTodayVisitRecords(page = 1, limit = 20) {
                     },
                 },
                 department: true,
-                doctor: true,
             },
             orderBy: [
                 {
@@ -805,10 +619,69 @@ async function getTodayVisitRecords(page = 1, limit = 20) {
     };
 }
 
+async function getPatientVisitRecord(id) {
+    const visitId = Number(id);
+
+    if (!Number.isInteger(visitId) || visitId < 1) {
+        const error = new Error("Visit ID must be a positive integer");
+        error.code = "VISIT_VALIDATION_ERROR";
+        throw error;
+    }
+
+    const visit = await prisma.patientVisit.findUnique({
+        where: { id: visitId },
+        include: {
+            patient: true,
+            department: true,
+        },
+    });
+
+    if (!visit) {
+        const error = new Error("OP visit not found");
+        error.code = "VISIT_NOT_FOUND";
+        throw error;
+    }
+
+    return visit;
+}
+
+async function getPatientVisitHistory(patientId) {
+    const parsedPatientId = Number(patientId);
+
+    if (!Number.isInteger(parsedPatientId) || parsedPatientId < 1) {
+        const error = new Error("Patient ID must be a positive integer");
+        error.code = "PATIENT_HISTORY_VALIDATION_ERROR";
+        throw error;
+    }
+
+    const patient = await prisma.patient.findUnique({
+        where: { id: parsedPatientId },
+        select: { id: true },
+    });
+
+    if (!patient) {
+        const error = new Error("Patient not found");
+        error.code = "PATIENT_NOT_FOUND";
+        throw error;
+    }
+
+    return prisma.patientVisit.findMany({
+        where: { patientId: parsedPatientId },
+        include: {
+            patient: true,
+            department: true,
+        },
+        orderBy: [
+            { visitDate: "desc" },
+            { id: "desc" },
+        ],
+    });
+}
+
 module.exports = {
     registerVisitRecord,
-    getPatientDoctorVisitHistory,
-    getTodayTokenRecord,
-    setTodayTokenRecord,
+    getPatientDepartmentVisitHistory,
     getTodayVisitRecords,
+    getPatientVisitRecord,
+    getPatientVisitHistory,
 };

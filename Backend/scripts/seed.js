@@ -56,7 +56,11 @@ async function main() {
             fullName: "System Administrator",
             username: "admin",
             password: hashedPassword,
-            roleId: adminRole.id,
+            userRoles: {
+                create: {
+                    roleId: adminRole.id,
+                },
+            },
         },
     });
 

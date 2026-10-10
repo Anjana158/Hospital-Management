@@ -4,9 +4,17 @@ import {
 } from "react-icons/fa";
 
 import {
+    useEffect,
+    useState,
+} from "react";
+
+import {
     useLocation,
     useNavigate,
+    useParams,
 } from "react-router-dom";
+
+import { getVisitById } from "./services/visitService";
 
 import "../styles/OPTicket.css";
 
@@ -15,9 +23,73 @@ function OPTicket() {
 
     const navigate = useNavigate();
     const location = useLocation();
+    const { visitId } = useParams();
 
-    const visit = location.state?.visit;
-    const tokenNumber = location.state?.tokenNumber;
+    const [visit, setVisit] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState("");
+    const tokenLabel = visit?.tokenLabel
+        || location.state?.tokenLabel
+        || (visit?.tokenNumber
+            ? `${visit.tokenPrefix || "HMS"} ${visit.tokenNumber}`
+            : "")
+        || (location.state?.tokenNumber
+            ? `HMS ${location.state.tokenNumber}`
+            : "");
+
+    useEffect(() => {
+        let active = true;
+        const providedVisit = location.state?.visit;
+
+        if (providedVisit && Number(providedVisit.id) === Number(visitId)) {
+            setVisit(providedVisit);
+            setLoading(false);
+            setLoadError("");
+            return () => {
+                active = false;
+            };
+        }
+
+        setVisit(null);
+        setLoading(true);
+        setLoadError("");
+
+        getVisitById(visitId)
+            .then((result) => {
+                if (active) {
+                    setVisit(result.data);
+                }
+            })
+            .catch((error) => {
+                if (active) {
+                    setLoadError(
+                        error.response?.data?.message ||
+                        "Failed to load OP ticket"
+                    );
+                }
+            })
+            .finally(() => {
+                if (active) {
+                    setLoading(false);
+                }
+            });
+
+        return () => {
+            active = false;
+        };
+    }, [visitId, location.state?.visit]);
+
+    useEffect(() => {
+        if (!visit || !location.state?.autoPrint) {
+            return undefined;
+        }
+
+        const timer = setTimeout(() => {
+            window.print();
+        }, 300);
+
+        return () => clearTimeout(timer);
+    }, [visit, location.state?.autoPrint]);
 
 
     /*
@@ -25,6 +97,14 @@ function OPTicket() {
     | No Visit Data
     |--------------------------------------------------------------------------
     */
+
+    if (loading) {
+        return (
+            <div className="op-ticket-page">
+                <div className="op-ticket-error">Loading OP ticket...</div>
+            </div>
+        );
+    }
 
     if (!visit) {
 
@@ -38,8 +118,7 @@ function OPTicket() {
                     </h2>
 
                     <p>
-                        The OP registration details
-                        are not available on this page.
+                        {loadError || "The OP visit details are not available on this page."}
                     </p>
 
                     <button
@@ -358,7 +437,7 @@ function OPTicket() {
                         </span>
 
                         <span className="token-number">
-                            {tokenNumber || "—"}
+                            {tokenLabel || "—"}
                         </span>
 
                     </div>
