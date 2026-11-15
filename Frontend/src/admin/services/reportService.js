@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = "http://100.103.223.11:5000/api/reports/admin";
+const API_URL = "/api/reports/admin";
 
 export const getAdminReceptionReport = async (params = {}) => {
     const response = await axios.get(API_URL, {

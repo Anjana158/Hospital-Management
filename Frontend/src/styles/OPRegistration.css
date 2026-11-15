@@ -206,6 +206,40 @@
     cursor: not-allowed;
 }
 
+.op-scheme-message {
+    margin-top: 18px;
+    padding: 11px 13px;
+    border: 1px solid;
+    border-radius: 8px;
+    font-size: 13px;
+}
+
+.op-scheme-message.eligible {
+    border-color: #b8dfca;
+    background: #effaf3;
+    color: #328254;
+}
+
+.op-scheme-message.ineligible {
+    border-color: #f1c7d2;
+    background: #fff5f7;
+    color: #a64b5c;
+}
+
+.op-scheme-fields {
+    margin-top: 18px;
+    padding: 16px;
+    border: 1px solid #e5eaf1;
+    border-radius: 9px;
+    background: #fbfcfe;
+}
+
+.op-scheme-fields h4 {
+    margin: 0 0 14px;
+    color: #34445a;
+    font-size: 14px;
+}
+
 
 /* =========================================================
    FEE

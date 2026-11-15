@@ -10,6 +10,7 @@ import Users from './admin/Users'
 import Schemes from './admin/Schemes'
 import DepartmentManagement from './admin/DepartmentManagement'
 import AdminReports from './admin/AdminReports'
+import BillingServices from './admin/BillingServices'
 
 // Protected Route
 import ProtectedRoute from './admin/ProtectedRoute'
@@ -26,6 +27,9 @@ import ReceptionistReports from './reception/ReceptionistReports'
 // BILLING
 import BillingDashboard from './billing/BillingDashboard'
 import BillingHome from './billing/BillingHome'
+import NewBill from './billing/NewBill'
+import BillReceipt from './billing/BillReceipt'
+import BillingReports from './billing/BillingReports'
 
 
 
@@ -55,6 +59,9 @@ function App() {
                         <Route path="schemes" element={<Schemes />}/>
                         <Route path="departments" element={<DepartmentManagement />} />
                         <Route path="reports" element={<AdminReports />} />
+                        <Route path="billing-services" element={<BillingServices />} />
+                        <Route path="billing-reports" element={<BillingReports />} />
+                        <Route path="billing-reports/receipt/:billNumber" element={<BillReceipt />} />
                     </Route>
                 </Route>
 
@@ -79,9 +86,12 @@ function App() {
                 {/* ================================= */}
 
                 <Route
-                    element={<ProtectedRoute allowedRoles={["BILLING"]}/>}>
+                    element={<ProtectedRoute allowedRoles={["BILLING", "ADMIN"]}/>}>
                     <Route path="/billing" element={<BillingDashboard />}>
                         <Route index element={<BillingHome />}/>
+                        <Route path="new" element={<NewBill />}/>
+                        <Route path="receipt/:billNumber" element={<BillReceipt />}/>
+                        <Route path="reports" element={<BillingReports />}/>
                     </Route>
                 </Route>
 

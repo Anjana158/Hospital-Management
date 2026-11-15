@@ -1,11 +1,11 @@
 import {
     FaHospital,
-    FaUserCircle,
 } from "react-icons/fa";
 
 import {
     Outlet,
     useNavigate,
+    useLocation,
 } from "react-router-dom";
 
 import "../styles/StaffDashboard.css";
@@ -15,6 +15,7 @@ import { logout } from "../auth/session";
 function BillingDashboard() {
 
     const navigate = useNavigate();
+    const location = useLocation();
 
     const user =
         JSON.parse(
@@ -62,7 +63,7 @@ function BillingDashboard() {
                     <div className="staff-user-info">
 
                         <strong>
-                            {user?.fullName ||
+                            {user?.username ||
                                 "Billing Staff"}
                         </strong>
 
@@ -72,10 +73,6 @@ function BillingDashboard() {
                         </span>
 
                     </div>
-
-                    <FaUserCircle
-                        className="staff-user-icon"
-                    />
 
                 </div>
 
@@ -91,7 +88,7 @@ function BillingDashboard() {
                     <nav className="staff-navigation">
 
                         <button
-                            className="staff-nav-link active"
+                            className={`staff-nav-link ${location.pathname === "/billing" ? "active" : ""}`}
                             onClick={() =>
                                 navigate("/billing")
                             }
@@ -102,28 +99,19 @@ function BillingDashboard() {
 
 
                         <button
-                            className="staff-nav-link"
-                            onClick={() =>
-                                alert(
-                                    "Billing will be added next."
-                                )
-                            }
+                            className={`staff-nav-link ${location.pathname.startsWith("/billing/new") ? "active" : ""}`}
+                            onClick={() => navigate("/billing/new")}
                         >
                             <span>₹</span>
                             <span>New Bill</span>
                         </button>
 
-
                         <button
-                            className="staff-nav-link"
-                            onClick={() =>
-                                alert(
-                                    "Payment search will be added next."
-                                )
-                            }
+                            className={`staff-nav-link ${location.pathname.startsWith("/billing/reports") ? "active" : ""}`}
+                            onClick={() => navigate("/billing/reports")}
                         >
-                            <span>⌕</span>
-                            <span>Find Bill</span>
+                            <span>▤</span>
+                            <span>Reports</span>
                         </button>
 
                     </nav>

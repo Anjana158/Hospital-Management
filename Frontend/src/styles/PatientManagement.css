@@ -149,6 +149,40 @@
     font-size: 13px;
 }
 
+.scheme-eligibility-message {
+    margin: 4px 0 14px;
+    padding: 10px 12px;
+    border: 1px solid;
+    border-radius: 8px;
+    font-size: 13px;
+}
+
+.scheme-eligibility-message.eligible {
+    border-color: #b8dfca;
+    background: #effaf3;
+    color: #328254;
+}
+
+.scheme-eligibility-message.ineligible {
+    border-color: #f1c7d2;
+    background: #fff5f7;
+    color: #a64b5c;
+}
+
+.scheme-patient-fields {
+    margin: 4px 0 18px;
+    padding: 15px;
+    border: 1px solid #e5eaf1;
+    border-radius: 9px;
+    background: #fbfcfe;
+}
+
+.scheme-patient-fields h4 {
+    margin: 0 0 12px;
+    color: #34445a;
+    font-size: 14px;
+}
+
 /* ========================================
    LOADING
 ======================================== */

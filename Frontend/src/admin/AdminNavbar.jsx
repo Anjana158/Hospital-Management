@@ -1,4 +1,4 @@
-import { FaHospital, FaUserCircle } from "react-icons/fa";
+import { FaHospital } from "react-icons/fa";
 
 function AdminNavbar() {
   const user = JSON.parse(localStorage.getItem("user"));
@@ -15,13 +15,12 @@ function AdminNavbar() {
       <div className="navbar-user">
         <div className="navbar-user-info">
           <strong>
-            {user?.fullName || "Administrator"}
+            {user?.username || "Administrator"}
           </strong>
           <span>
             {user?.role?.name || "ADMIN"}
           </span>
         </div>
-        <FaUserCircle className="navbar-user-icon" />
       </div>
     </header>
   );

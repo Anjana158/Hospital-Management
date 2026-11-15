@@ -1,51 +1,52 @@
 generator client {
-    provider = "prisma-client-js"
+  provider = "prisma-client-js"
 }
 
 datasource db {
-    provider = "postgresql"
-    url = env("DATABASE_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 enum UserStatus {
-    ACTIVE
-    INACTIVE
-    LOCKED
+  ACTIVE
+  INACTIVE
+  LOCKED
 }
 
 enum Gender {
-    MALE
-    FEMALE
-    TRANSGENDER
+  MALE
+  FEMALE
+  TRANSGENDER
 }
 
 enum VisitType {
-    NEW
-    REVISIT
+  NEW
+  REVISIT
 }
 
 enum VisitStatus {
-    REGISTERED
-    WAITING
-    IN_CONSULTATION
-    COMPLETED
-    CANCELLED
-    NO_SHOW
+  REGISTERED
+  WAITING
+  IN_CONSULTATION
+  COMPLETED
+  CANCELLED
+  NO_SHOW
 }
 
 enum PaymentStatus {
-    PAID
-    FREE
+  PENDING
+  PAID
+  FREE
 }
 
 enum PaymentMethod {
-    CASH
-    GPAY
+  CASH
+  GPAY
 }
 
 enum RecordStatus {
-    ACTIVE
-    INACTIVE
+  ACTIVE
+  INACTIVE
 }
 
 enum SchemeDiscountType {
@@ -54,202 +55,361 @@ enum SchemeDiscountType {
   FIXED
 }
 
+enum BillingCategory {
+  APL
+  BPL
+}
+
+enum BillingStatus {
+  OPEN
+  PARTIAL
+  PAID
+  WAIVED
+}
+
+enum BillingPaymentStatus {
+  CONFIRMED
+  REVERSED
+}
+
+enum BillingAdjustmentType {
+  MISCELLANEOUS
+}
+
 model Role {
-    id          Int         @id @default(autoincrement())
-    name        String      @unique
-    description String? 
+  id          Int     @id @default(autoincrement())
+  name        String  @unique
+  description String?
 
-    createdAt   DateTime    @default(now())
-    updatedAt   DateTime    @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-    userRoles   UserRole[]
+  userRoles UserRole[]
 
-    @@map("roles")  
+  @@map("roles")
 }
 
 model UserRole {
-    userId      Int
-    roleId      Int
+  userId Int
+  roleId Int
 
-    user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-    role        Role        @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Restrict)
 
-    assignedAt  DateTime    @default(now())
+  assignedAt DateTime @default(now())
 
-    @@id([userId, roleId])
-    @@index([roleId])
-    @@map("user_roles")
+  @@id([userId, roleId])
+  @@index([roleId])
+  @@map("user_roles")
 }
 
-
 model User {
-    id              Int         @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
-    employeeId      String      @unique
-    fullName        String      
-    username        String      @unique
-    password        String
+  employeeId String @unique
+  fullName   String
+  username   String @unique
+  password   String
 
-    status          UserStatus  @default(ACTIVE)
+  status UserStatus @default(ACTIVE)
 
-    lastLogin       DateTime?
+  lastLogin DateTime?
 
-    failedAttempts  Int         @default(0)
+  failedAttempts Int @default(0)
 
-    createdBy       Int?
+  createdBy Int?
 
-    createdAt       DateTime    @default(now())
-    updatedAt       DateTime    @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-    userRoles       UserRole[]
-    refreshTokens   RefreshToken[]
+  userRoles     UserRole[]
+  refreshTokens RefreshToken[]
 
-    createdPatients Patient[]       @relation("PatientCreatedBy")
-    createdVisits   PatientVisit[]  @relation("VisitCreatedBy")
+  createdPatients        Patient[]        @relation("PatientCreatedBy")
+  createdVisits          PatientVisit[]   @relation("VisitCreatedBy")
+  createdBillingServices BillingService[] @relation("BillingServiceCreatedBy")
+  createdServiceTariffs  ServiceTariff[]  @relation("ServiceTariffCreatedBy")
+  createdBills           Bill[]           @relation("BillCreatedBy")
+  handledBillPayments    BillPayment[]    @relation("BillPaymentHandledBy")
+  reversedBillPayments   BillPayment[]    @relation("BillPaymentReversedBy")
+  billingAudits          BillingAudit[]   @relation("BillingAuditActor")
 
-    @@map("users") 
+  @@map("users")
 }
 
 model RefreshToken {
-    id          Int       @id @default(autoincrement())
-    userId      Int
-    tokenHash   String    @unique
-    roleName    String
-    expiresAt   DateTime
-    revokedAt   DateTime?
-    createdAt   DateTime  @default(now())
+  id        Int       @id @default(autoincrement())
+  userId    Int
+  tokenHash String    @unique
+  roleName  String
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
 
-    user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-    @@index([userId])
-    @@map("refresh_tokens")
+  @@index([userId])
+  @@map("refresh_tokens")
 }
 
 model PatientScheme {
-  id             Int                 @id @default(autoincrement())
-  code           String              @unique
-  name           String              @unique
-  discountType   SchemeDiscountType  @default(NONE)
-  discountValue  Decimal             @default(0) @db.Decimal(10, 2)
-  status         RecordStatus        @default(ACTIVE)
+  id                           Int          @id @default(autoincrement())
+  code                         String       @unique
+  name                         String       @unique
+  eligibilityGender            String       @default("ALL")
+  ageCriteriaType              String       @default("ALL")
+  ageLimit                     Int?
+  minimumAge                   Int?
+  maximumAge                   Int?
+  collectAdditionalInformation Boolean      @default(false)
+  additionalInformationFields  Json         @default("[]")
+  status                       RecordStatus @default(ACTIVE)
 
-  patients       Patient[]
+  patients        Patient[]
 
-  createdAt      DateTime            @default(now())
-  updatedAt      DateTime            @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  bills     Bill[]
 }
 
 model Department {
-    id         Int            @id @default(autoincrement())
-    code       String         @unique
-    name       String         @unique
-    status     RecordStatus   @default(ACTIVE)
+  id     Int          @id @default(autoincrement())
+  code   String       @unique
+  name   String       @unique
+  status RecordStatus @default(ACTIVE)
 
-    visits     PatientVisit[]
-    tokenCounters DailyTokenCounter[]
+  visits        PatientVisit[]
+  tokenCounters DailyTokenCounter[]
 
-    createdAt  DateTime       @default(now())
-    updatedAt  DateTime       @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Patient {
-    id             Int             @id @default(autoincrement())
-    uhid           String          @unique
+  id   Int    @id @default(autoincrement())
+  uhid String @unique
 
-    firstName      String
-    middleName     String?
-    lastName       String?
-    dateOfBirth    DateTime?
-    age            Int
-    gender         Gender      
+  firstName   String
+  middleName  String?
+  lastName    String?
+  dateOfBirth DateTime?
+  age         Int
+  gender      Gender
 
-    phone          String?
-    alternatePhone String?
-    email          String?
+  phone          String?
+  alternatePhone String?
+  email          String?
 
-    addressLine1   String?
-    addressLine2   String?
-    city           String?
-    district       String?
-    state          String?
-    postalCode     String?
-    country        String?
+  addressLine1 String?
+  addressLine2 String?
+  city         String?
+  district     String?
+  state        String?
+  postalCode   String?
+  country      String?
 
-    status         RecordStatus    @default(ACTIVE)
+  status RecordStatus @default(ACTIVE)
 
-    schemeId       Int?
-    scheme         PatientScheme? @relation(fields: [schemeId], references: [id], onDelete: Restrict)
+  schemeId                    Int?
+  scheme                      PatientScheme? @relation(fields: [schemeId], references: [id], onDelete: Restrict)
+  schemeAdditionalInformation Json           @default("[]")
 
-    createdBy      Int
-    createdByUser  User            @relation("PatientCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
+  createdBy     Int
+  createdByUser User @relation("PatientCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
 
-    visits         PatientVisit[]
+  visits PatientVisit[]
+  bills  Bill[]
 
-    createdAt      DateTime        @default(now())
-    updatedAt      DateTime        @updatedAt
-    archivedAt     DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  archivedAt DateTime?
 
-    @@index([lastName, firstName])
-    @@index([phone])
-    @@index([schemeId])
-    @@index([createdAt])
+  @@index([lastName, firstName])
+  @@index([phone])
+  @@index([schemeId])
+  @@index([createdAt])
 }
 
 model PatientVisit {
-    id             Int          @id @default(autoincrement())
-    visitNumber    String       @unique
-    tokenNumber    Int?
-    tokenPrefix    String       @default("HMS")
-    tokenLabel     String?
-    tokenDate      DateTime?    @db.Date
-    visitDate      DateTime     @default(now())
+  id          Int       @id @default(autoincrement())
+  visitNumber String    @unique
+  tokenNumber Int?
+  tokenPrefix String    @default("HMS")
+  tokenLabel  String?
+  tokenDate   DateTime? @db.Date
+  visitDate   DateTime  @default(now())
 
-    visitType      VisitType
-    revisitCount   Int          @default(0)
-    status         VisitStatus  @default(REGISTERED)
+  visitType    VisitType
+  revisitCount Int         @default(0)
+  status       VisitStatus @default(REGISTERED)
 
-    patientId      Int
-    patient        Patient      @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  patientId Int
+  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Restrict)
 
-    departmentId   Int
-    department     Department   @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  departmentId Int
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Restrict)
 
-    createdBy      Int
-    createdByUser  User         @relation("VisitCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
+  createdBy     Int
+  createdByUser User @relation("VisitCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
 
-    genderAtVisit  Gender?
+  genderAtVisit Gender?
 
-    opFee          Decimal      @default(10) @db.Decimal(10, 2)
-    discountAmount Decimal      @default(0) @db.Decimal(10, 2)
-    finalFee       Decimal      @default(0) @db.Decimal(10, 2)
-    paymentStatus  PaymentStatus @default(PAID)
-    paymentMethod  PaymentMethod?
+  opFee                       Decimal             @default(10) @db.Decimal(10, 2)
+  discountAmount              Decimal             @default(0) @db.Decimal(10, 2)
+  finalFee                    Decimal             @default(0) @db.Decimal(10, 2)
+  paymentStatus               PaymentStatus       @default(PAID)
+  paymentMethod               PaymentMethod?
+  schemeIdAtVisit             Int?
+  schemeCodeAtVisit           String?
+  schemeNameAtVisit           String?
+  schemeDiscountTypeAtVisit   SchemeDiscountType?
+  schemeDiscountValueAtVisit  Decimal?            @db.Decimal(10, 2)
+  schemeEligibilityAtVisit    Json?
+  schemeAdditionalInformation Json?
 
-    createdAt      DateTime     @default(now())
-    updatedAt      DateTime     @updatedAt
-    cancelledAt    DateTime?
-    completedAt    DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  cancelledAt DateTime?
+  completedAt DateTime?
 
-    @@index([visitDate])
-    @@index([patientId, visitDate])
-    @@index([patientId, departmentId, visitDate])
-    @@index([departmentId, visitDate])
-    @@index([createdBy, visitDate])
-    @@index([visitDate, tokenNumber])
-    @@index([patientId, departmentId, revisitCount])
-    @@unique([departmentId, tokenDate, tokenNumber])
+  @@unique([departmentId, tokenDate, tokenNumber])
+  @@index([visitDate])
+  @@index([patientId, visitDate])
+  @@index([patientId, departmentId, visitDate])
+  @@index([departmentId, visitDate])
+  @@index([createdBy, visitDate])
+  @@index([visitDate, tokenNumber])
+  @@index([patientId, departmentId, revisitCount])
 }
 
 model DailyTokenCounter {
-    id           Int        @id @default(autoincrement())
-    departmentId Int
-    department   Department @relation(fields: [departmentId], references: [id], onDelete: Restrict)
-    tokenDate    DateTime   @db.Date
-    nextToken    Int        @default(1)
+  id           Int        @id @default(autoincrement())
+  departmentId Int
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  tokenDate    DateTime   @db.Date
+  nextToken    Int        @default(1)
 
-    createdAt    DateTime   @default(now())
-    updatedAt    DateTime   @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-    @@unique([departmentId, tokenDate])
-    @@index([departmentId])
+  @@unique([departmentId, tokenDate])
+  @@index([departmentId])
+}
+
+model BillingService {
+  id            Int                    @id @default(autoincrement())
+  name          String                 @unique
+  description   String?
+  isActive      Boolean                @default(true)
+  createdBy     Int
+  createdByUser User                   @relation("BillingServiceCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
+  tariffs       ServiceTariff[]
+  billItems     BillItem[]
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+
+  @@index([isActive, name])
+}
+
+model ServiceTariff {
+  id            Int             @id @default(autoincrement())
+  serviceId     Int
+  category      BillingCategory
+  amount        Decimal         @db.Decimal(10, 2)
+  isFree        Boolean         @default(false)
+  effectiveAt   DateTime        @default(now())
+  endedAt       DateTime?
+  createdBy     Int
+  service       BillingService  @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  createdByUser User            @relation("ServiceTariffCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
+  billItems     BillItem[]
+
+  @@index([serviceId, category, endedAt])
+}
+
+model Bill {
+  id             Int             @id @default(autoincrement())
+  billNumber     String          @unique
+  idempotencyKey String?         @unique
+  patientId      Int
+  createdBy      Int
+  schemeId       Int?
+  category       BillingCategory @default(APL)
+  grossAmount    Decimal         @db.Decimal(10, 2)
+  discountAmount Decimal         @db.Decimal(10, 2)
+  miscellaneousAmount Decimal?   @db.Decimal(10, 2)
+  miscellaneousDiscountAmount Decimal @default(0) @db.Decimal(10, 2)
+  adjustmentType BillingAdjustmentType?
+  netPayable     Decimal         @db.Decimal(10, 2)
+  remarks        String?
+  schemeSnapshot Json?
+  status         BillingStatus   @default(OPEN)
+  patient        Patient         @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  createdByUser  User            @relation("BillCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
+  scheme         PatientScheme?  @relation(fields: [schemeId], references: [id], onDelete: Restrict)
+  items          BillItem[]
+  payments       BillPayment[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([createdAt])
+  @@index([createdBy, createdAt])
+  @@index([patientId, createdAt])
+  @@index([schemeId, createdAt])
+}
+
+model BillItem {
+  id                  Int            @id @default(autoincrement())
+  billId              Int
+  serviceId           Int
+  tariffId            Int
+  serviceNameSnapshot String
+  quantity            Int
+  tariffUnitPrice     Decimal        @db.Decimal(10, 2)
+  grossAmount         Decimal        @db.Decimal(10, 2)
+  discountAmount      Decimal        @db.Decimal(10, 2)
+  netAmount           Decimal        @db.Decimal(10, 2)
+  discountSnapshot    Json
+  bill                Bill           @relation(fields: [billId], references: [id], onDelete: Cascade)
+  service             BillingService @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  tariff              ServiceTariff  @relation(fields: [tariffId], references: [id], onDelete: Restrict)
+
+  @@index([billId])
+  @@index([serviceId, billId])
+}
+
+model BillPayment {
+  id             Int                  @id @default(autoincrement())
+  billId         Int
+  handledBy      Int
+  method         PaymentMethod
+  amount         Decimal              @db.Decimal(10, 2)
+  status         BillingPaymentStatus @default(CONFIRMED)
+  idempotencyKey String?              @unique
+  confirmedAt    DateTime             @default(now())
+  reversedAt     DateTime?
+  reversedBy     Int?
+  reversalReason String?
+  bill           Bill                 @relation(fields: [billId], references: [id], onDelete: Restrict)
+  handledByUser  User                 @relation("BillPaymentHandledBy", fields: [handledBy], references: [id], onDelete: Restrict)
+  reversedByUser User?                @relation("BillPaymentReversedBy", fields: [reversedBy], references: [id], onDelete: Restrict)
+
+  @@index([confirmedAt, method, status])
+  @@index([handledBy, confirmedAt])
+  @@index([billId, status])
+  @@index([reversedAt])
+}
+
+model BillingAudit {
+  id         Int      @id @default(autoincrement())
+  actorId    Int
+  action     String
+  entityType String
+  entityId   String
+  details    Json?
+  createdAt  DateTime @default(now())
+  actor      User     @relation("BillingAuditActor", fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([entityType, entityId, createdAt])
+  @@index([actorId, createdAt])
 }

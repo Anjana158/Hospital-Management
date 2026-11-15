@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
+import "bootstrap/dist/css/bootstrap-grid.min.css";
 
 import { getPatientDepartmentVisitHistory } from "./services/visitService";
+import { getSchemeEligibility } from "./utils/schemeEligibility";
 
 const KERALA_DISTRICTS = [
     "Alappuzha",
@@ -61,17 +63,7 @@ function isValidPhone(value) {
         return true;
     }
 
-    if (!/^[+\d\s().-]+$/.test(value.trim())) {
-        return false;
-    }
-
-    const digitCount =
-        value.replace(/\D/g, "").length;
-
-    return (
-        digitCount >= 7 &&
-        digitCount <= 15
-    );
+    return /^\d{10}$/.test(value.trim());
 }
 
 
@@ -212,14 +204,11 @@ function buildInitialForm(patient) {
 }
 
 function PatientRegisterForm({
-    onRegister,
     onOpTicket,
-    onCancel,
     loading,
     schemes = [],
     departments = [],
     initialPatient = null,
-    showDuplicates = false,
     serverError = "",
 }) {
     const [formData, setFormData] =
@@ -234,8 +223,9 @@ function PatientRegisterForm({
 
     const [formError, setFormError] =
         useState("");
-    const [paymentMethod, setPaymentMethod] =
-        useState("CASH");
+    const [schemeSelectionIsManual, setSchemeSelectionIsManual] = useState(false);
+    const [schemeAdditionalInformation, setSchemeAdditionalInformation] =
+        useState(() => initialPatient?.schemeAdditionalInformation || []);
 
 
     /*
@@ -262,6 +252,7 @@ function PatientRegisterForm({
         if (
             name === "dateOfBirth"
         ) {
+            setSchemeSelectionIsManual(false);
             const calculatedAge =
                 calculateAgeFromDate(
                     value
@@ -295,6 +286,7 @@ function PatientRegisterForm({
         */
 
         if (name === "age") {
+            setSchemeSelectionIsManual(false);
             if (value === "") {
                 setFormData(
                     (previous) => ({
@@ -334,6 +326,32 @@ function PatientRegisterForm({
             return;
         }
 
+        if (name === "schemeId") {
+            setSchemeSelectionIsManual(true);
+            const nextScheme = schemes.find(
+                (scheme) => String(scheme.id) === String(value)
+            ) || (
+                value && String(initialPatient?.scheme?.id) === String(value)
+                    && initialPatient.scheme.status !== "INACTIVE"
+                    ? initialPatient.scheme
+                    : null
+            );
+            const nextFields = nextScheme?.collectAdditionalInformation
+                ? nextScheme.additionalInformationFields || []
+                : [];
+            setFormData((previous) => ({
+                ...previous,
+                schemeId: value,
+            }));
+            setSchemeAdditionalInformation(nextFields.map((field) => ({
+                key: field.key,
+                label: field.label,
+                value: "",
+            })));
+            setFormError("");
+            return;
+        }
+
 
         /*
         |--------------------------------------------------------------------------
@@ -347,6 +365,9 @@ function PatientRegisterForm({
                 [name]: value,
             })
         );
+        if (name === "gender") {
+            setSchemeSelectionIsManual(false);
+        }
 
         setFormError("");
     };
@@ -466,6 +487,16 @@ function PatientRegisterForm({
             return;
         }
 
+        if (eligibleSchemes.length > 1 && !selectedScheme) {
+            setFormError("Multiple schemes match this patient. Select an eligible scheme to continue.");
+            return;
+        }
+
+        if (selectedScheme && !schemeEligibility.eligible) {
+            setFormError(schemeEligibility.message);
+            return;
+        }
+
 
         /*
         |--------------------------------------------------------------------------
@@ -480,7 +511,7 @@ function PatientRegisterForm({
             )
         ) {
             setFormError(
-                "Enter a valid phone number (7–15 digits)"
+                "Enter a valid phone number (10 digits only)"
             );
 
             return;
@@ -500,7 +531,7 @@ function PatientRegisterForm({
             )
         ) {
             setFormError(
-                "Enter a valid alternate phone number (7–15 digits)"
+                "Enter a valid alternate phone number (10 digits only)"
             );
 
             return;
@@ -549,24 +580,16 @@ function PatientRegisterForm({
         return {
             ...patientFields,
             age: numericAge,
-            schemeId: formData.schemeId
-                ? Number(formData.schemeId)
+            schemeId: selectedScheme
+                ? Number(selectedScheme.id)
                 : undefined,
+            schemeAdditionalInformation: selectedScheme
+                ? schemeAdditionalInformation.map(({ key, value }) => ({ key, value }))
+                : [],
             departmentId,
             visitType,
             opFee,
         };
-    };
-
-    const handleRegister = (event) => {
-        event.preventDefault();
-        const payload = buildPatientPayload();
-
-        if (!payload) {
-            return;
-        }
-
-        onRegister(payload);
     };
 
     const handleOpTicket = (event) => {
@@ -600,11 +623,24 @@ function PatientRegisterForm({
             return;
         }
 
+        if (selectedScheme && !schemeEligibility.eligible) {
+            setFormError(schemeEligibility.message);
+            return;
+        }
+        if (eligibleSchemes.length > 1 && !selectedScheme) {
+            setFormError("Multiple schemes match this patient. Select an eligible scheme to continue.");
+            return;
+        }
+
         onOpTicket({
             ...payload,
             opFee: numericFee,
             departmentId: Number(payload.departmentId),
-            paymentMethod: finalFee > 0 ? paymentMethod : null,
+            schemeId: selectedScheme ? Number(selectedScheme.id) : null,
+            schemeAdditionalInformation: schemeAdditionalInformation.map(({ key, value }) => ({
+                key,
+                value,
+            })),
         });
     };
 
@@ -668,22 +704,58 @@ function PatientRegisterForm({
 
     const selectedScheme = schemes.find(
         (scheme) => String(scheme.id) === String(formData.schemeId)
-    ) || initialPatient?.scheme;
+    ) || (
+        formData.schemeId &&
+        String(initialPatient?.scheme?.id) === String(formData.schemeId)
+            && initialPatient.scheme.status !== "INACTIVE"
+            ? initialPatient.scheme
+            : null
+    );
+    const schemeEligibility = getSchemeEligibility(
+        selectedScheme,
+        formData.gender,
+        formData.age === "" ? null : Number(formData.age)
+    );
+    const eligibleSchemes = schemes.filter((scheme) =>
+        scheme.status !== "INACTIVE" &&
+        getSchemeEligibility(
+            scheme,
+            formData.gender,
+            formData.age === "" ? null : Number(formData.age)
+        ).eligible
+    );
+
+    useEffect(() => {
+        if (schemeSelectionIsManual) {
+            return;
+        }
+        const nextSchemeId = eligibleSchemes.length === 1
+            ? String(eligibleSchemes[0].id)
+            : "";
+        setFormData((previous) => previous.schemeId === nextSchemeId
+            ? previous
+            : { ...previous, schemeId: nextSchemeId }
+        );
+    }, [formData.gender, formData.age, schemes, schemeSelectionIsManual]);
+
+    useEffect(() => {
+        const configuredFields = selectedScheme?.collectAdditionalInformation
+            ? selectedScheme.additionalInformationFields || []
+            : [];
+        const initialValues = String(initialPatient?.scheme?.id) === String(selectedScheme?.id)
+            ? initialPatient?.schemeAdditionalInformation || []
+            : [];
+        const valuesByKey = new Map(initialValues.map((field) => [field.key, field.value]));
+
+        setSchemeAdditionalInformation(configuredFields.map((field) => ({
+            key: field.key,
+            label: field.label,
+            value: valuesByKey.get(field.key) ?? "",
+        })));
+    }, [selectedScheme?.id, selectedScheme?.additionalInformationFields, selectedScheme?.collectAdditionalInformation]);
 
     const numericFee = Number(formData.opFee) || 0;
-    let discountAmount = 0;
-
-    if (selectedScheme && selectedScheme.status === "ACTIVE") {
-        if (selectedScheme.discountType === "PERCENTAGE") {
-            discountAmount = (
-                numericFee * Number(selectedScheme.discountValue)
-            ) / 100;
-        } else if (selectedScheme.discountType === "FIXED") {
-            discountAmount = Number(selectedScheme.discountValue);
-        }
-    }
-
-    discountAmount = Math.min(discountAmount, numericFee);
+    const discountAmount = selectedScheme && schemeEligibility.eligible ? numericFee : 0;
     const finalFee = numericFee - discountAmount;
 
 
@@ -695,12 +767,12 @@ function PatientRegisterForm({
 
     return (
         <form
-            className="patient-form"
-            onSubmit={handleRegister}
+            className="patient-form row g-3"
+            onSubmit={handleOpTicket}
         >
 
             {(formError || serverError) && (
-                <div className="form-error">
+                <div className="form-error col-12">
                     {formError || serverError}
                 </div>
             )}
@@ -712,7 +784,7 @@ function PatientRegisterForm({
 
             <div className="form-row">
 
-                <div className="form-group">
+                <div className="form-group col-12 col-md-6 col-lg-4">
                     <label className="required">
                         First name
                     </label>
@@ -730,7 +802,7 @@ function PatientRegisterForm({
                 </div>
 
 
-                <div className="form-group">
+                <div className="form-group col-12 col-md-6 col-lg-4">
                     <label>
                         Middle name
                     </label>
@@ -749,14 +821,13 @@ function PatientRegisterForm({
 
             </div>
 
-
             {/* ------------------------------------------------------------ */}
             {/* Last Name + Gender */}
             {/* ------------------------------------------------------------ */}
 
             <div className="form-row">
 
-                <div className="form-group">
+                <div className="form-group col-12 col-md-6 col-lg-4">
                     <label>
                         Last name
                     </label>
@@ -774,7 +845,7 @@ function PatientRegisterForm({
                 </div>
 
 
-                <div className="form-group">
+                <div className="form-group col-12 col-md-6 col-lg-4">
                     <label className="required">
                         Gender
                     </label>
@@ -810,6 +881,46 @@ function PatientRegisterForm({
 
             </div>
 
+            {eligibleSchemes.length > 1 && !selectedScheme && (
+                <div className="scheme-eligibility-message ineligible col-12">
+                    Multiple schemes match this patient. Choose one to continue:{" "}
+                    {eligibleSchemes.map((scheme) => scheme.name).join(", ")}.
+                </div>
+            )}
+
+            {selectedScheme && (
+                <div className={`scheme-eligibility-message col-12 ${schemeEligibility.eligible ? "eligible" : "ineligible"}`}>
+                    {schemeEligibility.eligible
+                        ? `${selectedScheme.name} is eligible. A fixed 100% discount will be applied.`
+                        : schemeEligibility.message}
+                </div>
+            )}
+
+            {selectedScheme?.collectAdditionalInformation &&
+                (selectedScheme.additionalInformationFields || []).length > 0 && (
+                    <div className="scheme-patient-fields col-12">
+                        <h4>Additional scheme information (optional)</h4>
+                        <div className="row g-3">
+                            {schemeAdditionalInformation.map((field) => (
+                                <div className="form-group col-12 col-md-6 col-lg-4" key={field.key}>
+                                    <label>{field.label}</label>
+                                    <input
+                                        type="text"
+                                        value={field.value}
+                                        onChange={(event) => setSchemeAdditionalInformation((previous) =>
+                                            previous.map((item) => item.key === field.key
+                                                ? { ...item, value: event.target.value }
+                                                : item
+                                            )
+                                        )}
+                                        disabled={loading}
+                                    />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
 
             {/* ------------------------------------------------------------ */}
             {/* DOB + Age */}
@@ -817,7 +928,7 @@ function PatientRegisterForm({
 
             <div className="form-row">
 
-                <div className="form-group">
+                <div className="form-group col-12 col-md-6 col-lg-4">
 
                     <label className="required">
                         Date of birth
@@ -837,7 +948,7 @@ function PatientRegisterForm({
                 </div>
 
 
-                <div className="form-group">
+                <div className="form-group col-12 col-md-6 col-lg-4">
 
                     <label className="required">
                         Age
@@ -869,7 +980,7 @@ function PatientRegisterForm({
 
             <div className="form-row">
 
-                <div className="form-group">
+                <div className="form-group col-12 col-md-6 col-lg-4">
 
                     <label>
                         Scheme
@@ -888,7 +999,7 @@ function PatientRegisterForm({
                         }
                     >
 
-                        <option value="">
+                        <option value="" disabled={eligibleSchemes.length === 1}>
                             Select scheme
                         </option>
 
@@ -911,7 +1022,7 @@ function PatientRegisterForm({
 
                 </div>
 
-                <div className="form-group">
+                <div className="form-group col-12 col-md-6 col-lg-4">
 
                     <label>
                         Email
@@ -940,7 +1051,7 @@ function PatientRegisterForm({
 
             <div className="form-row">
 
-                <div className="form-group">
+                <div className="form-group col-12 col-md-6 col-lg-4">
 
                     <label>
                         Phone
@@ -960,7 +1071,7 @@ function PatientRegisterForm({
                 </div>
 
 
-                <div className="form-group">
+                <div className="form-group col-12 col-md-6 col-lg-4">
 
                     <label>
                         Alternate phone
@@ -987,7 +1098,7 @@ function PatientRegisterForm({
 
             <div className="form-row full">
 
-                <div className="form-group">
+                <div className="form-group col-12 col-md-6 col-lg-4">
 
                     <label>
                         Address line 1
@@ -1015,7 +1126,7 @@ function PatientRegisterForm({
 
             <div className="form-row full">
 
-                <div className="form-group">
+                <div className="form-group col-12 col-md-6 col-lg-4">
 
                     <label>
                         Address line 2
@@ -1043,7 +1154,7 @@ function PatientRegisterForm({
 
             <div className="form-row">
 
-                <div className="form-group">
+                <div className="form-group col-12 col-md-6 col-lg-4">
 
                     <label>
                         City
@@ -1063,7 +1174,7 @@ function PatientRegisterForm({
                 </div>
 
 
-                <div className="form-group">
+                <div className="form-group col-12 col-md-6 col-lg-4">
 
                     <label>
                         District
@@ -1112,7 +1223,7 @@ function PatientRegisterForm({
 
             <div className="form-row">
 
-                <div className="form-group">
+                <div className="form-group col-12 col-md-6 col-lg-4">
 
                     <label>
                         State
@@ -1132,7 +1243,7 @@ function PatientRegisterForm({
                 </div>
 
 
-                <div className="form-group">
+                <div className="form-group col-12 col-md-6 col-lg-4">
 
                     <label>
                         Country
@@ -1160,7 +1271,7 @@ function PatientRegisterForm({
 
             <div className="form-row">
 
-                <div className="form-group">
+                <div className="form-group col-12 col-md-6 col-lg-4">
 
                     <label>
                         Postal code
@@ -1183,7 +1294,7 @@ function PatientRegisterForm({
 
 
             <div className="form-row">
-                <div className="form-group">
+                <div className="form-group col-12 col-md-6 col-lg-4">
                     <label>
                         Department
                     </label>
@@ -1209,7 +1320,7 @@ function PatientRegisterForm({
                     </select>
                 </div>
 
-                <div className="form-group">
+                <div className="form-group col-12 col-md-6 col-lg-4">
                     <label>
                         Visit Type
                     </label>
@@ -1229,7 +1340,7 @@ function PatientRegisterForm({
             </div>
 
             <div className="form-row">
-                <div className="form-group">
+                <div className="form-group col-12 col-md-6 col-lg-4">
                     <label>
                         OP Fee
                     </label>
@@ -1244,9 +1355,9 @@ function PatientRegisterForm({
                     />
                 </div>
 
-                <div className="form-group">
+                <div className="form-group col-12 col-md-6 col-lg-4">
                     <label>
-                        Scheme Discount
+                        Scheme Discount (100%)
                     </label>
                     <input
                         value={`₹${discountAmount.toFixed(2)}`}
@@ -1257,7 +1368,7 @@ function PatientRegisterForm({
             </div>
 
             <div className="form-row">
-                <div className="form-group">
+                <div className="form-group col-12 col-md-6 col-lg-4">
                     <label>
                         Final Fee Amount
                     </label>
@@ -1269,62 +1380,17 @@ function PatientRegisterForm({
                 </div>
             </div>
 
-            <div className="form-row">
-                {finalFee > 0 ? (
-                    <div className="form-group">
-                        <label>Payment Method</label>
-                        <select
-                            value={paymentMethod}
-                            onChange={(event) => setPaymentMethod(event.target.value)}
-                            disabled={loading}
-                        >
-                            <option value="CASH">Cash</option>
-                            <option value="GPAY">G-Pay</option>
-                        </select>
-                    </div>
-                ) : (
-                    <div className="form-group">
-                        <label>Payment</label>
-                        <input value="FREE - No payment required" readOnly disabled />
-                    </div>
-                )}
-            </div>
-
             {/* ------------------------------------------------------------ */}
             {/* Buttons */}
             {/* ------------------------------------------------------------ */}
 
-            <div className="form-buttons">
-
-                <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={onCancel}
-                    disabled={loading}
-                >
-                    Cancel
-                </button>
-
-
+            <div className="form-buttons col-12">
                 <button
                     type="submit"
                     className="btn btn-primary"
-                    disabled={loading}
+                    disabled={loading || Boolean(selectedScheme && !schemeEligibility.eligible) || (eligibleSchemes.length > 1 && !selectedScheme)}
                 >
-                    {loading
-                        ? "Saving..."
-                        : showDuplicates
-                            ? "Register anyway"
-                            : "Register Patient"}
-                </button>
-
-                <button
-                    type="button"
-                    className="btn btn-primary"
-                    onClick={handleOpTicket}
-                    disabled={loading}
-                >
-                    {loading ? "Saving..." : "OP Ticket"}
+                    {loading ? "Saving..." : "Register & Generate OP Ticket"}
                 </button>
 
             </div>

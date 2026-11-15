@@ -9,13 +9,9 @@ function DashboardHome() {
 
   return (
     <div className="dashboard-home">
-      <div className="dashboard-header">
+      <div className="admin-page-header">
         <div>
-          <p className="dashboard-label">ADMIN DASHBOARD</p>
           <h1>Welcome, {user?.fullName || "System Administrator"}</h1>
-          <p>Manage hospital users, roles and system access
-            from one place.
-          </p>
         </div>
       </div>
 

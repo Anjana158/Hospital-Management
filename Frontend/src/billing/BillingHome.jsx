@@ -1,15 +1,16 @@
 import {
     FaFileInvoiceDollar,
-    FaSearch,
-    FaUser,
+    FaChartBar,
     FaClock,
 } from "react-icons/fa";
 
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 
 function BillingHome() {
 
+    const navigate = useNavigate();
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -25,7 +26,7 @@ function BillingHome() {
 
                 const response =
                     await fetch(
-                        "http://100.103.223.11:5000/api/dashboard/me",
+                        "/api/dashboard/me",
                         {
                             headers: {
                                 Authorization:
@@ -105,7 +106,9 @@ function BillingHome() {
 
             <div className="staff-action-grid">
 
-                <div className="staff-action-card">
+                <div className="staff-action-card" role="button" tabIndex={0}
+                    onClick={() => navigate("/billing/new")}
+                    onKeyDown={(event) => event.key === "Enter" && navigate("/billing/new")}>
 
                     <div className="staff-action-icon">
                         <FaFileInvoiceDollar />
@@ -124,43 +127,25 @@ function BillingHome() {
                 </div>
 
 
-                <div className="staff-action-card">
+                <div className="staff-action-card" role="button" tabIndex={0}
+                    onClick={() => navigate("/billing/reports")}
+                    onKeyDown={(event) => event.key === "Enter" && navigate("/billing/reports")}>
 
                     <div className="staff-action-icon">
-                        <FaSearch />
+                        <FaChartBar />
                     </div>
 
                     <div>
                         <strong>
-                            Find Bill
+                            Reports
                         </strong>
 
                         <span>
-                            Search existing bills
+                            Review billing and collection totals
                         </span>
                     </div>
 
                 </div>
-
-
-                <div className="staff-action-card">
-
-                    <div className="staff-action-icon">
-                        <FaUser />
-                    </div>
-
-                    <div>
-                        <strong>
-                            My Profile
-                        </strong>
-
-                        <span>
-                            View your account details
-                        </span>
-                    </div>
-
-                </div>
-
             </div>
 
 

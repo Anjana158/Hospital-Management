@@ -257,6 +257,20 @@
     margin-bottom: 20px;
 }
 
+.management-list-toolbar {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 16px;
+}
+
+.management-list-toolbar > .admin-table-toolbar {
+    margin-bottom: 0;
+}
+
+.management-list-toolbar > .admin-table-toolbar > .primary-button {
+    white-space: nowrap;
+}
+
 .list-header h2 {
     margin: 0;
 
@@ -328,6 +342,39 @@
 .management-table td strong {
     color: #344b75;
     font-weight: 600;
+}
+
+.department-list-card .management-table-wrapper {
+    overflow-x: visible;
+}
+
+.department-list-card .admin-data-table {
+    width: 100%;
+    min-width: 0;
+    table-layout: fixed;
+}
+
+.department-list-card .admin-data-table th,
+.department-list-card .admin-data-table td {
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.department-list-card .admin-data-table th:nth-child(1),
+.department-list-card .admin-data-table td:nth-child(1) {
+    width: 18%;
+}
+
+.department-list-card .admin-data-table th:nth-child(2),
+.department-list-card .admin-data-table td:nth-child(2) {
+    width: 42%;
+}
+
+.department-list-card .admin-data-table th:nth-child(3),
+.department-list-card .admin-data-table td:nth-child(3),
+.department-list-card .admin-data-table th:nth-child(4),
+.department-list-card .admin-data-table td:nth-child(4) {
+    width: 20%;
 }
 
 
@@ -453,6 +500,14 @@
 
     .management-card {
         padding: 18px;
+    }
+
+    .department-list-card .management-table-wrapper {
+        overflow-x: auto;
+    }
+
+    .department-list-card .admin-data-table {
+        min-width: 560px;
     }
 
     .management-table th,

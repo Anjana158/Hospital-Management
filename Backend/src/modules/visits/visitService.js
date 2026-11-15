@@ -2,10 +2,18 @@ const crypto = require("crypto");
 const { z } = require("zod");
 
 const { prisma } = require("../../config/prisma");
+const {
+    calculateAge,
+    resolveSchemeSelection,
+    getSchemeEligibilitySnapshot,
+    validateSchemeAdditionalInformation,
+    validateSchemeEligibility,
+} = require("../patientSchemes/schemeEligibility");
 
 const registerVisitSchema = z.object({
     patientId: z.coerce.number().int().positive(),
     departmentId: z.coerce.number().int().positive(),
+    schemeId: z.union([z.coerce.number().int().positive(), z.null()]).optional(),
     paymentMethod: z.enum(["CASH", "GPAY"]).nullable().optional(),
     visitType: z.enum([
         "NEW",
@@ -15,6 +23,10 @@ const registerVisitSchema = z.object({
         .number()
         .min(0)
         .max(100000),
+    schemeAdditionalInformation: z.array(z.object({
+        key: z.string().trim().min(1).max(100),
+        value: z.string().max(500),
+    }).strict()).max(50).optional(),
 });
 
 
@@ -33,6 +45,27 @@ const TOKEN_PREFIX = "HMS";
 
 function formatTokenLabel(tokenNumber) {
     return `${TOKEN_PREFIX} ${tokenNumber}`;
+}
+
+function calculateVisitAmounts(opFee, selectedScheme) {
+    const discountAmount = selectedScheme ? opFee : 0;
+    return {
+        discountAmount,
+        finalFee: opFee - discountAmount,
+    };
+}
+
+function getVisitPaymentDetails(finalFee, paymentMethod) {
+    if (finalFee === 0) {
+        return {
+            paymentStatus: "FREE",
+            paymentMethod: null,
+        };
+    }
+
+    return paymentMethod
+        ? { paymentStatus: "PAID", paymentMethod }
+        : { paymentStatus: "PENDING", paymentMethod: null };
 }
 
 function getTokenDate() {
@@ -171,8 +204,10 @@ async function registerVisitRecord(
     const {
         patientId,
         departmentId,
+        schemeId,
         opFee,
         paymentMethod,
+        schemeAdditionalInformation: submittedSchemeAdditionalInformation,
     } = validated;
 
     const today = getStartOfToday();
@@ -317,52 +352,43 @@ async function registerVisitRecord(
             |--------------------------------------------------------------------------
             */
 
-            let discountAmount = 0;
+            const patientAge = calculateAge(patient.dateOfBirth, patient.age);
+            const activeSchemes = await tx.patientScheme.findMany({
+                where: { status: "ACTIVE" },
+                orderBy: { name: "asc" },
+            });
+            const selectedScheme = resolveSchemeSelection(
+                activeSchemes,
+                patient.gender,
+                patientAge,
+                schemeId,
+                "VISIT_SCHEME_INELIGIBLE"
+            );
 
-            if (
-                patient.scheme &&
-                patient.scheme.status ===
-                    "ACTIVE"
-            ) {
-                if (
-                    patient.scheme.discountType ===
-                    "PERCENTAGE"
-                ) {
-                    discountAmount =
-                        (
-                            opFee *
-                            Number(
-                                patient.scheme.discountValue
-                            )
-                        ) / 100;
-                }
+            let schemeAdditionalInformation = [];
+            let schemeEligibilitySnapshot = null;
 
-                if (
-                    patient.scheme.discountType ===
-                    "FIXED"
-                ) {
-                    discountAmount =
-                        Number(
-                            patient.scheme.discountValue
-                        );
-                }
-            }
-
-            discountAmount =
-                Math.min(
-                    discountAmount,
-                    opFee
+            if (selectedScheme) {
+                schemeAdditionalInformation = validateSchemeAdditionalInformation(
+                    selectedScheme,
+                    submittedSchemeAdditionalInformation ??
+                        (patient.scheme?.id === selectedScheme.id
+                            ? patient.schemeAdditionalInformation
+                            : [])
                 );
-
-            const finalFee =
-                opFee -
-                discountAmount;
-
-            if (finalFee > 0 && !paymentMethod) {
-                const error = new Error("Payment method is required for paid OP visits");
-                error.code = "PAYMENT_METHOD_REQUIRED";
+                schemeEligibilitySnapshot = getSchemeEligibilitySnapshot(selectedScheme);
+            } else if (
+                submittedSchemeAdditionalInformation?.length
+            ) {
+                const error = new Error(
+                    "Additional information cannot be submitted without an active scheme"
+                );
+                error.code = "SCHEME_FIELD_VALIDATION_ERROR";
                 throw error;
             }
+
+            const { discountAmount, finalFee } = calculateVisitAmounts(opFee, selectedScheme);
+            const paymentDetails = getVisitPaymentDetails(finalFee, paymentMethod);
 
 
             /*
@@ -451,8 +477,24 @@ async function registerVisitRecord(
                         discountAmount,
 
                         finalFee,
-                        paymentStatus: finalFee > 0 ? "PAID" : "FREE",
-                        paymentMethod: finalFee > 0 ? paymentMethod : null,
+                        ...paymentDetails,
+                        schemeIdAtVisit: selectedScheme
+                            ? selectedScheme.id
+                            : null,
+                        schemeCodeAtVisit: selectedScheme
+                            ? selectedScheme.code
+                            : null,
+                        schemeNameAtVisit: selectedScheme
+                            ? selectedScheme.name
+                            : null,
+                        schemeDiscountTypeAtVisit: selectedScheme
+                            ? "PERCENTAGE"
+                            : null,
+                        schemeDiscountValueAtVisit: selectedScheme
+                            ? 100
+                            : null,
+                        schemeEligibilityAtVisit: schemeEligibilitySnapshot,
+                        schemeAdditionalInformation,
                     },
 
                     include: {
@@ -679,6 +721,9 @@ async function getPatientVisitHistory(patientId) {
 }
 
 module.exports = {
+    calculateVisitAmounts,
+    getVisitPaymentDetails,
+    registerVisitSchema,
     registerVisitRecord,
     getPatientDepartmentVisitHistory,
     getTodayVisitRecords,

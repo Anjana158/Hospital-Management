@@ -6,6 +6,12 @@ import {
     updateDepartment,
 } from "./services/departmentService";
 import "../styles/DepartmentDoctor.css";
+import {
+    ADMIN_TABLE_PAGE_SIZE,
+    AdminAddButton,
+    AdminPagination,
+    AdminTableSearch,
+} from "./AdminTableControls";
 
 function DepartmentManagement() {
     const [departments, setDepartments] = useState([]);
@@ -23,6 +29,9 @@ function DepartmentManagement() {
 
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
+    const [searchInput, setSearchInput] = useState("");
+    const [searchTerm, setSearchTerm] = useState("");
+    const [page, setPage] = useState(1);
 
 
     const loadDepartments = async () => {
@@ -44,6 +53,20 @@ function DepartmentManagement() {
     useEffect(() => {
         loadDepartments();
     }, []);
+
+    const filteredDepartments = departments.filter((department) =>
+        department.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    const totalPages = Math.max(1, Math.ceil(filteredDepartments.length / ADMIN_TABLE_PAGE_SIZE));
+    const currentPage = Math.min(page, totalPages);
+    const visibleDepartments = filteredDepartments.slice(
+        (currentPage - 1) * ADMIN_TABLE_PAGE_SIZE,
+        currentPage * ADMIN_TABLE_PAGE_SIZE
+    );
+
+    useEffect(() => {
+        if (page > totalPages) setPage(totalPages);
+    }, [page, totalPages]);
 
 
     const handleChange = (event) => {
@@ -129,9 +152,7 @@ function DepartmentManagement() {
     return (
         <div className="admin-page">
             <div className="admin-page-header">
-                <p>MASTER DATA</p>
                 <h1>Department Management</h1>
-                <span>Add and manage hospital departments.</span>
             </div>
             <div className="management-grid">
                 <div className="management-card">
@@ -145,11 +166,6 @@ function DepartmentManagement() {
                                     ? "Edit Department"
                                     : "Add Department"}
                             </h2>
-                            <p>
-                                {editingId
-                                    ? "Update department details"
-                                    : "Create a new hospital department"}
-                            </p>
                         </div>
                     </div>
 
@@ -161,7 +177,7 @@ function DepartmentManagement() {
                         <div className="form-message success">{success}</div>
                     )}
 
-                    <form onSubmit={handleSubmit}>
+                    <form id="department-form" onSubmit={handleSubmit}>
                         <div className="form-group">
                             <label>Department Code</label>
                             <input type="text" name="code" value={formData.code} onChange={handleChange} placeholder="e.g. CARD" maxLength={20}/>
@@ -179,19 +195,18 @@ function DepartmentManagement() {
                         </div>
 
                         <div className="form-actions">
-                            <button type="submit" className="primary-button" disabled={saving}>
-                                {editingId ? <FaEdit />: <FaPlus />}
+                            <AdminAddButton
+                                type="submit"
+                                disabled={saving}
+                                icon={editingId ? FaEdit : FaPlus}
+                            >
                                 {saving
                                     ? "Saving..."
                                     : editingId
                                         ? "Update Department"
-                                        : "Add Department"
-                                }
-                            </button>
-
-                            {editingId && (
-                                <button type="button" className="secondary-button" onClick={resetForm} >Cancel </button>
-                            )}
+                                        : "Add Department"}
+                            </AdminAddButton>
+                            {editingId && <button type="button" className="secondary-button" onClick={resetForm}>Cancel</button>}
                         </div>
                     </form>
                 </div>
@@ -200,26 +215,36 @@ function DepartmentManagement() {
                     LIST
                 ===================================== */}
 
-                <div className="management-card">
-                    <div className="list-header">
-                        <div>
-                            <h2>Departments</h2>
-                            <p>
-                                {departments.length} department
-                                {departments.length !== 1
-                                    ? "s"
-                                    : ""}
-                            </p>
-                        </div>
+                <div className="management-card department-list-card">
+                    <div className="list-header management-list-toolbar">
+                        <h2>Departments</h2>
+                    </div>
+                    <div className="department-table-search-row">
+                        <AdminTableSearch
+                            value={searchInput}
+                            onChange={setSearchInput}
+                            onSearch={() => {
+                                setSearchTerm(searchInput.trim());
+                                setPage(1);
+                            }}
+                            onClear={() => {
+                                setSearchInput("");
+                                setSearchTerm("");
+                                setPage(1);
+                            }}
+                            placeholder="Search department name"
+                        />
                     </div>
 
                     {loading ? (
-                        <div className="empty-state">Loading departments...</div>
-                    ) : departments.length === 0 ? (
-                        <div className="empty-state">No departments found.</div>
+                        <div className="admin-empty-state">Loading departments...</div>
+                    ) : filteredDepartments.length === 0 ? (
+                        <div className="admin-empty-state">
+                            {searchTerm ? "No departments match your search." : "No departments found."}
+                        </div>
                     ) : (
                         <div className="management-table-wrapper">
-                            <table className="management-table">
+                            <table className="admin-data-table">
                                 <thead>
                                     <tr>
                                         <th>Code</th>
@@ -229,7 +254,7 @@ function DepartmentManagement() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {departments.map(
+                                    {visibleDepartments.map(
                                         (department) => (
                                             <tr key={department.id}>
                                                 <td><strong>{department.code}</strong></td>
@@ -246,7 +271,13 @@ function DepartmentManagement() {
                                                     </span>
                                                 </td>
                                                 <td>
-                                                    <button className="icon-button" onClick={() =>handleEdit(department)}title="Edit"><FaEdit /></button>
+                                                    <button
+                                                        type="button"
+                                                        className="admin-row-action-button"
+                                                        onClick={() => handleEdit(department)}
+                                                    >
+                                                        Edit
+                                                    </button>
                                                 </td>
                                             </tr>
                                         )
@@ -254,6 +285,13 @@ function DepartmentManagement() {
                                 </tbody>
                             </table>
                         </div>
+                    )}
+                    {!loading && (
+                        <AdminPagination
+                            page={currentPage}
+                            totalItems={filteredDepartments.length}
+                            onPageChange={setPage}
+                        />
                     )}
                 </div>
             </div>

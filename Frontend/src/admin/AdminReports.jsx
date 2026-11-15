@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { FaChartBar, FaFilter, FaPrint, FaRedo } from "react-icons/fa";
+import { FaFilter, FaPrint, FaRedo } from "react-icons/fa";
 import { getDepartments } from "./services/departmentService";
 import { getAdminReceptionReport } from "./services/reportService";
 import "../styles/ReceptionistReports.css";
@@ -179,17 +179,14 @@ function AdminReports() {
     ];
 
     return (
-        <div className="reception-reports-page report-print-shell admin-reports-page">
-            <div className="report-page-header">
-                <div className="report-page-title">
-                    <div className="report-title-icon"><FaChartBar /></div>
-                    <div><p>HOSPITAL ACTIVITY</p><h2>Reception Reports</h2></div>
-                </div>
+        <div className="admin-page reception-reports-page report-print-shell admin-reports-page">
+            <div className="admin-page-header">
+                <h1>Reception Reports</h1>
             </div>
 
             <div className="report-controls-card">
                 <div className="report-card-header">
-                    <div><h3>Report filters</h3><p>Review reception activity across the hospital.</p></div>
+                    <div><h3>Report filters</h3></div>
                     <FaFilter className="report-card-icon" />
                 </div>
                 <div className="report-form-grid">

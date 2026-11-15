@@ -1,27 +1,61 @@
 const { z } = require("zod");
 
 const { prisma } = require("../../config/prisma");
+const { validateSchemeConfiguration } = require("./schemeEligibility");
 
 
-const booleanField = z
-    .union([z.boolean(), z.literal("true"), z.literal("false")])
-    .transform((value) => value === true || value === "true");
+const schemeConfigurationFields = {
+    eligibilityGender: z.enum(["ALL", "FEMALE", "MALE", "TRANSGENDER"]),
+    ageCriteriaType: z.enum(["ALL", "UNDER", "ABOVE", "RANGE"]),
+    ageLimit: z.number().int().min(0).max(150).nullable(),
+    minimumAge: z.number().int().min(0).max(150).nullable(),
+    maximumAge: z.number().int().min(0).max(150).nullable(),
+    collectAdditionalInformation: z.boolean(),
+    additionalInformationFields: z.array(z.object({
+        key: z.string().trim().min(1).max(100).regex(/^[A-Za-z0-9_-]+$/),
+        label: z.string().trim().min(1, "Additional information field labels are required").max(100),
+    }).strict()).max(50),
+};
+
+const schemeConfigurationDefaults = {
+    eligibilityGender: "ALL",
+    ageCriteriaType: "ALL",
+    ageLimit: null,
+    minimumAge: null,
+    maximumAge: null,
+    collectAdditionalInformation: false,
+    additionalInformationFields: [],
+};
+
+const schemeConfigurationSelect = {
+    eligibilityGender: true,
+    ageCriteriaType: true,
+    ageLimit: true,
+    minimumAge: true,
+    maximumAge: true,
+    collectAdditionalInformation: true,
+    additionalInformationFields: true,
+};
 
 const createSchemeSchema = z
     .object({
         code: z.string().trim().min(1, "Scheme code is required").max(50),
         name: z.string().trim().min(1, "Scheme name is required").max(100),
-        discountType: z.enum(["NONE", "PERCENTAGE", "FIXED"]).default("NONE"),
-        discountValue: z.coerce.number().min(0, "Discount value cannot be negative").default(0),
+        ...Object.fromEntries(Object.entries(schemeConfigurationFields).map(([key, schema]) => [
+            key,
+            schema.optional(),
+        ])),
     })
     .strict();
 
 const updateSchemeSchema = z
     .object({
         name: z.string().trim().min(1, "Scheme name is required").max(100).optional(),
-        discountType: z.enum(["NONE", "PERCENTAGE", "FIXED"]).optional(),
-        discountValue: z.coerce.number().min(0, "Discount value cannot be negative").optional(),
         status: z.enum(["ACTIVE", "INACTIVE"]).optional(),
+        ...Object.fromEntries(Object.entries(schemeConfigurationFields).map(([key, schema]) => [
+            key,
+            schema.optional(),
+        ])),
     })
     .strict();
 
@@ -52,23 +86,6 @@ function duplicateError(message) {
     return error;
 }
 
-function validateDiscount(discountType, discountValue) {
-    if (discountType === "NONE") {
-        if (discountValue !== 0) {
-            throw validationError("Discount value must be 0 when discount type is NONE");
-        }
-        return;
-    }
-
-    if (discountValue <= 0) {
-        throw validationError("Discount value must be greater than 0");
-    }
-
-    if (discountType === "PERCENTAGE" &&discountValue > 100) {
-        throw validationError("Percentage discount cannot exceed 100%");
-    }
-}
-
 async function listPatientSchemes(role) {
     const isAdmin = String(role).toUpperCase() === "ADMIN";
 
@@ -82,8 +99,7 @@ async function listPatientSchemes(role) {
             id: true,
             code: true,
             name: true,
-            discountType: true,
-            discountValue: true,
+            ...schemeConfigurationSelect,
             ...(isAdmin
                 ? {
                       status: true,
@@ -103,7 +119,10 @@ async function listActivePatientSchemes() {
 }
 
 async function createPatientScheme(data) {
-    const validatedData = createSchemeSchema.parse(data);
+    const validatedData = createSchemeSchema.parse({
+        ...schemeConfigurationDefaults,
+        ...data,
+    });
 
     const code = normalizeCode(validatedData.code);
 
@@ -111,16 +130,14 @@ async function createPatientScheme(data) {
         throw validationError("Scheme code may only contain letters, numbers, and underscores");
     }
 
-    validateDiscount(validatedData.discountType,validatedData.discountValue
-    );
+    const schemeConfiguration = validateSchemeConfiguration(validatedData);
 
     try {
         return await prisma.patientScheme.create({
             data: {
                 code,
                 name: validatedData.name,
-                discountType: validatedData.discountType,
-                discountValue: validatedData.discountValue,
+                ...schemeConfiguration,
                 status: "ACTIVE",
             },
 
@@ -128,8 +145,7 @@ async function createPatientScheme(data) {
                 id: true,
                 code: true,
                 name: true,
-                discountType: true,
-                discountValue: true,
+                ...schemeConfigurationSelect,
                 status: true,
             },
         });
@@ -152,9 +168,8 @@ async function updatePatientScheme(id, data) {
 
     if (
         validatedData.name === undefined &&
-        validatedData.discountType === undefined &&
-        validatedData.discountValue === undefined &&
-        validatedData.status === undefined
+        validatedData.status === undefined &&
+        !Object.keys(schemeConfigurationFields).some((field) => validatedData[field] !== undefined)
     ) {
         throw validationError("Provide at least one field to update");
     }
@@ -166,8 +181,7 @@ async function updatePatientScheme(id, data) {
         select: {
             id: true,
             code: true,
-            discountType: true,
-            discountValue: true,
+            ...schemeConfigurationSelect,
         },
     });
 
@@ -177,15 +191,11 @@ async function updatePatientScheme(id, data) {
         throw error;
     }
 
-    const discountType =
-        validatedData.discountType ?? existing.discountType;
-
-    const discountValue =
-        validatedData.discountValue !== undefined
-            ? validatedData.discountValue
-            : Number(existing.discountValue);
-
-    validateDiscount(discountType, discountValue);
+    const schemeConfiguration = validateSchemeConfiguration({
+        ...schemeConfigurationDefaults,
+        ...existing,
+        ...validatedData,
+    });
 
     try {
         return await prisma.patientScheme.update({
@@ -200,33 +210,23 @@ async function updatePatientScheme(id, data) {
                       }
                     : {}),
 
-                ...(validatedData.discountType !== undefined
-                    ? {
-                          discountType:
-                              validatedData.discountType,
-                      }
-                    : {}),
-
-                ...(validatedData.discountValue !== undefined
-                    ? {
-                          discountValue:
-                              validatedData.discountValue,
-                      }
-                    : {}),
-
                 ...(validatedData.status !== undefined
                     ? {
                           status: validatedData.status,
                       }
                     : {}),
+                ...Object.fromEntries(
+                    Object.keys(schemeConfigurationFields)
+                        .filter((field) => validatedData[field] !== undefined)
+                        .map((field) => [field, schemeConfiguration[field]])
+                ),
             },
 
             select: {
                 id: true,
                 code: true,
                 name: true,
-                discountType: true,
-                discountValue: true,
+                ...schemeConfigurationSelect,
                 status: true,
             },
         });

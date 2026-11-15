@@ -15,6 +15,7 @@ const patientSchemeRoutes = require("./src/modules/patientSchemes/patientSchemeR
 const departmentRoutes = require("./src/modules/departments/departmentRoutes");
 const visitRoutes = require("./src/modules/visits/visitRoute");
 const reportRoutes = require("./src/modules/reports/reportsRoutes");
+const billingRoutes = require("./src/modules/billing/billingRoutes");
 const app = express()
 
 app.use(express.json())
@@ -36,6 +37,7 @@ app.use("/api/schemes",patientSchemeRoutes);
 app.use("/api/departments",departmentRoutes);
 app.use("/api/visits",visitRoutes);
 app.use("/api/reports",reportRoutes);
+app.use("/api/billing",billingRoutes);
 
 
 const PORT = process.env.PORT || 5000

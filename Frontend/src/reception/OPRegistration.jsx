@@ -14,6 +14,11 @@ import {
 import {
     getPatientById,
 } from "./services/patientService";
+import {
+    getPatientAge,
+    getSchemeEligibility,
+} from "./utils/schemeEligibility";
+import { getSchemes } from "../admin/services/schemeService";
 
 import {
     getDepartments,
@@ -41,6 +46,8 @@ function OPRegistration() {
 
     const [departments, setDepartments] =
         useState([]);
+    const [activeSchemes, setActiveSchemes] = useState([]);
+    const [selectedSchemeId, setSelectedSchemeId] = useState("");
 
 
     const [departmentId, setDepartmentId] =
@@ -59,6 +66,7 @@ function OPRegistration() {
 
     const [opFee, setOpFee] = useState("10");
     const [paymentMethod, setPaymentMethod] = useState("CASH");
+    const [schemeAdditionalInformation, setSchemeAdditionalInformation] = useState([]);
 
 
     const [loading, setLoading] =
@@ -93,20 +101,29 @@ function OPRegistration() {
                 const [
                     patientResult,
                     departmentResult,
+                    schemesResult,
                 ] = await Promise.all([
                     getPatientById(patientId),
                     getDepartments(),
+                    getSchemes(),
                 ]);
 
-
-                setPatient(
-                    patientResult.data
+                const loadedPatient = patientResult.data;
+                const loadedSchemes = schemesResult.data || [];
+                const eligibleSchemes = loadedSchemes.filter((scheme) =>
+                    getSchemeEligibility(
+                        scheme,
+                        loadedPatient.gender,
+                        getPatientAge(loadedPatient)
+                    ).eligible
                 );
-
-
-                setDepartments(
-                    departmentResult.departments ||
-                    []
+                setPatient(loadedPatient);
+                setDepartments(departmentResult.departments || []);
+                setActiveSchemes(loadedSchemes);
+                setSelectedSchemeId(
+                    eligibleSchemes.length === 1
+                        ? String(eligibleSchemes[0].id)
+                        : ""
                 );
 
             } catch (error) {
@@ -208,58 +225,44 @@ function OPRegistration() {
     |--------------------------------------------------------------------------
     */
 
-    const scheme =
-        patient?.scheme;
+    const eligibleSchemes = activeSchemes.filter((candidate) =>
+        getSchemeEligibility(
+            candidate,
+            patient?.gender,
+            getPatientAge(patient)
+        ).eligible
+    );
+    const scheme = activeSchemes.find(
+        (candidate) => String(candidate.id) === selectedSchemeId
+    ) || null;
+
+    const schemeEligibility = scheme
+        ? getSchemeEligibility(scheme, patient?.gender, getPatientAge(patient))
+        : { eligible: true, message: "" };
+
+    useEffect(() => {
+        const fields = scheme?.collectAdditionalInformation
+            ? scheme.additionalInformationFields || []
+            : [];
+        const previousValues = new Map(
+            (String(patient?.scheme?.id) === String(scheme?.id)
+                ? patient?.schemeAdditionalInformation || []
+                : []).map((field) => [field.key, field.value])
+        );
+        setSchemeAdditionalInformation(fields.map((field) => ({
+            key: field.key,
+            label: field.label,
+            value: previousValues.get(field.key) ?? "",
+        })));
+    }, [patient?.id, scheme?.id, scheme?.additionalInformationFields, scheme?.collectAdditionalInformation]);
 
 
     const numericFee =
         Number(opFee) || 0;
 
 
-    let discountAmount = 0;
-
-
-    if (
-        scheme &&
-        scheme.status === "ACTIVE"
-    ) {
-
-        if (
-            scheme.discountType ===
-            "PERCENTAGE"
-        ) {
-
-            discountAmount =
-                (
-                    numericFee *
-                    Number(
-                        scheme.discountValue
-                    )
-                ) / 100;
-
-        } else if (
-            scheme.discountType ===
-            "FIXED"
-        ) {
-
-            discountAmount =
-                Number(
-                    scheme.discountValue
-                );
-        }
-    }
-
-
-    discountAmount =
-        Math.min(
-            discountAmount,
-            numericFee
-        );
-
-
-    const finalFee =
-        numericFee -
-        discountAmount;
+    const discountAmount = scheme && schemeEligibility.eligible ? numericFee : 0;
+    const finalFee = numericFee - discountAmount;
 
 
     /*
@@ -282,6 +285,16 @@ function OPRegistration() {
                     "Please select a department"
                 );
 
+                return;
+            }
+
+            if (eligibleSchemes.length > 1 && !scheme) {
+                setError("Multiple schemes match this patient. Select an eligible scheme to continue.");
+                return;
+            }
+
+            if (scheme && !schemeEligibility.eligible) {
+                setError(schemeEligibility.message);
                 return;
             }
 
@@ -322,11 +335,18 @@ function OPRegistration() {
                                 departmentId
                             ),
 
+                        schemeId: selectedSchemeId ? Number(selectedSchemeId) : null,
                         opFee:
                             numericFee,
 
                         paymentMethod:
                             finalFee > 0 ? paymentMethod : null,
+
+                        schemeAdditionalInformation:
+                            schemeAdditionalInformation.map(({ key, value }) => ({
+                                key,
+                                value,
+                            })),
                     });
 
                 navigate(
@@ -730,6 +750,67 @@ function OPRegistration() {
 
                 </div>
 
+                {eligibleSchemes.length > 1 && !scheme && (
+                    <div className="op-scheme-message ineligible">
+                        Multiple schemes match this patient. Choose one to continue:{" "}
+                        {eligibleSchemes.map((candidate) => candidate.name).join(", ")}.
+                    </div>
+                )}
+
+                <div className="op-form-group">
+                    <label>Scheme</label>
+                    <select
+                        value={selectedSchemeId}
+                        onChange={(event) => setSelectedSchemeId(
+                            event.target.value ||
+                            (eligibleSchemes.length === 1 ? String(eligibleSchemes[0].id) : "")
+                        )}
+                        disabled={saving}
+                    >
+                        <option value="" disabled={eligibleSchemes.length === 1}>
+                            No scheme
+                        </option>
+                        {activeSchemes.map((candidate) => (
+                            <option key={candidate.id} value={candidate.id}>
+                                {candidate.name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                {scheme && (
+                    <div className={`op-scheme-message ${schemeEligibility.eligible ? "eligible" : "ineligible"}`}>
+                        {schemeEligibility.eligible
+                            ? `${scheme.name} is eligible. A fixed 100% discount will be applied.`
+                            : schemeEligibility.message}
+                    </div>
+                )}
+
+                {scheme &&
+                    scheme.collectAdditionalInformation &&
+                    schemeAdditionalInformation.length > 0 && (
+                        <div className="op-scheme-fields">
+                            <h4>Additional scheme information (optional)</h4>
+                            <div className="op-form-grid">
+                                {schemeAdditionalInformation.map((field) => (
+                                    <div className="op-form-group" key={field.key}>
+                                        <label>{field.label}</label>
+                                        <input
+                                            type="text"
+                                            value={field.value}
+                                            onChange={(event) => setSchemeAdditionalInformation((previous) =>
+                                                previous.map((item) => item.key === field.key
+                                                    ? { ...item, value: event.target.value }
+                                                    : item
+                                                )
+                                            )}
+                                            disabled={saving}
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
 
                 {/* ================================================= */}
                 {/* FEE SUMMARY */}
@@ -751,7 +832,7 @@ function OPRegistration() {
 
                     <div>
                         <span>
-                            Scheme Discount
+                            Scheme Discount (100%)
                         </span>
 
                         <strong>
@@ -787,7 +868,7 @@ function OPRegistration() {
                             <select
                                 value={paymentMethod}
                                 onChange={(event) => setPaymentMethod(event.target.value)}
-                                disabled={saving}
+                                disabled={saving || (scheme && !schemeEligibility.eligible)}
                             >
                                 <option value="CASH">Cash</option>
                                 <option value="GPAY">G-Pay</option>
@@ -823,7 +904,7 @@ function OPRegistration() {
                     <button
                         type="submit"
                         className="op-primary-btn"
-                        disabled={saving}
+                        disabled={saving || Boolean(scheme && !schemeEligibility.eligible) || (eligibleSchemes.length > 1 && !scheme)}
                     >
                         <FaCheckCircle />
 

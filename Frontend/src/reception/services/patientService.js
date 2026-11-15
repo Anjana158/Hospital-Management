@@ -1,7 +1,7 @@
 import axios from "axios";
 
-const API_URL = "http://100.103.223.11:5000/api/patients";
-const SCHEMES_API_URL = "http://100.103.223.11:5000/api/schemes";
+const API_URL = "/api/patients";
+const SCHEMES_API_URL = "/api/schemes";
 
 const getAuthConfig = () => {
     const token = localStorage.getItem("token");

@@ -121,21 +121,7 @@ function isValidPhone(value) {
         return true;
     }
 
-    if (
-        !/^[+\d\s().-]+$/.test(
-            value.trim()
-        )
-    ) {
-        return false;
-    }
-
-    const digitCount =
-        value.replace(/\D/g, "").length;
-
-    return (
-        digitCount >= 7 &&
-        digitCount <= 15
-    );
+    return /^\d{10}$/.test(String(value).trim());
 }
 
 
@@ -624,7 +610,7 @@ function PatientDetails({
             )
         ) {
             setError(
-                "Enter a valid phone number (7–15 digits)"
+                "Enter a valid phone number (10 digits only)"
             );
 
             return;
@@ -644,7 +630,7 @@ function PatientDetails({
             )
         ) {
             setError(
-                "Enter a valid alternate phone number (7–15 digits)"
+                "Enter a valid alternate phone number (10 digits only)"
             );
 
             return;
@@ -1665,13 +1651,7 @@ function PatientDetails({
                                         </label>
 
                                         <span>
-                                            {patient.scheme.discountType ===
-                                                "PERCENTAGE"
-                                                ? `${patient.scheme.discountValue}%`
-                                                : patient.scheme.discountType ===
-                                                    "FIXED"
-                                                    ? `₹${patient.scheme.discountValue}`
-                                                    : "No discount"}
+                                            100% (fixed)
                                         </span>
 
                                     </div>

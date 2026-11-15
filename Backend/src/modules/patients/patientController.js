@@ -88,7 +88,11 @@ async function registerPatient(req, res) {
     } catch (error) {
         console.error("Register patient error:", error);
 
-        const statusCode = error.name === "ZodError" || error.code === "PATIENT_VALIDATION_ERROR" ? 400
+        const statusCode = error.name === "ZodError" || [
+            "PATIENT_VALIDATION_ERROR",
+            "SCHEME_VALIDATION_ERROR",
+            "SCHEME_FIELD_VALIDATION_ERROR",
+        ].includes(error.code) ? 400
             : error.code === "PATIENT_DUPLICATE_PHONE" ? 409 : 500;
 
         const response = {
@@ -125,6 +129,8 @@ async function updatePatient(req, res) {
                 ? 404
                 : error.code === "PATIENT_UPDATE_VALIDATION_ERROR"
                     ? 400
+                    : ["SCHEME_VALIDATION_ERROR", "SCHEME_FIELD_VALIDATION_ERROR"].includes(error.code)
+                        ? 400
                     : error.code === "PATIENT_DUPLICATE_PHONE"
                         ? 409
                         : 500;

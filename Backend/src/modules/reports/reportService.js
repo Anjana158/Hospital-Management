@@ -666,8 +666,8 @@ async function generateAdminReceptionReport(query) {
         const ageGroup = getAgeGroup(resolveAgeFromPatient(visit.patient));
         if (ageGroup && ageCounts[ageGroup] !== undefined) ageCounts[ageGroup] += 1;
 
-        const schemeId = visit.patient?.scheme?.id || null;
-        const schemeName = visit.patient?.scheme?.name || "No Scheme";
+        const schemeId = visit.schemeIdAtVisit ?? visit.patient?.scheme?.id ?? null;
+        const schemeName = visit.schemeNameAtVisit || visit.patient?.scheme?.name || "No Scheme";
         const schemeRow = schemeById.get(schemeId) || {
             schemeId,
             schemeName,

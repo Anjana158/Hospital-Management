@@ -44,6 +44,7 @@ function toPatientPayload(formData, existingPatient) {
             : existingPatient
                 ? ""
                 : undefined,
+        schemeAdditionalInformation: formData.schemeAdditionalInformation || [],
     };
 
     return payload;
@@ -461,8 +462,11 @@ function PatientManagement() {
             const visitResult = await registerVisit({
                 patientId: savedPatient.id,
                 departmentId: Number(formData.departmentId),
+                schemeId: formData.schemeId,
                 opFee: Number(formData.opFee),
                 paymentMethod: formData.paymentMethod,
+                schemeAdditionalInformation: (formData.schemeAdditionalInformation || [])
+                    .map(({ key, value }) => ({ key, value })),
             });
 
             setShowRegisterModal(false);

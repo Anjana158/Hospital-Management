@@ -4,6 +4,7 @@ import {
   FaTags,
   FaBuilding,
   FaChartBar,
+  FaFileInvoiceDollar,
   FaSignOutAlt,
 } from "react-icons/fa";
 
@@ -40,9 +41,19 @@ function AdminSidebar() {
           <span>Departments</span>
         </NavLink>
 
+        <NavLink to="/dashboard/billing-services" className={({ isActive }) => `sidebar-link ${isActive ? "active" : ""}`}>
+          <FaFileInvoiceDollar />
+          <span>Billing Services</span>
+        </NavLink>
+
         <NavLink to="/dashboard/reports" className={({ isActive }) => `sidebar-link ${isActive ? "active" : ""}`}>
           <FaChartBar />
-          <span>Reports</span>
+          <span>Reception Report</span>
+        </NavLink>
+
+        <NavLink to="/dashboard/billing-reports" className={({ isActive }) => `sidebar-link ${isActive ? "active" : ""}`}>
+          <FaChartBar />
+          <span>Billing Reports</span>
         </NavLink>
       </nav>
 

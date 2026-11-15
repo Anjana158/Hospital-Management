@@ -2,6 +2,12 @@ const crypto = require("crypto");
 const { z } = require("zod");
 
 const { prisma } = require("../../config/prisma");
+const { buildPatientSearchFilter } = require("./patientSearch");
+const {
+    calculateAge,
+    validateSchemeAdditionalInformation,
+    validateSchemeEligibility,
+} = require("../patientSchemes/schemeEligibility");
 
 const patientSearchSchema = z.object({q: z.string().trim().min(2, "Search query must contain at least 2 characters").max(100),
     field: z.enum(["all", "uhid", "name", "phone"]).default("all"),
@@ -12,14 +18,8 @@ const patientSearchSchema = z.object({q: z.string().trim().min(2, "Search query 
 }).strict();
 
 const phoneSchema = z.string().trim().min(1).max(30, "Phone number is too long")
-    .refine((value) => /^[+\d\s().-]+$/.test(value), {
-        message: "Phone number contains invalid characters",
-    })
-    .refine((value) => {
-        const digitCount = value.replace(/\D/g, "").length;
-        return digitCount >= 7 && digitCount <= 15;
-    }, {
-        message: "Phone number must contain between 7 and 15 digits",
+    .refine((value) => /^\d{10}$/.test(value), {
+        message: "Phone number must contain exactly 10 digits and no special characters",
     });
 
 const optionalPhoneSchema = z.union([
@@ -67,6 +67,10 @@ const patientRegistrationSchema = z.object({
 
     // Scheme is OPTIONAL
     schemeId: z.coerce.number().int().positive().optional(),
+    schemeAdditionalInformation: z.array(z.object({
+        key: z.string().trim().min(1).max(100),
+        value: z.string().max(500),
+    }).strict()).max(50).optional(),
 }).strict();
 
 
@@ -100,6 +104,10 @@ const patientUpdateSchema = z.object({
             z.coerce.number().int().positive(),
             z.literal(""),
         ]).optional(),
+    schemeAdditionalInformation: z.array(z.object({
+        key: z.string().trim().min(1).max(100),
+        value: z.string().max(500),
+    }).strict()).max(50).optional(),
 }).strict();
 
 
@@ -123,26 +131,6 @@ function parseDateOfBirth(value, errorCode = "PATIENT_UPDATE_VALIDATION_ERROR") 
         throw error;
     }
     return date;
-}
-
-/*
-|--------------------------------------------------------------------------
-| Calculate Age from DOB
-|--------------------------------------------------------------------------
-*/
-
-function calculateAge(dateOfBirth) {
-    const today = new Date();
-    let age = today.getFullYear() - dateOfBirth.getFullYear();
-    const monthDifference = today.getMonth() - dateOfBirth.getMonth();
-    if (monthDifference < 0 || (
-            monthDifference === 0 &&
-            today.getDate() < dateOfBirth.getDate()
-        )
-    ) {
-        age--;
-    }
-    return age;
 }
 
 /*
@@ -273,8 +261,13 @@ const patientSummarySelect = {
             id: true,
             code: true,
             name: true,
-            discountType: true,
-            discountValue: true,
+            eligibilityGender: true,
+            ageCriteriaType: true,
+            ageLimit: true,
+            minimumAge: true,
+            maximumAge: true,
+            collectAdditionalInformation: true,
+            additionalInformationFields: true,
             status: true,
         },
     },
@@ -314,14 +307,20 @@ const patientDetailsSelect = {
 
     status: true,
     archivedAt: true,
+    schemeAdditionalInformation: true,
 
     scheme: {
         select: {
             id: true,
             code: true,
             name: true,
-            discountType: true,
-            discountValue: true,
+            eligibilityGender: true,
+            ageCriteriaType: true,
+            ageLimit: true,
+            minimumAge: true,
+            maximumAge: true,
+            collectAdditionalInformation: true,
+            additionalInformationFields: true,
             status: true,
         },
     },
@@ -396,60 +395,7 @@ async function getPatientDetails(identifier, lookupType) {
 async function searchPatients(query) {
     const validatedQuery = patientSearchSchema.parse(query);
 
-    const normalizedQuery = normalizePhone(validatedQuery.q);
-
-    const searchConditions = [];
-
-    if (validatedQuery.field === "uhid" || validatedQuery.field === "all") {
-        searchConditions.push({
-            uhid: {
-                contains: validatedQuery.q,
-                mode: "insensitive",
-            },
-        });
-    }
-
-    if (validatedQuery.field === "name" || validatedQuery.field === "all") {
-        searchConditions.push(
-            {
-                firstName: {contains: validatedQuery.q,mode: "insensitive",},
-            },
-            {
-                middleName: {contains: validatedQuery.q,mode: "insensitive",},
-            },
-            {
-                lastName: {contains: validatedQuery.q,mode: "insensitive",},
-            }
-        );
-    }
-
-    if (validatedQuery.field === "phone" || ( validatedQuery.field === "all" && normalizedQuery.length >= 3)) {
-        if (normalizedQuery.length < 3) {
-            const error = new Error("Phone search must contain at least 3 digits");
-            error.code ="PATIENT_SEARCH_VALIDATION_ERROR";
-            throw error;
-        }
-        searchConditions.push(
-            {
-                phone: {
-                    contains: normalizedQuery,
-                },
-            },
-            {
-                alternatePhone: {
-                    contains: normalizedQuery,
-                },
-            }
-        );
-    }
-
-    if (searchConditions.length === 0) {
-        const error = new Error("Search conditions are required");
-        error.code ="PATIENT_SEARCH_VALIDATION_ERROR";
-        throw error;
-    }
-
-    const filters = [{ OR: searchConditions }];
+    const filters = [buildPatientSearchFilter(validatedQuery.q, validatedQuery.field)];
 
     if (validatedQuery.gender !== "ALL") {
         filters.push({ gender: validatedQuery.gender });
@@ -593,9 +539,10 @@ async function registerPatientRecord(data,createdBy) {
     */
 
     let schemeId = null;
+    let scheme = null;
 
     if (validatedData.schemeId !== undefined && validatedData.schemeId !== null) {
-        const scheme = await prisma.patientScheme.findFirst({
+        scheme = await prisma.patientScheme.findFirst({
                 where: {
                     id: Number(
                         validatedData.schemeId
@@ -605,6 +552,13 @@ async function registerPatientRecord(data,createdBy) {
 
                 select: {
                     id: true,
+                    eligibilityGender: true,
+                    ageCriteriaType: true,
+                    ageLimit: true,
+                    minimumAge: true,
+                    maximumAge: true,
+                    collectAdditionalInformation: true,
+                    additionalInformationFields: true,
                 },
             });
 
@@ -613,7 +567,16 @@ async function registerPatientRecord(data,createdBy) {
             error.code ="PATIENT_VALIDATION_ERROR";
             throw error;
         }
+        validateSchemeEligibility(scheme, validatedData.gender, calculateAge(dateOfBirth, age));
         schemeId = scheme.id;
+    }
+    const schemeAdditionalInformation = scheme
+        ? validateSchemeAdditionalInformation(scheme, validatedData.schemeAdditionalInformation)
+        : [];
+    if (!scheme && validatedData.schemeAdditionalInformation?.length) {
+        const error = new Error("Additional information cannot be submitted without a scheme");
+        error.code = "SCHEME_FIELD_VALIDATION_ERROR";
+        throw error;
     }
 
     /*
@@ -685,8 +648,12 @@ async function registerPatientRecord(data,createdBy) {
 
                 phone: true,
                 alternatePhone: true,
+                scheme: {
+                    select: { id: true, code: true, name: true, status: true },
+                },
 
                 status: true,
+                archivedAt: true,
             },
 
             orderBy: {
@@ -745,6 +712,7 @@ async function registerPatientRecord(data,createdBy) {
                             id: schemeId,
                         },
                     } : undefined,
+                    schemeAdditionalInformation,
 
                     createdByUser: {
                         connect: {
@@ -782,11 +750,17 @@ async function registerPatientRecord(data,createdBy) {
                             id: true,
                             code: true,
                             name: true,
-                            discountType: true,
-                            discountValue: true,
+                            eligibilityGender: true,
+                            ageCriteriaType: true,
+                            ageLimit: true,
+                            minimumAge: true,
+                            maximumAge: true,
+                            collectAdditionalInformation: true,
+                            additionalInformationFields: true,
                             status: true,
                         },
                     },
+                    schemeAdditionalInformation: true,
 
                     createdBy: true,
                     createdAt: true,
@@ -843,11 +817,13 @@ async function updatePatientRecord(patientId,data) {
 
                 dateOfBirth: true,
                 age: true,
+                gender: true,
 
                 phone: true,
                 alternatePhone: true,
 
                 schemeId: true,
+                schemeAdditionalInformation: true,
             },
         });
 
@@ -1074,11 +1050,13 @@ async function updatePatientRecord(patientId,data) {
     
     */
 
+    let scheme = null;
     if (validatedData.schemeId !== undefined) {
         if (validatedData.schemeId === "" ) {
             updateData.schemeId = null;
+            updateData.schemeAdditionalInformation = [];
         } else {
-            const scheme = await prisma.patientScheme.findFirst({
+            scheme = await prisma.patientScheme.findFirst({
                     where: {
                         id: Number(
                             validatedData.schemeId
@@ -1089,6 +1067,13 @@ async function updatePatientRecord(patientId,data) {
 
                     select: {
                         id: true,
+                        eligibilityGender: true,
+                        ageCriteriaType: true,
+                        ageLimit: true,
+                        minimumAge: true,
+                        maximumAge: true,
+                        collectAdditionalInformation: true,
+                        additionalInformationFields: true,
                     },
                 });
 
@@ -1099,6 +1084,71 @@ async function updatePatientRecord(patientId,data) {
             }
             updateData.schemeId = scheme.id;
         }
+    } else if (
+        dobWasProvided ||
+        ageWasProvided ||
+        validatedData.gender !== undefined
+    ) {
+        if (existingPatient.schemeId) {
+            scheme = await prisma.patientScheme.findUnique({
+                where: { id: existingPatient.schemeId },
+                select: {
+                    id: true,
+                    eligibilityGender: true,
+                    ageCriteriaType: true,
+                    ageLimit: true,
+                    minimumAge: true,
+                    maximumAge: true,
+                    collectAdditionalInformation: true,
+                    additionalInformationFields: true,
+                },
+            });
+        }
+    } else if (existingPatient.schemeId) {
+        scheme = await prisma.patientScheme.findUnique({
+            where: { id: existingPatient.schemeId },
+            select: {
+                id: true,
+                eligibilityGender: true,
+                ageCriteriaType: true,
+                ageLimit: true,
+                minimumAge: true,
+                maximumAge: true,
+                collectAdditionalInformation: true,
+                additionalInformationFields: true,
+            },
+        });
+    }
+
+    if (scheme) {
+        const finalDateOfBirth = updateData.dateOfBirth || existingPatient.dateOfBirth;
+        const finalAge = calculateAge(finalDateOfBirth, updateData.age ?? existingPatient.age);
+        const finalGender = updateData.gender || existingPatient.gender;
+        validateSchemeEligibility(
+            scheme,
+            finalGender,
+            finalAge,
+            "PATIENT_UPDATE_VALIDATION_ERROR"
+        );
+
+        const submittedInformation = validatedData.schemeAdditionalInformation;
+        const sourceInformation = submittedInformation !== undefined
+            ? submittedInformation
+            : validatedData.schemeId !== undefined &&
+                Number(validatedData.schemeId) !== existingPatient.schemeId
+                ? []
+                : existingPatient.schemeAdditionalInformation;
+        updateData.schemeAdditionalInformation = validateSchemeAdditionalInformation(
+            scheme,
+            sourceInformation
+        );
+    } else if (validatedData.schemeAdditionalInformation !== undefined) {
+        if (validatedData.schemeAdditionalInformation.length > 0) {
+            const error = new Error("Additional information cannot be submitted without a scheme");
+            error.code = "SCHEME_FIELD_VALIDATION_ERROR";
+            throw error;
+        }
+        updateData.schemeAdditionalInformation = [];
     }
 
     /*

@@ -7,6 +7,7 @@ import {
     changeUserStatus,
 } from "./services/userService";
 import "../styles/Users.css";
+import { AdminAddButton } from "./AdminTableControls";
 
 
 function Users() {
@@ -269,19 +270,9 @@ function Users() {
             ================================= */}
 
             <div className="admin-page-header">
-
-                <p>
-                    ADMINISTRATION
-                </p>
-
                 <h1>
                     Users
                 </h1>
-
-                <span>
-                    Manage hospital system users.
-                </span>
-
             </div>
 
 
@@ -328,18 +319,9 @@ function Users() {
                 </div>
 
 
-                <button
-                    className="add-user-btn"
-                    onClick={openAddModal}
-                >
-
-                    <span>
-                        +
-                    </span>
-
+                <AdminAddButton type="button" onClick={openAddModal}>
                     Add New User
-
-                </button>
+                </AdminAddButton>
 
             </div>
 
@@ -361,23 +343,23 @@ function Users() {
                 TABLE
             ================================= */}
 
-            <div className="users-table-container">
+            <div className="admin-table-container">
 
                 {loading ? (
 
-                    <div className="users-loading">
+                    <div className="admin-empty-state">
                         Loading users...
                     </div>
 
                 ) : users.length === 0 ? (
 
-                    <div className="users-empty">
+                    <div className="admin-empty-state">
                         No users found.
                     </div>
 
                 ) : (
 
-                    <table className="users-table">
+                    <table className="admin-data-table admin-users-table">
 
                         <thead>
 
@@ -500,7 +482,7 @@ function Users() {
                                         <td>
 
                                             <button
-                                                className="edit-user-btn"
+                                                className="admin-row-action-button"
                                                 onClick={() =>
                                                     openEditModal(
                                                         user
@@ -539,6 +521,9 @@ function Users() {
 
                     <div
                         className="user-modal"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="user-modal-title"
                         onClick={(e) =>
                             e.stopPropagation()
                         }
@@ -548,11 +533,7 @@ function Users() {
 
                             <div>
 
-                                <p>
-                                    ADMINISTRATION
-                                </p>
-
-                                <h2>
+                                <h2 id="user-modal-title">
                                     {editingUser
                                         ? "Edit User"
                                         : "Add New User"}
@@ -561,7 +542,9 @@ function Users() {
                             </div>
 
                             <button
+                                type="button"
                                 className="modal-close"
+                                aria-label="Close"
                                 onClick={closeModal}
                             >
                                 ×

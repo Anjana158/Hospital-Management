@@ -1,7 +1,7 @@
  import {
-    FaHospital,
-    FaUserCircle,
-} from "react-icons/fa";
+     FaHospital,
+     FaUserPlus,
+ } from "react-icons/fa";
 
 import {
     Outlet,
@@ -66,7 +66,7 @@ function ReceptionDashboard() {
                     <div className="staff-user-info">
 
                         <strong>
-                            {user?.fullName ||
+                            {user?.username ||
                                 "Reception Staff"}
                         </strong>
 
@@ -76,10 +76,6 @@ function ReceptionDashboard() {
                         </span>
 
                     </div>
-
-                    <FaUserCircle
-                        className="staff-user-icon"
-                    />
 
                 </div>
 
@@ -107,10 +103,18 @@ function ReceptionDashboard() {
                         </button>
 
                         <button
+                            className={`staff-nav-link${isPatientManagement ? " active" : ""}`}
+                            onClick={() => navigate("/reception/patients")}
+                        >
+                            <FaUserPlus />
+                            <span>New Patient</span>
+                        </button>
+
+                        <button
                             className={`staff-nav-link${isReportsPage ? " active" : ""}`}
                             onClick={() => navigate("/reception/reports")}
                         >
-                            <span>📊</span>
+                            <span>▤</span>
                             <span>Reports</span>
                         </button>
 

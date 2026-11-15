@@ -1,14 +1,48 @@
 import { useEffect, useState } from "react";
 import {getSchemes, createScheme, updateScheme,} from "./services/schemeService";
 import "../styles/Users.css";
+import {
+    ADMIN_TABLE_PAGE_SIZE,
+    AdminAddButton,
+    AdminPagination,
+    AdminTableSearch,
+} from "./AdminTableControls";
 
 const emptyForm = {
     code: "",
     name: "",
-    discountType: "NONE",
-    discountValue: 0,
+    eligibilityGender: "ALL",
+    ageCriteriaType: "ALL",
+    ageLimit: "",
+    minimumAge: "",
+    maximumAge: "",
+    collectAdditionalInformation: false,
+    additionalInformationFields: [],
     status: "ACTIVE",
 };
+
+function newAdditionalField(label = "") {
+    return {
+        key: globalThis.crypto?.randomUUID?.() || `field_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+        label,
+    };
+}
+
+function normalizeSchemeForm(scheme) {
+    return {
+        ...emptyForm,
+        ...scheme,
+        eligibilityGender: scheme.eligibilityGender || "ALL",
+        ageCriteriaType: scheme.ageCriteriaType || "ALL",
+        ageLimit: scheme.ageLimit ?? "",
+        minimumAge: scheme.minimumAge ?? "",
+        maximumAge: scheme.maximumAge ?? "",
+        collectAdditionalInformation: Boolean(scheme.collectAdditionalInformation),
+        additionalInformationFields: Array.isArray(scheme.additionalInformationFields)
+            ? scheme.additionalInformationFields
+            : [],
+    };
+}
 
 function Schemes() {
     const [schemes, setSchemes] = useState([]);
@@ -18,6 +52,9 @@ function Schemes() {
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const [formData, setFormData] = useState(emptyForm);
+    const [searchInput, setSearchInput] = useState("");
+    const [searchTerm, setSearchTerm] = useState("");
+    const [page, setPage] = useState(1);
 
     const loadSchemes = async () => {
         try {
@@ -39,6 +76,20 @@ function Schemes() {
         loadSchemes();
     }, []);
 
+    const filteredSchemes = schemes.filter((scheme) =>
+        scheme.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    const totalPages = Math.max(1, Math.ceil(filteredSchemes.length / ADMIN_TABLE_PAGE_SIZE));
+    const currentPage = Math.min(page, totalPages);
+    const visibleSchemes = filteredSchemes.slice(
+        (currentPage - 1) * ADMIN_TABLE_PAGE_SIZE,
+        currentPage * ADMIN_TABLE_PAGE_SIZE
+    );
+
+    useEffect(() => {
+        if (page > totalPages) setPage(totalPages);
+    }, [page, totalPages]);
+
     const handleChange = (event) => {
         const { name, value, type, checked } = event.target;
         setFormData((previous) => ({
@@ -56,12 +107,7 @@ function Schemes() {
 
     const openEditModal = (scheme) => {
         setEditingScheme(scheme);
-        setFormData({
-            code: scheme.code,
-            name: scheme.name,
-            discountType: scheme.discountType || "NONE",
-            discountValue: Number(scheme.discountValue || 0),            status: scheme.status,
-        });
+        setFormData(normalizeSchemeForm(scheme));
         setError("");
         setShowModal(true);
     };
@@ -74,28 +120,73 @@ function Schemes() {
 
     const handleSubmit = async (event) => {
         event.preventDefault();
+        const ageLimit = formData.ageLimit === "" ? null : Number(formData.ageLimit);
+        const minimumAge = formData.minimumAge === "" ? null : Number(formData.minimumAge);
+        const maximumAge = formData.maximumAge === "" ? null : Number(formData.maximumAge);
+
+        if (formData.ageCriteriaType === "UNDER" || formData.ageCriteriaType === "ABOVE") {
+            if (!Number.isInteger(ageLimit) || ageLimit < 0 || ageLimit > 150) {
+                setError("Age limit must be a whole number between 0 and 150");
+                return;
+            }
+        }
+        if (formData.ageCriteriaType === "RANGE") {
+            if (
+                !Number.isInteger(minimumAge) ||
+                !Number.isInteger(maximumAge) ||
+                minimumAge < 0 ||
+                maximumAge > 150
+            ) {
+                setError("Minimum and maximum ages must be whole numbers between 0 and 150");
+                return;
+            }
+            if (minimumAge > maximumAge) {
+                setError("Minimum age cannot be greater than maximum age");
+                return;
+            }
+        }
+        if (
+            formData.collectAdditionalInformation &&
+            (
+                formData.additionalInformationFields.length === 0 ||
+                formData.additionalInformationFields.some((field) => !field.label.trim())
+            )
+        ) {
+            setError("Enter a label for every additional information field");
+            return;
+        }
+
+        const eligibilityData = {
+            eligibilityGender: formData.eligibilityGender,
+            ageCriteriaType: formData.ageCriteriaType,
+            ageLimit: formData.ageCriteriaType === "UNDER" || formData.ageCriteriaType === "ABOVE"
+                ? ageLimit
+                : null,
+            minimumAge: formData.ageCriteriaType === "RANGE" ? minimumAge : null,
+            maximumAge: formData.ageCriteriaType === "RANGE" ? maximumAge : null,
+            collectAdditionalInformation: formData.collectAdditionalInformation,
+            additionalInformationFields: formData.collectAdditionalInformation
+                ? formData.additionalInformationFields.map((field) => ({
+                    ...field,
+                    label: field.label.trim(),
+                }))
+                : [],
+        };
+
         try {
             setError("");
             if (editingScheme) {
                 await updateScheme(editingScheme.id, {
                     name: formData.name.trim(),
-                    discountType: formData.discountType,
-                    discountValue:
-                        formData.discountType === "NONE"
-                            ? 0
-                            : Number(formData.discountValue),
                     status: formData.status,
+                    ...eligibilityData,
                 });
                 setSuccess("Scheme updated successfully");
             } else {
                 await createScheme({
                     code: formData.code.trim(),
                     name: formData.name.trim(),
-                    discountType: formData.discountType,
-                    discountValue:
-                        formData.discountType === "NONE"
-                            ? 0
-                            : Number(formData.discountValue),
+                    ...eligibilityData,
                 });
                 setSuccess("Scheme created successfully");
             }
@@ -113,16 +204,27 @@ function Schemes() {
     return (
         <div className="admin-page">
             <div className="admin-page-header">
-                <p>ADMINISTRATION</p>
                 <h1>Schemes</h1>
-                <span> Manage schemes available during patient registration.</span>
             </div>
 
-            <div className="users-toolbar"> <div />
-                <button className="add-user-btn" onClick={openAddModal}>
-                    <span>+</span>
+            <div className="admin-split-toolbar">
+                <AdminTableSearch
+                    value={searchInput}
+                    onChange={setSearchInput}
+                    onSearch={() => {
+                        setSearchTerm(searchInput.trim());
+                        setPage(1);
+                    }}
+                    onClear={() => {
+                        setSearchInput("");
+                        setSearchTerm("");
+                        setPage(1);
+                    }}
+                    placeholder="Search scheme name"
+                />
+                <AdminAddButton type="button" onClick={openAddModal}>
                     Add Scheme
-                </button>
+                </AdminAddButton>
             </div>
 
             {success && (
@@ -139,54 +241,54 @@ function Schemes() {
                 <div className="users-error">{error}</div>
             )}
 
-            <div className="users-table-container">
+            <div className="admin-table-container">
                 {loading ? (
-                    <div className="users-loading">Loading schemes...</div>
-                ) : schemes.length === 0 ? (
-                    <div className="users-empty">No schemes found.</div>
+                    <div className="admin-empty-state">Loading schemes...</div>
+                ) : filteredSchemes.length === 0 ? (
+                    <div className="admin-empty-state">
+                        {searchTerm ? "No schemes match your search." : "No schemes found."}
+                    </div>
                 ) : (
-                    <table className="users-table">
+                    <table className="admin-data-table">
                         <thead>
                             <tr>
                                 <th>Scheme Code</th>
                                 <th>Scheme Name</th>
-                                <th>Discount</th>
                                 <th>Status</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {schemes.map((scheme) => (
+                            {visibleSchemes.map((scheme) => (
                                 <tr key={scheme.id}>
                                     <td><strong>{scheme.code}</strong></td>
                                     <td>{scheme.name}</td>
-                                    <td>
-                                        {scheme.discountType === "PERCENTAGE"
-                                            ? `${scheme.discountValue}%`
-                                            : scheme.discountType === "FIXED"
-                                            ? `₹${scheme.discountValue}`
-                                            : "None"}
-                                    </td>
                                     <td>
                                         <span className={`status-select ${String(scheme.status).toLowerCase()}`}>
                                             {scheme.status}
                                         </span>
                                     </td>
-                                    <td><button className="edit-user-btn" onClick={() => openEditModal(scheme)}>Edit</button></td>
+                                    <td><button className="admin-row-action-button" onClick={() => openEditModal(scheme)}>Edit</button></td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
                 )}
             </div>
+            {!loading && (
+                <AdminPagination
+                page={currentPage}
+                    totalItems={filteredSchemes.length}
+                    onPageChange={setPage}
+                />
+            )}
 
             {showModal && (
                 <div className="user-modal-overlay" onClick={closeModal}>
-                    <div className="user-modal"  onClick={(event) => event.stopPropagation() }>
+                    <div className="user-modal" role="dialog" aria-modal="true" aria-labelledby="scheme-modal-title" onClick={(event) => event.stopPropagation() }>
                         <div className="user-modal-header">
                             <div>
-                                <p>ADMINISTRATION</p>
-                                <h2>
+                                <h2 id="scheme-modal-title">
                                     {editingScheme
                                         ? "Edit Scheme"
                                         : "Add Scheme"}
@@ -206,31 +308,9 @@ function Schemes() {
                                     <input type="text" name="name" value={formData.name} onChange={handleChange} required />
                                 </div>
                                 <div className="form-group">
-                                    <label>Discount Type</label>
-                                    <select name="discountType" value={formData.discountType}
-                                        onChange={handleChange}>
-                                        <option value="NONE">No Discount </option>
-                                        <option value="PERCENTAGE"> Percentage</option>
-                                        <option value="FIXED"> Fixed Amount </option>
-                                    </select>
+                                    <label>Discount</label>
+                                    <input value="100% (fixed)" readOnly disabled />
                                 </div>
-
-                                {formData.discountType !== "NONE" && (
-                                    <div className="form-group">
-                                        <label>
-                                            {formData.discountType === "PERCENTAGE"
-                                                ? "Discount Percentage (%)"
-                                                : "Discount Amount (₹)"}
-                                        </label>
-
-                                        <input type="number" name="discountValue" value={formData.discountValue} onChange={handleChange} min="0"
-                                            max={
-                                                formData.discountType === "PERCENTAGE"
-                                                    ? "100"
-                                                    : undefined
-                                            } step="0.01"required/>
-                                    </div>
-                                )}
 
                                 {editingScheme && (
                                     <div className="form-group">
@@ -242,6 +322,155 @@ function Schemes() {
                                     </div>
                                 )} 
                             </div>
+
+                            <section className="scheme-eligibility">
+                                <h3>Eligibility Criteria</h3>
+                                <div className="form-grid">
+                                    <div className="form-group">
+                                        <label>Gender</label>
+                                        <select
+                                            value={formData.eligibilityGender}
+                                            onChange={(event) => setFormData((previous) => ({
+                                                ...previous,
+                                                eligibilityGender: event.target.value,
+                                            }))}
+                                        >
+                                            <option value="ALL">All Genders</option>
+                                            <option value="FEMALE">Female</option>
+                                            <option value="MALE">Male</option>
+                                            <option value="TRANSGENDER">Transgender</option>
+                                        </select>
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Age</label>
+                                        <select
+                                            value={formData.ageCriteriaType}
+                                            onChange={(event) => setFormData((previous) => ({
+                                                ...previous,
+                                                ageCriteriaType: event.target.value,
+                                            }))}
+                                        >
+                                            <option value="ALL">All Ages</option>
+                                            <option value="UNDER">Under a specified age</option>
+                                            <option value="ABOVE">Above a specified age</option>
+                                            <option value="RANGE">Custom minimum and maximum age</option>
+                                        </select>
+                                    </div>
+                                    {(formData.ageCriteriaType === "UNDER" || formData.ageCriteriaType === "ABOVE") && (
+                                        <div className="form-group">
+                                            <label>
+                                                {formData.ageCriteriaType === "UNDER" ? "Under age" : "Above age"}
+                                            </label>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                max="150"
+                                                step="1"
+                                                value={formData.ageLimit}
+                                                onChange={(event) => setFormData((previous) => ({
+                                                    ...previous,
+                                                    ageLimit: event.target.value,
+                                                }))}
+                                            />
+                                        </div>
+                                    )}
+                                    {formData.ageCriteriaType === "RANGE" && (
+                                        <>
+                                            <div className="form-group">
+                                                <label>Minimum age</label>
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    max="150"
+                                                    step="1"
+                                                    value={formData.minimumAge}
+                                                    onChange={(event) => setFormData((previous) => ({
+                                                        ...previous,
+                                                        minimumAge: event.target.value,
+                                                    }))}
+                                                />
+                                            </div>
+                                            <div className="form-group">
+                                                <label>Maximum age</label>
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    max="150"
+                                                    step="1"
+                                                    value={formData.maximumAge}
+                                                    onChange={(event) => setFormData((previous) => ({
+                                                        ...previous,
+                                                        maximumAge: event.target.value,
+                                                    }))}
+                                                />
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+
+                                <label className="scheme-collect-checkbox">
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.collectAdditionalInformation}
+                                        onChange={(event) => setFormData((previous) => ({
+                                            ...previous,
+                                            collectAdditionalInformation: event.target.checked,
+                                            additionalInformationFields: event.target.checked
+                                                ? (previous.additionalInformationFields.length
+                                                    ? previous.additionalInformationFields
+                                                    : [newAdditionalField()])
+                                                : [],
+                                        }))}
+                                    />
+                                    Collect additional information
+                                </label>
+
+                                {formData.collectAdditionalInformation && (
+                                    <div className="scheme-additional-fields">
+                                        {formData.additionalInformationFields.map((field, index) => (
+                                            <div className="scheme-additional-field" key={field.key}>
+                                                <input
+                                                    type="text"
+                                                    aria-label={`Additional field ${index + 1} label`}
+                                                    placeholder="Field label, e.g. Ration Card Number"
+                                                    value={field.label}
+                                                    onChange={(event) => setFormData((previous) => ({
+                                                        ...previous,
+                                                        additionalInformationFields: previous.additionalInformationFields.map((item) =>
+                                                            item.key === field.key
+                                                                ? { ...item, label: event.target.value }
+                                                                : item
+                                                        ),
+                                                    }))}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    className="scheme-field-add"
+                                                    aria-label="Add field"
+                                                    onClick={() => setFormData((previous) => ({
+                                                        ...previous,
+                                                        additionalInformationFields: [
+                                                            ...previous.additionalInformationFields,
+                                                            newAdditionalField(),
+                                                        ],
+                                                    }))}
+                                                >+</button>
+                                                <button
+                                                    type="button"
+                                                    className="scheme-field-remove"
+                                                    aria-label="Remove field"
+                                                    onClick={() => setFormData((previous) => ({
+                                                        ...previous,
+                                                        additionalInformationFields: previous.additionalInformationFields.filter(
+                                                            (item) => item.key !== field.key
+                                                        ),
+                                                    }))}
+                                                >Remove</button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </section>
 
                             {error && (
                                 <div className="modal-error">{error} </div>

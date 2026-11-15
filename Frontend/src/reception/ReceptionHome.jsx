@@ -1,5 +1,4 @@
 import {
-    FaUser,
     FaUserPlus,
     FaChartBar,
     FaClock,
@@ -27,7 +26,7 @@ function ReceptionHome() {
 
                 const response =
                     await fetch(
-                        "http://100.103.223.11:5000/api/dashboard/me",
+                        "/api/dashboard/me",
                         {
                             headers: {
                                 Authorization:
@@ -158,26 +157,6 @@ function ReceptionHome() {
                     </div>
 
                 </div>
-
-
-                <div className="staff-action-card">
-
-                    <div className="staff-action-icon">
-                        <FaUser />
-                    </div>
-
-                    <div>
-                        <strong>
-                            My Profile
-                        </strong>
-
-                        <span>
-                            View your account details
-                        </span>
-                    </div>
-
-                </div>
-
             </div>
 
 
