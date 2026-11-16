@@ -569,6 +569,137 @@
     0 10px 30px rgba(67, 90, 145, 0.05);
 }
 
+.admin-table-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.admin-table-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.admin-table-search-field {
+  position: relative;
+}
+
+.admin-table-search input {
+  box-sizing: border-box;
+  width: min(250px, 42vw);
+  height: 42px;
+  padding: 0 36px 0 12px;
+  border: 1px solid #dfe6f1;
+  border-radius: 8px;
+  outline: none;
+  background: #ffffff;
+  color: #344b75;
+  font: inherit;
+  font-size: 13px;
+}
+
+.admin-table-search input:focus {
+  border-color: #8ca7d9;
+  box-shadow: 0 0 0 3px rgba(116, 136, 223, 0.1);
+}
+
+.admin-table-search-button,
+.admin-table-search-clear,
+.admin-pagination button,
+.admin-pagination span {
+  box-sizing: border-box;
+  border: 1px solid #dfe6f1;
+  background: #ffffff;
+  color: #344b75;
+  font-family: inherit;
+}
+
+.admin-table-search-button {
+  height: 42px;
+  padding: 0 15px;
+  border-color: #1455a8;
+  border-radius: 8px;
+  background: #1455a8;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.admin-table-search-button:hover {
+  background: #10498f;
+}
+
+.admin-table-search-clear {
+  position: absolute;
+  top: 50%;
+  right: 7px;
+  width: 25px;
+  height: 25px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #7585a3;
+  font-size: 20px;
+  line-height: 1;
+  transform: translateY(-50%);
+  cursor: pointer;
+}
+
+.admin-table-search-clear:hover {
+  background: #f1f5fc;
+  color: #1455a8;
+}
+
+.admin-pagination {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+.admin-pagination button,
+.admin-pagination span {
+  display: inline-flex;
+  min-width: 39px;
+  height: 36px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  font-size: 13px;
+}
+
+.admin-pagination button {
+  color: #1455a8;
+  cursor: pointer;
+}
+
+.admin-pagination button:first-child {
+  border-radius: 7px 0 0 7px;
+}
+
+.admin-pagination button:last-child {
+  border-radius: 0 7px 7px 0;
+}
+
+.admin-pagination span {
+  min-width: 78px;
+  border-right: 0;
+  border-left: 0;
+  color: #526584;
+}
+
+.admin-pagination button:disabled {
+  background: #f6f8fc;
+  color: #a4afc0;
+  cursor: not-allowed;
+}
+
 
 /* =========================================
    TABLET
@@ -589,6 +720,25 @@
       repeat(2, minmax(0, 1fr));
   }
 
+}
+
+@media (max-width: 600px) {
+  .admin-table-toolbar {
+    justify-content: flex-start;
+  }
+
+  .admin-table-search {
+    width: 100%;
+  }
+
+  .admin-table-search-field {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .admin-table-search input {
+    width: 100%;
+  }
 }
 
 
@@ -693,4 +843,439 @@
     font-size: 23px;
   }
 
+}
+
+/* Shared Admin module controls and data tables */
+
+.admin-page-header {
+  margin-bottom: 26px;
+}
+
+.admin-page-header p,
+.admin-page-header span {
+  display: none;
+}
+
+.admin-page-header h1 {
+  margin: 0;
+  color: #124b9b;
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.dashboard-home > .admin-page-header {
+  margin-bottom: 32px;
+}
+
+.admin-split-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(0, 3fr);
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.admin-split-toolbar .admin-table-search {
+  width: 100%;
+  min-width: 0;
+}
+
+.admin-table-search {
+  min-width: 0;
+}
+
+.admin-table-search-field {
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-table-search input {
+  width: 100%;
+  min-width: 0;
+  height: 42px;
+  border-radius: 9px;
+  font-family: inherit;
+}
+
+.admin-table-search-button {
+  flex-shrink: 0;
+  min-width: 92px;
+  height: 42px;
+  border-radius: 9px;
+  font-family: inherit;
+}
+
+.admin-add-button {
+  box-sizing: border-box;
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 0 16px;
+  border: 1px solid #1455a8;
+  border-radius: 9px;
+  background: #1455a8;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.admin-split-toolbar > .admin-add-button {
+  width: 100%;
+}
+
+.admin-add-button svg {
+  width: 13px;
+  height: 13px;
+}
+
+.admin-add-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: #10488f;
+  box-shadow: 0 6px 15px rgba(20, 85, 168, 0.2);
+}
+
+.admin-add-button:focus-visible,
+.admin-table-search-button:focus-visible,
+.admin-table-search-clear:focus-visible,
+.admin-row-action-button:focus-visible,
+.admin-pagination button:focus-visible {
+  outline: 3px solid rgba(116, 136, 223, 0.3);
+  outline-offset: 2px;
+}
+
+.admin-add-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.admin-table-container {
+  box-sizing: border-box;
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid #e8edf5;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 10px 30px rgba(67, 90, 145, 0.05);
+}
+
+.admin-data-table {
+  width: 100%;
+  min-width: 560px;
+  border-collapse: collapse;
+  color: #526584;
+  font-size: 13px;
+}
+
+.admin-data-table th {
+  height: 46px;
+  box-sizing: border-box;
+  padding: 12px 15px;
+  border-bottom: 1px solid #e5eaf2;
+  background: #f7f9fc;
+  color: #6e7f9f;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.admin-data-table td {
+  height: 52px;
+  box-sizing: border-box;
+  padding: 12px 15px;
+  border-bottom: 1px solid #edf0f5;
+  color: #526584;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.admin-data-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.admin-data-table tbody tr:hover {
+  background: #fafcff;
+}
+
+.admin-data-table td strong {
+  color: #344b75;
+  font-weight: 600;
+}
+
+.admin-users-table {
+  min-width: 850px;
+}
+
+.admin-row-action-button {
+  box-sizing: border-box;
+  display: inline-flex;
+  min-width: 36px;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 10px;
+  border: 1px solid #d5dff0;
+  border-radius: 7px;
+  background: #f7f9fd;
+  color: #1455a8;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.admin-row-action-button:hover {
+  background: #eef3fb;
+}
+
+.admin-empty-state {
+  box-sizing: border-box;
+  min-height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  color: #8996ac;
+  font-size: 13px;
+  text-align: center;
+}
+
+.admin-pagination {
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.admin-pagination button,
+.admin-pagination span {
+  min-width: 40px;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid #dfe6f1;
+  border-radius: 7px;
+}
+
+.admin-pagination span {
+  min-width: 78px;
+  border-right: 1px solid #dfe6f1;
+  border-left: 1px solid #dfe6f1;
+}
+
+.admin-pagination button:first-child,
+.admin-pagination button:last-child {
+  border-radius: 7px;
+}
+
+.department-list-card {
+  border-radius: 16px;
+  padding: 22px;
+}
+
+.department-list-card .management-list-toolbar {
+  margin-bottom: 16px;
+}
+
+.department-list-card .list-header h2 {
+  font-size: 19px;
+}
+
+.department-table-search-row {
+  margin-bottom: 16px;
+}
+
+.department-table-search-row .admin-table-search {
+  width: 100%;
+}
+
+.department-table-search-row .admin-table-search input {
+  width: 100%;
+}
+
+.department-table-search-row .admin-table-search-field {
+  flex: 1;
+}
+
+.admin-content .admin-reports-page,
+.admin-content .billing-page.admin-page {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+}
+
+.user-modal-header {
+  min-height: 72px;
+  align-items: center;
+  padding: 18px 24px;
+}
+
+.user-modal.billing-service-modal {
+  width: min(650px, 100%);
+}
+
+.user-modal-header h2 {
+  color: #124b9b;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.user-modal form {
+  padding: 22px 24px 24px;
+}
+
+.user-modal .billing-form-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.user-modal .billing-form-grid > label {
+  gap: 7px;
+  color: #536783;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.user-modal .billing-form-grid input:not([type="checkbox"]),
+.user-modal .billing-form-grid select,
+.user-modal .billing-form-grid textarea {
+  min-height: 42px;
+  padding: 0 12px;
+  border-color: #dfe6f1;
+  border-radius: 8px;
+  color: #344b75;
+  font-size: 13px;
+}
+
+.user-modal .billing-form-actions {
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 7px;
+}
+
+.user-modal .billing-primary-button,
+.user-modal .billing-secondary-button,
+.user-modal .save-user-btn,
+.user-modal .cancel-btn {
+  box-sizing: border-box;
+  min-height: 40px;
+  height: 40px;
+  padding: 0 17px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.user-modal .billing-primary-button,
+.user-modal .save-user-btn {
+  border: 0;
+  background: #1455a8;
+  color: #ffffff;
+}
+
+.user-modal .billing-primary-button:hover,
+.user-modal .save-user-btn:hover {
+  background: #10488f;
+}
+
+.user-modal .billing-secondary-button,
+.user-modal .cancel-btn {
+  border: 1px solid #dce3ee;
+  background: #ffffff;
+  color: #687995;
+}
+
+.user-modal .billing-secondary-button:hover,
+.user-modal .cancel-btn:hover {
+  background: #f6f8fc;
+}
+
+.user-modal .modal-actions,
+.user-modal .billing-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.admin-content .billing-page.admin-page > .admin-page-header {
+  max-width: none;
+}
+
+.admin-content .admin-reports-page .report-table-wrapper,
+.admin-content .billing-page.admin-page .billing-table-wrap {
+  border: 1px solid #e8edf5;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.admin-content .admin-reports-page .report-data-table th,
+.admin-content .admin-reports-page .report-data-table td,
+.admin-content .billing-page.admin-page .billing-table th,
+.admin-content .billing-page.admin-page .billing-table td {
+  box-sizing: border-box;
+  height: 48px;
+  padding: 12px 15px;
+  border: 0;
+  border-bottom: 1px solid #edf0f5;
+  color: #526584;
+  font-size: 13px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.admin-content .admin-reports-page .report-data-table th,
+.admin-content .billing-page.admin-page .billing-table th {
+  height: 46px;
+  border-bottom-color: #e5eaf2;
+  background: #f7f9fc;
+  color: #6e7f9f;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+.admin-content .admin-reports-page .report-data-table tbody tr:last-child td,
+.admin-content .billing-page.admin-page .billing-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.admin-content .admin-reports-page .report-data-table tbody tr:hover,
+.admin-content .billing-page.admin-page .billing-table tbody tr:hover {
+  background: #fafcff;
+}
+
+@media (max-width: 700px) {
+  .admin-split-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-split-toolbar .admin-table-search {
+    width: 100%;
+  }
+
+  .admin-split-toolbar > .admin-add-button {
+    width: 100%;
+  }
+
+  .admin-page-header h1 {
+    font-size: 26px;
+  }
+
+  .user-modal .billing-form-grid {
+    grid-template-columns: 1fr;
+  }
 }

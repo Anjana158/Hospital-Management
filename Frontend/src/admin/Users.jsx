@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-
 import {
     getUsers,
     getRoles,
@@ -7,43 +6,32 @@ import {
     updateUser,
     changeUserStatus,
 } from "./services/userService";
-
 import "../styles/Users.css";
+import { AdminAddButton } from "./AdminTableControls";
 
 
 function Users() {
+    const [users, setUsers] = useState([]);
 
-    const [users, setUsers] =
-        useState([]);
+    const [roles, setRoles] = useState([]);
 
-    const [roles, setRoles] =
-        useState([]);
+    const [roleFilter, setRoleFilter] = useState("");
 
-    const [roleFilter, setRoleFilter] =
-        useState("");
+    const [showModal, setShowModal] = useState(false);
 
-    const [showModal, setShowModal] =
-        useState(false);
+    const [editingUser, setEditingUser] = useState(null);
 
-    const [editingUser, setEditingUser] =
-        useState(null);
+    const [loading, setLoading] = useState(false);
 
-    const [loading, setLoading] =
-        useState(false);
+    const [error, setError] = useState("");
 
-    const [error, setError] =
-        useState("");
-
-    const [formData, setFormData] =
-        useState({
-
+    const [formData, setFormData] = useState({
             employeeId: "",
             fullName: "",
             username: "",
             password: "",
-            roleId: "",
+            roleIds: [],
             status: "ACTIVE",
-
         });
 
 
@@ -52,94 +40,52 @@ function Users() {
     // ====================================
 
     const loadUsers = async () => {
-
         try {
-
             setLoading(true);
             setError("");
 
             const result =
-                await getUsers(
-                    roleFilter
-                );
-
-            setUsers(
-                result.data || []
-            );
-
+                await getUsers(roleFilter);
+            setUsers(result.data || []);
         } catch (error) {
-
             console.error(error);
+            setError(error.response?.data?.message ||"Failed to load users");
 
-            setError(
-                error.response?.data?.message ||
-                "Failed to load users"
-            );
-
-        } finally {
-
-            setLoading(false);
-
-        }
+        } finally {setLoading(false);}
     };
-
 
     // ====================================
     // LOAD ROLES
     // ====================================
 
     const loadRoles = async () => {
-
         try {
-
-            const result =
-                await getRoles();
-
-            setRoles(
-                result.data || []
-            );
-
+            const result =await getRoles();
+            setRoles(result.data || []);
         } catch (error) {
-
             console.error(error);
-
-            setError(
-                "Failed to load roles"
-            );
+            setError("Failed to load roles");
         }
     };
-
 
     // ====================================
     // INITIAL LOAD
     // ====================================
 
     useEffect(() => {
-
         loadRoles();
-
     }, []);
 
-
     useEffect(() => {
-
         loadUsers();
-
     }, [roleFilter]);
-
 
     // ====================================
     // INPUT CHANGE
     // ====================================
 
     const handleChange = (e) => {
-
-        const {
-            name,
-            value,
-        } = e.target;
-
-
+        const {name,value,} = e.target;
         setFormData(
             previous => ({
 
@@ -166,7 +112,7 @@ function Users() {
             fullName: "",
             username: "",
             password: "",
-            roleId: "",
+            roleIds: [],
             status: "ACTIVE",
 
         });
@@ -198,8 +144,8 @@ function Users() {
 
             password: "",
 
-            roleId:
-                user.role.id,
+            roleIds:
+                (user.roles || []).map((role) => role.id),
 
             status:
                 user.status,
@@ -238,6 +184,11 @@ function Users() {
             try {
 
                 setError("");
+
+                if (!formData.roleIds.length) {
+                    setError("Select at least one role");
+                    return;
+                }
 
                 if (editingUser) {
 
@@ -319,19 +270,9 @@ function Users() {
             ================================= */}
 
             <div className="admin-page-header">
-
-                <p>
-                    ADMINISTRATION
-                </p>
-
                 <h1>
                     Users
                 </h1>
-
-                <span>
-                    Manage hospital system users.
-                </span>
-
             </div>
 
 
@@ -378,18 +319,9 @@ function Users() {
                 </div>
 
 
-                <button
-                    className="add-user-btn"
-                    onClick={openAddModal}
-                >
-
-                    <span>
-                        +
-                    </span>
-
+                <AdminAddButton type="button" onClick={openAddModal}>
                     Add New User
-
-                </button>
+                </AdminAddButton>
 
             </div>
 
@@ -411,23 +343,23 @@ function Users() {
                 TABLE
             ================================= */}
 
-            <div className="users-table-container">
+            <div className="admin-table-container">
 
                 {loading ? (
 
-                    <div className="users-loading">
+                    <div className="admin-empty-state">
                         Loading users...
                     </div>
 
                 ) : users.length === 0 ? (
 
-                    <div className="users-empty">
+                    <div className="admin-empty-state">
                         No users found.
                     </div>
 
                 ) : (
 
-                    <table className="users-table">
+                    <table className="admin-data-table admin-users-table">
 
                         <thead>
 
@@ -446,7 +378,7 @@ function Users() {
                                 </th>
 
                                 <th>
-                                    Role
+                                    Roles
                                 </th>
 
                                 <th>
@@ -491,9 +423,16 @@ function Users() {
 
                                         <td>
 
-                                            <span className="role-badge">
-                                                {user.role.name}
-                                            </span>
+                                            <div className="role-badge-list">
+                                                {(user.roles || []).map((role) => (
+                                                    <span
+                                                        key={role.id}
+                                                        className="role-badge"
+                                                    >
+                                                        {role.name}
+                                                    </span>
+                                                ))}
+                                            </div>
 
                                         </td>
 
@@ -543,7 +482,7 @@ function Users() {
                                         <td>
 
                                             <button
-                                                className="edit-user-btn"
+                                                className="admin-row-action-button"
                                                 onClick={() =>
                                                     openEditModal(
                                                         user
@@ -582,6 +521,9 @@ function Users() {
 
                     <div
                         className="user-modal"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="user-modal-title"
                         onClick={(e) =>
                             e.stopPropagation()
                         }
@@ -591,11 +533,7 @@ function Users() {
 
                             <div>
 
-                                <p>
-                                    ADMINISTRATION
-                                </p>
-
-                                <h2>
+                                <h2 id="user-modal-title">
                                     {editingUser
                                         ? "Edit User"
                                         : "Add New User"}
@@ -604,7 +542,9 @@ function Users() {
                             </div>
 
                             <button
+                                type="button"
                                 className="modal-close"
+                                aria-label="Close"
                                 onClick={closeModal}
                             >
                                 ×
@@ -712,47 +652,37 @@ function Users() {
                                 </div>
 
 
-                                <div className="form-group">
+                                <div className="form-group roles-field">
 
                                     <label>
-                                        Role
+                                        Roles
                                     </label>
 
-                                    <select
-                                        name="roleId"
-                                        value={
-                                            formData.roleId
-                                        }
-                                        onChange={
-                                            handleChange
-                                        }
-                                        required
-                                    >
-
-                                        <option value="">
-                                            Select Role
-                                        </option>
-
-                                        {roles.map(
-                                            role => (
-
-                                                <option
-                                                    key={
-                                                        role.id
-                                                    }
-                                                    value={
-                                                        role.id
-                                                    }
-                                                >
-                                                    {
-                                                        role.name
-                                                    }
-                                                </option>
-
-                                            )
-                                        )}
-
-                                    </select>
+                                    <div className="role-checkbox-list">
+                                        {roles.map((role) => (
+                                            <label
+                                                key={role.id}
+                                                className="role-checkbox-item"
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    checked={formData.roleIds.includes(role.id)}
+                                                    onChange={() => {
+                                                        setFormData((previous) => {
+                                                            const selected = previous.roleIds.includes(role.id);
+                                                            return {
+                                                                ...previous,
+                                                                roleIds: selected
+                                                                    ? previous.roleIds.filter((id) => id !== role.id)
+                                                                    : [...previous.roleIds, role.id],
+                                                            };
+                                                        });
+                                                    }}
+                                                />
+                                                <span>{role.name}</span>
+                                            </label>
+                                        ))}
+                                    </div>
 
                                 </div>
 

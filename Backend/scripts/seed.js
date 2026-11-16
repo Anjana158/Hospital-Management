@@ -56,13 +56,18 @@ async function main() {
             fullName: "System Administrator",
             username: "admin",
             password: hashedPassword,
-            roleId: adminRole.id,
+            userRoles: {
+                create: {
+                    roleId: adminRole.id,
+                },
+            },
         },
     });
 
     console.log("Admin created successfully");
     console.log("Username:", admin.username);
     console.log("Employee ID:", admin.employeeId);
+
 }
 
 main()

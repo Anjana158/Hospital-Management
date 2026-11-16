@@ -1,15 +1,16 @@
 import {
-    FaUser,
     FaUserPlus,
-    FaSearch,
+    FaChartBar,
     FaClock,
 } from "react-icons/fa";
 
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 
 function ReceptionHome() {
 
+    const navigate = useNavigate();
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -25,7 +26,7 @@ function ReceptionHome() {
 
                 const response =
                     await fetch(
-                        "http://localhost:5000/api/dashboard/me",
+                        "/api/dashboard/me",
                         {
                             headers: {
                                 Authorization:
@@ -100,7 +101,17 @@ function ReceptionHome() {
 
             <div className="staff-action-grid">
 
-                <div className="staff-action-card">
+                <div
+                    className="staff-action-card"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => navigate("/reception/patients")}
+                    onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                            navigate("/reception/patients");
+                        }
+                    }}
+                >
 
                     <div className="staff-action-icon">
                         <FaUserPlus />
@@ -119,43 +130,33 @@ function ReceptionHome() {
                 </div>
 
 
-                <div className="staff-action-card">
+                <div
+                    className="staff-action-card"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => navigate("/reception/reports")}
+                    onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                            navigate("/reception/reports");
+                        }
+                    }}
+                >
 
                     <div className="staff-action-icon">
-                        <FaSearch />
+                        <FaChartBar />
                     </div>
 
                     <div>
                         <strong>
-                            Patient Search
+                            Reports
                         </strong>
 
                         <span>
-                            Find existing patients
+                            View your patient statistics
                         </span>
                     </div>
 
                 </div>
-
-
-                <div className="staff-action-card">
-
-                    <div className="staff-action-icon">
-                        <FaUser />
-                    </div>
-
-                    <div>
-                        <strong>
-                            My Profile
-                        </strong>
-
-                        <span>
-                            View your account details
-                        </span>
-                    </div>
-
-                </div>
-
             </div>
 
 

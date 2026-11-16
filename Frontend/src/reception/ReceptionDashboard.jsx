@@ -1,30 +1,33 @@
-import {
-    FaHospital,
-    FaUserCircle,
-} from "react-icons/fa";
+ import {
+     FaHospital,
+     FaUserPlus,
+ } from "react-icons/fa";
 
 import {
     Outlet,
+    useLocation,
     useNavigate,
 } from "react-router-dom";
 
 import "../styles/StaffDashboard.css";
+import { logout } from "../auth/session";
 
 
 function ReceptionDashboard() {
 
     const navigate = useNavigate();
+    const location = useLocation();
+    const isDashboard = location.pathname === "/reception";
+    const isPatientManagement = location.pathname.startsWith("/reception/patients");
+    const isReportsPage = location.pathname.startsWith("/reception/reports");
 
     const user =
         JSON.parse(
             localStorage.getItem("user")
         );
 
-    const handleLogout = () => {
-
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-
+    const handleLogout = async () => {
+        await logout();
         navigate("/");
     };
 
@@ -63,7 +66,7 @@ function ReceptionDashboard() {
                     <div className="staff-user-info">
 
                         <strong>
-                            {user?.fullName ||
+                            {user?.username ||
                                 "Reception Staff"}
                         </strong>
 
@@ -73,10 +76,6 @@ function ReceptionDashboard() {
                         </span>
 
                     </div>
-
-                    <FaUserCircle
-                        className="staff-user-icon"
-                    />
 
                 </div>
 
@@ -94,7 +93,7 @@ function ReceptionDashboard() {
                     <nav className="staff-navigation">
 
                         <button
-                            className="staff-nav-link active"
+                            className={`staff-nav-link${isDashboard ? " active" : ""}`}
                             onClick={() =>
                                 navigate("/reception")
                             }
@@ -104,27 +103,19 @@ function ReceptionDashboard() {
                         </button>
 
                         <button
-                            className="staff-nav-link"
-                            onClick={() =>
-                                alert(
-                                    "Patient registration will be added next."
-                                )
-                            }
+                            className={`staff-nav-link${isPatientManagement ? " active" : ""}`}
+                            onClick={() => navigate("/reception/patients")}
                         >
-                            <span>＋</span>
+                            <FaUserPlus />
                             <span>New Patient</span>
                         </button>
 
                         <button
-                            className="staff-nav-link"
-                            onClick={() =>
-                                alert(
-                                    "Patient search will be added next."
-                                )
-                            }
+                            className={`staff-nav-link${isReportsPage ? " active" : ""}`}
+                            onClick={() => navigate("/reception/reports")}
                         >
-                            <span>⌕</span>
-                            <span>Patient Search</span>
+                            <span>▤</span>
+                            <span>Reports</span>
                         </button>
 
                     </nav>

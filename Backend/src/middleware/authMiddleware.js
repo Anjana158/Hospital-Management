@@ -26,8 +26,11 @@ function authenticateToken(req,res,next){
 
         // verify JWT
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        // store decoded user information in request
-        req.user = decoded;
+        // Selected login role is the only role used for this session.
+        req.user = {
+            ...decoded,
+            role: typeof decoded.role === "string" ? decoded.role : decoded.role?.name,
+        };
         // continue to the next middleware
         next();
     }catch(error){
