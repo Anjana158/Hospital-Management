@@ -1,21 +1,86 @@
 const bcrypt = require("bcrypt");
 const { prisma } = require("../../config/prisma");
 
-
 // ========================================
 // GET ALL USERS
 // ========================================
 
-async function getAllUsers(roleId) {
-    const where = {};
+const roleSelect = {
+    id: true,
+    name: true,
+    description: true,
+};
 
-    if (roleId) {
-        where.roleId = Number(roleId);
+const userRoleSelect = {
+    userRoles: {
+        orderBy: {
+            roleId: "asc",
+        },
+        select: {
+            role: {
+                select: roleSelect,
+            },
+        },
+    },
+};
+
+function withRoles(user) {
+    const roles = (user.userRoles || []).map((entry) => entry.role);
+    const { userRoles, ...profile } = user;
+    return {
+        ...profile,
+        roles,
+    };
+}
+
+function normalizeRoleIds(roleIds, roleId) {
+    const source = Array.isArray(roleIds)
+        ? roleIds
+        : roleId !== undefined && roleId !== null && roleId !== ""
+            ? [roleId]
+            : [];
+
+    const ids = [...new Set(
+        source
+            .map((id) => Number(id))
+            .filter((id) => Number.isInteger(id) && id > 0)
+    )];
+
+    if (!ids.length) {
+        throw new Error("At least one role is required");
     }
 
+    return ids;
+}
+
+async function assertRolesExist(roleIds) {
+    const roles = await prisma.role.findMany({
+        where: {
+            id: {
+                in: roleIds,
+            },
+        },
+        select: {
+            id: true,
+        },
+    });
+
+    if (roles.length !== roleIds.length) {
+        throw new Error("One or more selected roles do not exist");
+    }
+}
+
+async function getAllUsers(roleId) {
+    const where = {};
+    if (roleId) {
+        where.userRoles = {
+            some: {
+                roleId: Number(roleId),
+            },
+        };
+    }
     const users = await prisma.user.findMany({
         where,
-
         select: {
             id: true,
             employeeId: true,
@@ -27,24 +92,15 @@ async function getAllUsers(roleId) {
             createdBy: true,
             createdAt: true,
             updatedAt: true,
-
-            role: {
-                select: {
-                    id: true,
-                    name: true,
-                    description: true,
-                },
-            },
+            ...userRoleSelect,
         },
-
         orderBy: {
             createdAt: "desc",
         },
     });
 
-    return users;
+    return users.map(withRoles);
 }
-
 
 // ========================================
 // GET ALL ROLES
@@ -58,21 +114,13 @@ async function getAllRoles() {
     });
 }
 
-
 // ========================================
 // CREATE USER
 // ========================================
 
 async function createUser(data, adminId) {
-    const {
-        employeeId,
-        fullName,
-        username,
-        password,
-        roleId,
-        status,
-    } = data;
-
+    const {employeeId,fullName,username,password,roleIds,roleId,status,} = data;
+    const normalizedRoleIds = normalizeRoleIds(roleIds, roleId);
     const existingEmployee = await prisma.user.findUnique({
         where: {
             employeeId,
@@ -93,15 +141,7 @@ async function createUser(data, adminId) {
         throw new Error("Username already exists");
     }
 
-    const role = await prisma.role.findUnique({
-        where: {
-            id: Number(roleId),
-        },
-    });
-
-    if (!role) {
-        throw new Error("Selected role does not exist");
-    }
+    await assertRolesExist(normalizedRoleIds);
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -111,9 +151,13 @@ async function createUser(data, adminId) {
             fullName,
             username,
             password: hashedPassword,
-            roleId: Number(roleId),
             status: status || "ACTIVE",
             createdBy: adminId,
+            userRoles: {
+                create: normalizedRoleIds.map((id) => ({
+                    roleId: id,
+                })),
+            },
         },
 
         select: {
@@ -122,12 +166,12 @@ async function createUser(data, adminId) {
             fullName: true,
             username: true,
             status: true,
-            role: true,
             createdAt: true,
+            ...userRoleSelect,
         },
     });
 
-    return user;
+    return withRoles(user);
 }
 
 
@@ -137,7 +181,6 @@ async function createUser(data, adminId) {
 
 async function updateUser(id, data) {
     const userId = Number(id);
-
     const existingUser = await prisma.user.findUnique({
         where: {
             id: userId,
@@ -148,15 +191,7 @@ async function updateUser(id, data) {
         throw new Error("User not found");
     }
 
-    const {
-        employeeId,
-        fullName,
-        username,
-        password,
-        roleId,
-        status,
-    } = data;
-
+    const {employeeId,fullName,username,password,roleIds,roleId,status,} = data;
 
     // Check employee ID
     if (employeeId && employeeId !== existingUser.employeeId) {
@@ -171,7 +206,6 @@ async function updateUser(id, data) {
         }
     }
 
-
     // Check username
     if (username && username !== existingUser.username) {
         const usernameExists = await prisma.user.findUnique({
@@ -179,34 +213,28 @@ async function updateUser(id, data) {
                 username,
             },
         });
-
         if (usernameExists) {
             throw new Error("Username already exists");
         }
     }
-
-
-    // Check role
-    if (roleId) {
-        const role = await prisma.role.findUnique({
-            where: {
-                id: Number(roleId),
-            },
-        });
-
-        if (!role) {
-            throw new Error("Selected role does not exist");
-        }
-    }
-
 
     const updateData = {
         employeeId,
         fullName,
         username,
         status,
-        roleId: roleId ? Number(roleId) : undefined,
     };
+
+    if (roleIds !== undefined || (roleId !== undefined && roleId !== null && roleId !== "")) {
+        const normalizedRoleIds = normalizeRoleIds(roleIds, roleId);
+        await assertRolesExist(normalizedRoleIds);
+        updateData.userRoles = {
+            deleteMany: {},
+            create: normalizedRoleIds.map((id) => ({
+                roleId: id,
+            })),
+        };
+    }
 
     // reset failed attempts when activated
     if(status === "ACTIVE"){
@@ -215,35 +243,28 @@ async function updateUser(id, data) {
 
     // Password only changes when admin provides one
     if (password && password.trim() !== "") {
-        updateData.password = await bcrypt.hash(
-            password,
-            10
-        );
+        updateData.password = await bcrypt.hash(password,10);
     }
-
 
     const updatedUser = await prisma.user.update({
         where: {
             id: userId,
         },
-
         data: updateData,
-
         select: {
             id: true,
             employeeId: true,
             fullName: true,
             username: true,
             status: true,
-            role: true,
             createdAt: true,
             updatedAt: true,
+            ...userRoleSelect,
         },
     });
 
-    return updatedUser;
+    return withRoles(updatedUser);
 }
-
 
 // ========================================
 // CHANGE USER STATUS
@@ -274,9 +295,7 @@ async function changeUserStatus(id, status, adminId) {
     ];
 
     if (!allowedStatuses.includes(status)) {
-        throw new Error(
-            "Invalid user status"
-        );
+        throw new Error("Invalid user status");
     }
 
     const updatedUser = await prisma.user.update({
@@ -292,17 +311,13 @@ async function changeUserStatus(id, status, adminId) {
                 fullName: true,
                 username: true,
                 status: true,
-                role: true,
                 lastLogin: true,
                 updatedAt: true,
+                ...userRoleSelect,
             },
         });
-
-
-    return updatedUser;
-
+    return withRoles(updatedUser);
 }
-
 
 module.exports = {
     getAllUsers,

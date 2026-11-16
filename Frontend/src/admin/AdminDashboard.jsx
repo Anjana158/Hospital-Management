@@ -8,19 +8,13 @@ import "../styles/AdminDashboard.css";
 function AdminDashboard() {
   return (
     <div className="admin-dashboard">
-
       <AdminNavbar />
-
       <div className="admin-body">
-
         <AdminSidebar />
-
         <main className="admin-content">
           <Outlet />
         </main>
-
       </div>
-
     </div>
   );
 }

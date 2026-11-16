@@ -1,11 +1,10 @@
 const { prisma } = require("../../config/prisma");
 
-
 // ========================================
 // GET LOGGED-IN USER DASHBOARD
 // ========================================
 
-async function getMyDashboard(userId) {
+async function getMyDashboard(userId, selectedRole) {
 
     const user = await prisma.user.findUnique({
         where: {
@@ -22,11 +21,18 @@ async function getMyDashboard(userId) {
             failedAttempts: true,
             createdAt: true,
 
-            role: {
+            userRoles: {
+                orderBy: {
+                    roleId: "asc",
+                },
                 select: {
-                    id: true,
-                    name: true,
-                    description: true,
+                    role: {
+                        select: {
+                            id: true,
+                            name: true,
+                            description: true,
+                        },
+                    },
                 },
             },
         },
@@ -36,9 +42,15 @@ async function getMyDashboard(userId) {
         throw new Error("User not found");
     }
 
-    return user;
+    const roles = user.userRoles.map((entry) => entry.role);
+    const normalizedRole = String(selectedRole || "").toUpperCase();
+    const role = roles.find((item) => item.name.toUpperCase() === normalizedRole) || null;
+    const { userRoles, ...profile } = user;
+
+    return {
+        ...profile,
+        role,
+    };
 }
 
-module.exports = {
-    getMyDashboard,
-};
+module.exports = {getMyDashboard,};

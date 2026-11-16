@@ -172,6 +172,12 @@
    ROLE BADGE
 ======================================== */
 
+.role-badge-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
 .role-badge {
     display: inline-flex;
     align-items: center;
@@ -371,6 +377,72 @@
     padding: 23px 25px 25px;
 }
 
+.scheme-eligibility {
+    margin-top: 22px;
+    padding: 18px;
+    border: 1px solid #e5eaf1;
+    border-radius: 10px;
+    background: #fbfcfe;
+}
+
+.scheme-eligibility h3 {
+    margin: 0 0 16px;
+    color: #34445a;
+    font-size: 16px;
+}
+
+.scheme-collect-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin-top: 16px;
+    color: #44546a;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.scheme-collect-checkbox input {
+    width: auto;
+}
+
+.scheme-additional-fields {
+    display: grid;
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.scheme-additional-field {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.scheme-additional-field input {
+    min-width: 0;
+    flex: 1;
+    height: 38px;
+    padding: 0 10px;
+    border: 1px solid #d8e0ea;
+    border-radius: 7px;
+}
+
+.scheme-field-add,
+.scheme-field-remove {
+    min-height: 36px;
+    padding: 0 10px;
+    border: 1px solid #d5dff0;
+    border-radius: 7px;
+    background: #f7f9fd;
+    color: #1455a8;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.scheme-field-add {
+    min-width: 36px;
+    font-size: 19px;
+}
+
 .form-grid {
     display: grid;
 
@@ -422,6 +494,47 @@
 
     box-shadow:
         0 0 0 3px rgba(113, 135, 201, 0.08);
+}
+
+.form-group.roles-field {
+    grid-column: 1 / -1;
+}
+
+.role-checkbox-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 16px;
+
+    min-height: 42px;
+    box-sizing: border-box;
+
+    padding: 10px 12px;
+
+    border: 1px solid #dfe6f1;
+    border-radius: 8px;
+
+    background: #ffffff;
+}
+
+.role-checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    color: #344b75;
+
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.form-group .role-checkbox-item input {
+    width: 16px;
+    height: 16px;
+
+    margin: 0;
+    padding: 0;
+
+    accent-color: #1455a8;
 }
 
 
