@@ -170,13 +170,17 @@ function resolveAgeFromPatient(patient) {
 }
 
 async function getPaymentSummary(where) {
-    const [cashTotals, gpayTotals, freeVisits] = await Promise.all([
+    const [cashTotals, gpayTotals, posTotals, freeVisits] = await Promise.all([
         prisma.patientVisit.aggregate({
             where: { ...where, paymentStatus: "PAID", paymentMethod: "CASH" },
             _sum: { finalFee: true },
         }),
         prisma.patientVisit.aggregate({
             where: { ...where, paymentStatus: "PAID", paymentMethod: "GPAY" },
+            _sum: { finalFee: true },
+        }),
+        prisma.patientVisit.aggregate({
+            where: { ...where, paymentStatus: "PAID", paymentMethod: "POS" },
             _sum: { finalFee: true },
         }),
         prisma.patientVisit.count({
@@ -186,11 +190,13 @@ async function getPaymentSummary(where) {
 
     const cashCollected = Math.round(Number(cashTotals._sum.finalFee || 0) * 100) / 100;
     const gpayCollected = Math.round(Number(gpayTotals._sum.finalFee || 0) * 100) / 100;
+    const posCollected = Math.round(Number(posTotals._sum.finalFee || 0) * 100) / 100;
 
     return {
-        totalOpAmount: Math.round((cashCollected + gpayCollected) * 100) / 100,
+        totalOpAmount: Math.round((cashCollected + gpayCollected + posCollected) * 100) / 100,
         cashCollected,
         gpayCollected,
+        posCollected,
         freeOpVisits: freeVisits,
     };
 }
@@ -574,8 +580,6 @@ async function generateAdminReceptionReport(query) {
                     select: {
                         uhid: true,
                         firstName: true,
-                        middleName: true,
-                        lastName: true,
                         dateOfBirth: true,
                         age: true,
                         gender: true,
@@ -696,7 +700,7 @@ async function generateAdminReceptionReport(query) {
             visitDate: visit.visitDate,
             visitType: visit.visitType,
             patientId: visit.patientId,
-            patientName: [patient.firstName, patient.middleName, patient.lastName].filter(Boolean).join(" "),
+            patientName: patient.firstName,
             uhid: patient.uhid,
             phone: patient.phone,
             gender: patient.gender,

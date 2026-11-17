@@ -1,0 +1,105 @@
+.patient-registration-page {
+    width: 100%;
+    min-height: 100%;
+    overflow: visible;
+    color: #27364b;
+}
+
+.patient-registration-header {
+    margin-bottom: 30px;
+}
+
+.patient-registration-card {
+    width: 100%;
+    margin: 0;
+    padding: 24px;
+    border: 1px solid #e5eaf1;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(40, 60, 90, 0.04);
+}
+
+.patient-registration-page .patient-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.patient-registration-page .registration-grid-row {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.patient-registration-page .registration-grid-row.registration-grid-four {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.registration-grid-row {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.registration-grid-four {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.patient-registration-page .form-group {
+    min-width: 0;
+}
+
+.patient-registration-page .registration-full-row {
+    grid-column: 1 / -1;
+}
+
+.patient-registration-error,
+.patient-registration-page .form-error {
+    padding: 12px 14px;
+    border: 1px solid #f1c7d2;
+    border-radius: 8px;
+    background: #fff5f7;
+    color: #a64b5c;
+    font-size: 13px;
+}
+
+.patient-registration-loading {
+    margin: 0;
+    color: #667085;
+}
+
+.patient-registration-page .form-buttons {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 6px;
+}
+
+.patient-registration-page .registration-readonly {
+    background: #f1f4f8;
+}
+
+@media (max-width: 900px) {
+    .registration-grid-four {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .patient-registration-page .registration-grid-row.registration-grid-four {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 650px) {
+    .registration-grid-row,
+    .registration-grid-four {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .patient-registration-card {
+        padding: 16px;
+    }
+
+    .patient-registration-page .registration-grid-row,
+    .patient-registration-page .registration-grid-row.registration-grid-four {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}

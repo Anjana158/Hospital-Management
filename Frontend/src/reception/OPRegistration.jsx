@@ -2,11 +2,11 @@ import { useEffect, useState } from "react";
 import {
     FaArrowLeft,
     FaCheckCircle,
-    FaHospital,
     FaUserMd,
 } from "react-icons/fa";
 
 import {
+    useLocation,
     useNavigate,
     useParams,
 } from "react-router-dom";
@@ -36,9 +36,11 @@ function OPRegistration() {
 
     const navigate =
         useNavigate();
+    const location = useLocation();
 
     const { patientId } =
         useParams();
+    const returnTo = location.state?.returnTo || "/reception/registered-patients";
 
 
     const [patient, setPatient] =
@@ -66,6 +68,7 @@ function OPRegistration() {
 
     const [opFee, setOpFee] = useState("10");
     const [paymentMethod, setPaymentMethod] = useState("CASH");
+    const [authCode, setAuthCode] = useState("");
     const [schemeAdditionalInformation, setSchemeAdditionalInformation] = useState([]);
 
 
@@ -120,10 +123,19 @@ function OPRegistration() {
                 setPatient(loadedPatient);
                 setDepartments(departmentResult.departments || []);
                 setActiveSchemes(loadedSchemes);
+                const patientSchemeId = String(
+                    loadedPatient.scheme?.id || loadedPatient.schemeId || ""
+                );
+                const patientScheme = eligibleSchemes.find(
+                    (scheme) => String(scheme.id) === patientSchemeId
+                );
+                const nextSchemeId = patientScheme
+                    ? patientScheme.id
+                    : eligibleSchemes.length === 1
+                        ? eligibleSchemes[0].id
+                        : "";
                 setSelectedSchemeId(
-                    eligibleSchemes.length === 1
-                        ? String(eligibleSchemes[0].id)
-                        : ""
+                    nextSchemeId ? String(nextSchemeId) : ""
                 );
 
             } catch (error) {
@@ -318,6 +330,15 @@ function OPRegistration() {
                 return;
             }
 
+            if (
+                finalFee > 0 &&
+                paymentMethod === "POS" &&
+                !authCode.trim()
+            ) {
+                setError("Auth Code is required for POS payments.");
+                return;
+            }
+
 
             try {
 
@@ -342,6 +363,11 @@ function OPRegistration() {
                         paymentMethod:
                             finalFee > 0 ? paymentMethod : null,
 
+                        authCode:
+                            finalFee > 0 && paymentMethod === "POS"
+                                ? authCode.trim()
+                                : undefined,
+
                         schemeAdditionalInformation:
                             schemeAdditionalInformation.map(({ key, value }) => ({
                                 key,
@@ -358,6 +384,13 @@ function OPRegistration() {
 
                             tokenNumber:
                                 result.data.tokenNumber,
+
+                            tokenLabel:
+                                result.data.tokenLabel,
+
+                            autoPrint: true,
+
+                            returnTo,
                         },
                     }
                 );
@@ -389,16 +422,7 @@ function OPRegistration() {
     |--------------------------------------------------------------------------
     */
 
-    const patientName =
-        patient
-            ? [
-                patient.firstName,
-                patient.middleName,
-                patient.lastName,
-            ]
-                .filter(Boolean)
-                .join(" ")
-            : "";
+    const patientName = patient?.firstName || "";
 
 
     /*
@@ -410,7 +434,7 @@ function OPRegistration() {
     if (loading) {
 
         return (
-            <div className="op-registration-page">
+            <div className="op-registration-page reception-page">
 
                 <div className="op-loading">
                     Loading OP registration...
@@ -430,7 +454,7 @@ function OPRegistration() {
     if (!patient) {
 
         return (
-            <div className="op-registration-page">
+            <div className="op-registration-page reception-page">
 
                 <div className="op-error">
                     {error ||
@@ -441,7 +465,7 @@ function OPRegistration() {
                     className="op-secondary-btn"
                     onClick={() =>
                         navigate(
-                            "/reception/patients"
+                            returnTo
                         )
                     }
                 >
@@ -455,38 +479,20 @@ function OPRegistration() {
 
 
     return (
-        <div className="op-registration-page">
+        <div className="op-registration-page reception-page">
 
             {/* ===================================================== */}
             {/* HEADER */}
             {/* ===================================================== */}
 
-            <div className="op-page-header">
-
-                <div className="op-page-title">
-
-                    <div className="op-title-icon">
-                        <FaHospital />
-                    </div>
-
-                    <div>
-                        <h2>
-                            OP Registration
-                        </h2>
-
-                        <p>
-                            Register an outpatient visit
-                        </p>
-                    </div>
-
-                </div>
-
+            <header className="op-page-header reception-page-header">
+                <h1>OP Registration</h1>
 
                 <button
                     className="op-secondary-btn"
                     onClick={() =>
                         navigate(
-                            "/reception/patients"
+                            returnTo
                         )
                     }
                     disabled={saving}
@@ -495,7 +501,7 @@ function OPRegistration() {
                     Back
                 </button>
 
-            </div>
+            </header>
 
 
             {/* ===================================================== */}
@@ -634,7 +640,7 @@ function OPRegistration() {
                         </h3>
 
                         <p>
-                            Select department and visit type
+                            Select a department. Visit type is determined from this patient’s visit history.
                         </p>
                     </div>
 
@@ -818,7 +824,7 @@ function OPRegistration() {
 
                 <div className="op-fee-summary">
 
-                    <div>
+                    <div className="op-fee-row">
                         <span>
                             OP Fee
                         </span>
@@ -830,7 +836,7 @@ function OPRegistration() {
                     </div>
 
 
-                    <div>
+                    <div className="op-fee-row">
                         <span>
                             Scheme Discount (100%)
                         </span>
@@ -844,8 +850,7 @@ function OPRegistration() {
                     </div>
 
 
-                    <div className="op-final-fee">
-
+                    <div className="op-fee-row op-final-fee">
                         <span>
                             Final Fee
                         </span>
@@ -859,22 +864,45 @@ function OPRegistration() {
 
                     </div>
 
-                    <div>
-                        <span>
-                            {finalFee > 0 ? "Payment Method" : "Payment"}
-                        </span>
+                    <div className="op-payment-grid">
+                        <div className="op-form-group">
+                            <label htmlFor="op-payment-method">Payment Method</label>
+                            {finalFee > 0 ? (
+                                <select
+                                    id="op-payment-method"
+                                    value={paymentMethod}
+                                    onChange={(event) => {
+                                        const nextMethod = event.target.value;
+                                        setPaymentMethod(nextMethod);
+                                        if (nextMethod !== "POS") setAuthCode("");
+                                    }}
+                                    disabled={saving || (scheme && !schemeEligibility.eligible)}
+                                >
+                                    <option value="CASH">Cash</option>
+                                    <option value="POS">POS</option>
+                                </select>
+                            ) : (
+                                <div className="op-payment-free">
+                                    FREE - No payment required
+                                </div>
+                            )}
+                        </div>
 
-                        {finalFee > 0 ? (
-                            <select
-                                value={paymentMethod}
-                                onChange={(event) => setPaymentMethod(event.target.value)}
-                                disabled={saving || (scheme && !schemeEligibility.eligible)}
-                            >
-                                <option value="CASH">Cash</option>
-                                <option value="GPAY">G-Pay</option>
-                            </select>
-                        ) : (
-                            <strong>FREE - No payment required</strong>
+                        {finalFee > 0 && paymentMethod === "POS" && (
+                            <div className="op-form-group">
+                                <label htmlFor="op-auth-code">
+                                    Auth Code
+                                    <span>*</span>
+                                </label>
+                                <input
+                                    id="op-auth-code"
+                                    type="text"
+                                    value={authCode}
+                                    onChange={(event) => setAuthCode(event.target.value)}
+                                    disabled={saving}
+                                    required
+                                />
+                            </div>
                         )}
                     </div>
 
@@ -892,7 +920,7 @@ function OPRegistration() {
                         className="op-secondary-btn"
                         onClick={() =>
                             navigate(
-                                "/reception/patients"
+                                returnTo
                             )
                         }
                         disabled={saving}

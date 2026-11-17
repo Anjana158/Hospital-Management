@@ -12,21 +12,12 @@
     max-width: 1200px;
 }
 
-.billing-page-header p {
-    margin: 0 0 6px;
-    color: #e85f9e;
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 1.4px;
-}
-
 .billing-page-header h1 {
     margin: 0;
     color: #124b9b;
     font-size: 30px;
 }
 
-.billing-page-header span,
 .billing-muted,
 .billing-report-note {
     color: #7585a3;
@@ -153,6 +144,12 @@
 
 .billing-remarks-field {
     margin-bottom: 16px;
+}
+
+.billing-validation-message {
+    color: #ad2525;
+    font-size: 13px;
+    font-weight: 600;
 }
 
 .billing-checkbox input {
@@ -491,6 +488,47 @@
     margin: 0 auto;
 }
 
+.staff-content > .billing-page {
+    max-width: 1250px;
+    margin: 0 auto;
+    padding: 0;
+}
+
+.staff-content > .billing-page > .billing-page-header {
+    max-width: none;
+    margin: 0 0 30px;
+}
+
+.staff-content > .billing-page > .billing-error {
+    max-width: none;
+    margin: 0 0 15px;
+}
+
+.staff-content .billing-page .billing-card {
+    max-width: none;
+    margin: 0 0 25px;
+}
+
+.staff-content .billing-page .billing-workflow > .billing-card {
+    width: 100%;
+}
+
+.staff-content .billing-page .billing-report-output,
+.staff-content .billing-page .billing-report-output .billing-summary-grid,
+.staff-content .billing-page .billing-report-output .billing-report-note {
+    max-width: none;
+}
+
+.staff-content .billing-page .billing-report-output {
+    margin: 0;
+}
+
+.staff-content .billing-page .billing-report-output .billing-summary-grid,
+.staff-content .billing-page .billing-report-output .billing-report-note {
+    margin-right: 0;
+    margin-left: 0;
+}
+
 .billing-report-print-header {
     display: none;
 }
@@ -679,10 +717,6 @@
 }
 
 @media (max-width: 760px) {
-    .billing-page {
-        padding: 16px;
-    }
-
     .billing-service-row {
         grid-template-columns: 1fr 100px;
     }

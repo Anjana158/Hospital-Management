@@ -35,6 +35,18 @@ export const getTodayPatients = async (
     return response.data;
 };
 
+export const getRegisteredPatients = async (filters) => {
+    const response = await axios.get(
+        `${API_URL}/registered`,
+        {
+            params: filters,
+            ...getAuthConfig(),
+        }
+    );
+
+    return response.data;
+};
+
 // ========================================
 // SEARCH PATIENTS
 // ========================================

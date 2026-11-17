@@ -160,7 +160,7 @@ function NewBill() {
 
     function selectPatient(record) {
         setPatient(record);
-        setPatientQuery(`${record.uhid} - ${[record.firstName, record.middleName, record.lastName].filter(Boolean).join(" ")}`);
+        setPatientQuery(`${record.uhid} - ${record.firstName}`);
         setPatients([]);
         setDuplicatePatients([]);
         setRegistrationOpen(false);
@@ -280,11 +280,9 @@ function NewBill() {
             return;
         }
 
-        const [firstName, ...remainingName] = name.split(/\s+/);
         const selectedScheme = schemes.find((row) => String(row.id) === registrationForm.schemeId);
         const payload = {
-            firstName,
-            lastName: remainingName.join(" "),
+            firstName: name,
             phone,
             gender: registrationForm.gender,
             dateOfBirth: registrationForm.dateOfBirth,
@@ -316,6 +314,10 @@ function NewBill() {
     async function submitBill(event) {
         event.preventDefault();
         if (!quote || !patient) return;
+        if (miscellaneousEnabled && !remarks.trim()) {
+            setError("A remark is required when applying a miscellaneous adjustment.");
+            return;
+        }
         setError("");
         setSubmitting(true);
         const payload = {
@@ -365,9 +367,7 @@ function NewBill() {
     return (
         <div className="billing-page">
             <header className="billing-page-header">
-                <p>BILLING</p>
                 <h1>Create New Bill</h1>
-                <span>Search for a patient or register a new patient to start billing.</span>
             </header>
             {error && <p className="billing-error" role="alert">{error}</p>}
 
@@ -392,13 +392,13 @@ function NewBill() {
                     {patients.length > 0 && <ul className="billing-patient-results">
                         {patients.map((record) => <li key={record.id}>
                             <button type="button" onClick={() => selectPatient(record)}>
-                                <strong>{record.uhid}</strong> — {[record.firstName, record.middleName, record.lastName].filter(Boolean).join(" ")}
+                                <strong>{record.uhid}</strong> — {record.firstName}
                                 <span>{record.phone || "No phone"}{record.scheme ? ` · ${record.scheme.name}` : ""}</span>
                             </button>
                         </li>)}
                     </ul>}
                     {patient && <div className="billing-selected-patient">
-                        <strong>{[patient.firstName, patient.middleName, patient.lastName].filter(Boolean).join(" ")}</strong>
+                        <strong>{patient.firstName}</strong>
                         <span>{patient.uhid} · Age {patient.age} · {patient.gender}{patient.scheme ? ` · Scheme: ${patient.scheme.name}` : " · No assigned scheme"}</span>
                         <button type="button" className="billing-link-button" onClick={clearPatient}>Change patient</button>
                     </div>}
@@ -429,7 +429,7 @@ function NewBill() {
                         {duplicatePatients.length > 0 && <div className="billing-patient-results billing-possible-duplicates">
                             <p>Possible matching patients found. Select the correct existing record to continue:</p>
                             {duplicatePatients.map((record) => <button key={record.id} type="button" disabled={record.status !== "ACTIVE" || record.archivedAt} onClick={() => selectPatient(record)}>
-                                <strong>{record.uhid}</strong> — {[record.firstName, record.middleName, record.lastName].filter(Boolean).join(" ")}
+                                <strong>{record.uhid}</strong> — {record.firstName}
                                 <span>{record.phone || record.alternatePhone || "No phone"}{record.scheme ? ` · ${record.scheme.name}` : ""} · {record.status === "ACTIVE" && !record.archivedAt ? "Select this patient" : "Inactive patient — cannot bill"}</span>
                             </button>)}
                         </div>}
@@ -504,14 +504,20 @@ function NewBill() {
                         </>}
                     </div>
                     <label className="billing-field billing-remarks-field">
-                        Remarks (optional)
+                        Remarks {miscellaneousEnabled ? "(required)" : "(optional)"}
                         <textarea
+                            required={miscellaneousEnabled}
+                            aria-invalid={miscellaneousEnabled && !remarks.trim()}
+                            aria-describedby={miscellaneousEnabled ? "miscellaneous-remark-validation" : undefined}
                             rows="4"
                             maxLength="10000"
                             value={remarks}
                             onChange={(event) => setRemarks(event.target.value)}
                             placeholder="Add notes or additional information for this bill"
                         />
+                        {miscellaneousEnabled && !remarks.trim() && <span id="miscellaneous-remark-validation" className="billing-validation-message" role="alert">
+                            A remark is required when applying a miscellaneous adjustment.
+                        </span>}
                     </label>
                     {quote && <div className="billing-totals">
                         <div className="billing-total-due"><span>Final payable amount</span><strong>₹{finalPayable.toFixed(2)}</strong></div>

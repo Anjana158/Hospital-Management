@@ -12,11 +12,9 @@ function buildPatientSearchFilter(query, field) {
     }
 
     if (field === "name" || field === "all") {
-        searchConditions.push(
-            { firstName: { contains: query, mode: "insensitive" } },
-            { middleName: { contains: query, mode: "insensitive" } },
-            { lastName: { contains: query, mode: "insensitive" } }
-        );
+        searchConditions.push({
+            firstName: { contains: query, mode: "insensitive" },
+        });
     }
 
     if (field === "phone" || (field === "all" && normalizedQuery.length >= 3)) {
