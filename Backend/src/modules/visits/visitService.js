@@ -14,7 +14,8 @@ const registerVisitSchema = z.object({
     patientId: z.coerce.number().int().positive(),
     departmentId: z.coerce.number().int().positive(),
     schemeId: z.union([z.coerce.number().int().positive(), z.null()]).optional(),
-    paymentMethod: z.enum(["CASH", "GPAY"]).nullable().optional(),
+    paymentMethod: z.enum(["CASH", "POS"]).nullable().optional(),
+    authCode: z.string().trim().optional(),
     visitType: z.enum([
         "NEW",
         "REVISIT",
@@ -59,13 +60,21 @@ function getVisitPaymentDetails(finalFee, paymentMethod) {
     if (finalFee === 0) {
         return {
             paymentStatus: "FREE",
-            paymentMethod: null,
+            paymentMethod: "CASH",
         };
     }
 
     return paymentMethod
         ? { paymentStatus: "PAID", paymentMethod }
         : { paymentStatus: "PENDING", paymentMethod: null };
+}
+
+function validateVisitPayment(finalFee, paymentMethod, authCode) {
+    if (finalFee > 0 && paymentMethod === "POS" && !authCode?.trim()) {
+        const error = new Error("Auth Code is required for POS payments");
+        error.code = "VISIT_PAYMENT_VALIDATION_ERROR";
+        throw error;
+    }
 }
 
 function getTokenDate() {
@@ -207,6 +216,7 @@ async function registerVisitRecord(
         schemeId,
         opFee,
         paymentMethod,
+        authCode,
         schemeAdditionalInformation: submittedSchemeAdditionalInformation,
     } = validated;
 
@@ -301,6 +311,12 @@ async function registerVisitRecord(
                 throw error;
             }
 
+            await tx.$executeRaw`
+                SELECT pg_advisory_xact_lock(
+                    CAST(${patientId} AS INTEGER),
+                    CAST(${departmentId} AS INTEGER)
+                )
+            `;
 
             const sameDayVisit = await tx.patientVisit.findFirst({
                 where: {
@@ -388,7 +404,9 @@ async function registerVisitRecord(
             }
 
             const { discountAmount, finalFee } = calculateVisitAmounts(opFee, selectedScheme);
-            const paymentDetails = getVisitPaymentDetails(finalFee, paymentMethod);
+            const effectivePaymentMethod = finalFee === 0 ? "CASH" : paymentMethod;
+            validateVisitPayment(finalFee, effectivePaymentMethod, authCode);
+            const paymentDetails = getVisitPaymentDetails(finalFee, effectivePaymentMethod);
 
 
             /*
@@ -478,6 +496,8 @@ async function registerVisitRecord(
 
                         finalFee,
                         ...paymentDetails,
+                        paymentAuthCode:
+                            effectivePaymentMethod === "POS" ? authCode.trim() : null,
                         schemeIdAtVisit: selectedScheme
                             ? selectedScheme.id
                             : null,
@@ -723,6 +743,7 @@ async function getPatientVisitHistory(patientId) {
 module.exports = {
     calculateVisitAmounts,
     getVisitPaymentDetails,
+    validateVisitPayment,
     registerVisitSchema,
     registerVisitRecord,
     getPatientDepartmentVisitHistory,

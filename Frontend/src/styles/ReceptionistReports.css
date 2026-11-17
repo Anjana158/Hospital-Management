@@ -1,46 +1,14 @@
 .reception-reports-page {
     width: 100%;
     min-height: 100%;
-    padding: 24px;
-    background: #f7f9fc;
+    padding: 0;
+    background: transparent;
     color: #324764;
     font-family: "Segoe UI", Arial, sans-serif;
 }
 
 .report-page-header {
-    margin-bottom: 20px;
-}
-
-.report-page-title {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-}
-
-.report-title-icon {
-    width: 52px;
-    height: 52px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 14px;
-    background: linear-gradient(135deg, #e6f0ff, #fbe6f1);
-    color: #1f5bb5;
-    font-size: 24px;
-}
-
-.report-page-title p {
-    margin: 0;
-    color: #7f8da6;
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 0.08rem;
-}
-
-.report-page-title h2 {
-    margin: 4px 0 0;
-    color: #233a59;
-    font-size: 30px;
+    margin-bottom: 30px;
 }
 
 .report-controls-card,
@@ -312,10 +280,6 @@
 }
 
 @media (max-width: 700px) {
-    .reception-reports-page {
-        padding: 16px;
-    }
-
     .report-form-grid {
         grid-template-columns: 1fr;
     }

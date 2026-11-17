@@ -4,6 +4,7 @@ const assert = require("node:assert/strict");
 const {
     applyMiscellaneousAmount,
     assertBillRequestMatches,
+    billInputSchema,
     calculateBill,
     initialPaymentForBill,
     paymentEventCount,
@@ -81,6 +82,32 @@ test("miscellaneous amount is treated as final payable and the difference as dis
     assert.throws(() => applyMiscellaneousAmount(100000, -1), {
         code: "BILLING_INVALID_AMOUNT",
     });
+});
+
+test("remarks are required only when a miscellaneous amount is applied", () => {
+    const request = {
+        patientId: 7,
+        category: "APL",
+        items: [{ serviceId: 3, quantity: 1 }],
+        paymentMethod: "CASH",
+        idempotencyKey: "misc-request-123",
+    };
+
+    assert.equal(billInputSchema.safeParse({
+        ...request,
+        miscellaneousAmount: 400,
+        remarks: "   ",
+    }).success, false);
+    assert.equal(billInputSchema.safeParse({
+        ...request,
+        miscellaneousAmount: 400,
+        remarks: "Approved by Superintendent",
+    }).success, true);
+    assert.equal(billInputSchema.safeParse({
+        ...request,
+        miscellaneousAmount: null,
+        remarks: "",
+    }).success, true);
 });
 
 test("initial payment always equals the final payable and zero-payable bills have no payment", () => {

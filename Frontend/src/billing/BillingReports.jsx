@@ -68,9 +68,7 @@ function BillingReports() {
     return (
         <div className={`billing-page billing-report-print-shell${isAdmin ? " admin-page" : ""}`}>
             <header className={isAdmin ? "admin-page-header" : "billing-page-header"}>
-                {!isAdmin && <p>BILLING</p>}
                 <h1>{isAdmin ? "Billing Reports" : "Reports"}</h1>
-                {!isAdmin && <span>Your billing and collection activity.</span>}
             </header>
             <section className="billing-card billing-report-controls">
                 <form className="billing-form-grid" onSubmit={runReport}>

@@ -14,11 +14,10 @@ const api = axios.create({
         // TEST 1: Register a patient for testing
         console.log('TEST 1: Register base patient...');
         const registerRes = await api.post('/patients', {
-            firstName: 'John',
-            lastName: 'Doe',
-            phone: '+1-234-567-8901',
+            firstName: 'John Doe',
+            phone: '2345678901',
             gender: 'MALE',
-            categoryId: 1
+            age: 30,
         });
         const patientId = registerRes.data.data.id;
         console.log('✓ Patient registered: ID=' + patientId + ', UHID=' + registerRes.data.data.uhid + '\n');
@@ -31,24 +30,24 @@ const api = axios.create({
         // TEST 3: Update multiple fields
         console.log('TEST 3: Update multiple fields...');
         const t3Res = await api.patch('/patients/' + patientId, {
-            lastName: 'Smith',
+            firstName: 'Jonathan Smith',
             email: 'john@example.com',
             city: 'New York'
         });
-        console.log('✓ Success: lastName=' + t3Res.data.data.lastName + ', email=' + t3Res.data.data.email + ', city=' + t3Res.data.data.city + '\n');
+        console.log('✓ Success: firstName=' + t3Res.data.data.firstName + ', email=' + t3Res.data.data.email + ', city=' + t3Res.data.data.city + '\n');
 
         // TEST 4: Phone normalization
         console.log('TEST 4: Phone formatting normalization...');
-        const t4Res = await api.patch('/patients/' + patientId, { phone: '(234) 567-8901' });
+        const t4Res = await api.patch('/patients/' + patientId, { phone: '2345678901' });
         console.log('✓ Success: normalized phone=' + t4Res.data.data.phone + '\n');
 
         // TEST 5: Register another patient for duplicate test
         console.log('TEST 5: Register second patient for duplicate phone test...');
         const p2Res = await api.post('/patients', {
-            firstName: 'Jane',
-            lastName: 'Doe',
+            firstName: 'Jane Doe',
             phone: '9876543210',
-            categoryId: 1
+            gender: 'FEMALE',
+            age: 25,
         });
         const patientId2 = p2Res.data.data.id;
         console.log('✓ Patient 2 registered: ID=' + patientId2 + '\n');
@@ -88,7 +87,7 @@ const api = axios.create({
         // TEST 9: Invalid/inactive category
         console.log('TEST 9: Invalid/inactive category (ID 999)...');
         try {
-            await api.patch('/patients/' + patientId, { categoryId: 999 });
+            await api.patch('/patients/' + patientId, { schemeId: 999 });
             console.log('✗ ERROR: Should have rejected invalid category\n');
         } catch (e) {
             if (e.response.status === 400) {

@@ -345,10 +345,29 @@
     margin: 0 auto;
 }
 
+.reception-page {
+    width: 100%;
+    max-width: 1250px;
+    margin: 0 auto;
+}
+
 
 /* ========================================
    HEADER
 ======================================== */
+
+.reception-page-header {
+    margin: 0 0 30px;
+}
+
+.reception-page-header h1,
+.reception-page-header h2 {
+    margin: 0;
+    color: #124b9b;
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -0.7px;
+}
 
 .staff-page-header {
     margin-bottom: 30px;
@@ -747,6 +766,11 @@
         font-size: 26px;
     }
 
+    .reception-page-header h1,
+    .reception-page-header h2 {
+        font-size: 26px;
+    }
+
 
     .staff-action-grid {
         grid-template-columns: 1fr;
@@ -784,6 +808,11 @@
 
 
     .staff-page-header h1 {
+        font-size: 23px;
+    }
+
+    .reception-page-header h1,
+    .reception-page-header h2 {
         font-size: 23px;
     }
 }

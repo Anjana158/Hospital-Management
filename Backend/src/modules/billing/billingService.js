@@ -32,7 +32,15 @@ const billInputSchema = z.object({
     paymentMethod: z.enum(["CASH", "GPAY"]).nullable().optional(),
     gpayConfirmed: z.boolean().default(false),
     idempotencyKey: z.string().trim().min(8).max(100),
-}).strict();
+}).strict().superRefine((data, context) => {
+    if (data.miscellaneousAmount != null && !data.remarks) {
+        context.addIssue({
+            code: "custom",
+            message: "A remark is required when applying a miscellaneous adjustment",
+            path: ["remarks"],
+        });
+    }
+});
 const billQuoteSchema = z.object({
     patientId: z.coerce.number().int().positive(),
     category: z.enum(["APL", "BPL"]).default("APL"),
@@ -340,13 +348,11 @@ async function searchBillingPatients(query) {
             OR: [
                 { uhid: { contains: q, mode: "insensitive" } },
                 { firstName: { contains: q, mode: "insensitive" } },
-                { middleName: { contains: q, mode: "insensitive" } },
-                { lastName: { contains: q, mode: "insensitive" } },
                 { phone: { contains: q, mode: "insensitive" } },
             ],
         },
         select: {
-            id: true, uhid: true, firstName: true, middleName: true, lastName: true,
+            id: true, uhid: true, firstName: true,
             age: true, dateOfBirth: true, gender: true, phone: true,
             scheme: {
                 select: {
@@ -480,7 +486,7 @@ async function quoteBill(input) {
         patient: {
             id: patient.id,
             uhid: patient.uhid,
-            fullName: [patient.firstName, patient.middleName, patient.lastName].filter(Boolean).join(" "),
+            fullName: patient.firstName,
             scheme: scheme ? { code: scheme.code, name: scheme.name } : null,
         },
         category: data.category,
@@ -501,7 +507,7 @@ async function readBill(where) {
     const bill = await prisma.bill.findUnique({
         where,
         include: {
-            patient: { select: { id: true, uhid: true, firstName: true, middleName: true, lastName: true, age: true, gender: true, phone: true } },
+            patient: { select: { id: true, uhid: true, firstName: true, age: true, gender: true, phone: true } },
             createdByUser: { select: { id: true, employeeId: true, fullName: true } },
             items: { orderBy: { id: "asc" } },
             payments: {
@@ -678,7 +684,7 @@ async function getReport(query, role, userId) {
             where: billWhere,
             include: {
                 items: true,
-                patient: { select: { uhid: true, firstName: true, middleName: true, lastName: true } },
+                patient: { select: { uhid: true, firstName: true } },
                 payments: { select: { amount: true, status: true } },
                 createdByUser: { select: { id: true, employeeId: true, fullName: true } },
             },
@@ -823,7 +829,7 @@ async function getReport(query, role, userId) {
             return {
                 billNumber: bill.billNumber,
                 createdAt: bill.createdAt,
-                patientName: [bill.patient.firstName, bill.patient.middleName, bill.patient.lastName].filter(Boolean).join(" "),
+                patientName: bill.patient.firstName,
                 uhid: bill.patient.uhid,
                 category: bill.category,
                 remarks: bill.remarks,
@@ -887,4 +893,5 @@ module.exports = {
     initialPaymentForBill,
     paymentEvents,
     paymentEventCount,
+    billInputSchema,
 };

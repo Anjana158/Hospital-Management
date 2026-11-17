@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { FaCalendarAlt, FaChartBar, FaPrint, FaRedo, FaFilter } from "react-icons/fa";
+import { FaCalendarAlt, FaPrint, FaRedo, FaFilter } from "react-icons/fa";
 import { getDepartments } from "../admin/services/departmentService";
 import { getReceptionistReport } from "./services/reportService";
 import "../styles/ReceptionistReports.css";
@@ -90,6 +90,7 @@ function ReceptionistReports() {
             { label: "Total OP Amount", value: formatAmount(report.summary.totalOpAmount) },
             { label: "Cash Collected", value: formatAmount(report.summary.cashCollected) },
             { label: "G-Pay Collected", value: formatAmount(report.summary.gpayCollected) },
+            { label: "POS Collected", value: formatAmount(report.summary.posCollected) },
             { label: "Free OP Visits", value: report.summary.freeOpVisits || 0 },
             { label: "Male", value: report.summary.male || 0 },
             { label: "Female", value: report.summary.female || 0 },
@@ -285,18 +286,10 @@ function ReceptionistReports() {
     };
 
     return (
-        <div className="reception-reports-page report-print-shell">
-            <div className="report-page-header">
-                <div className="report-page-title">
-                    <div className="report-title-icon">
-                        <FaChartBar />
-                    </div>
-                    <div>
-                        <p>RECEPTION REPORTS</p>
-                        <h2>Receptionist Reports</h2>
-                    </div>
-                </div>
-            </div>
+        <div className="reception-reports-page report-print-shell reception-page">
+            <header className="report-page-header reception-page-header">
+                <h1>Receptionist Reports</h1>
+            </header>
 
             <div className="report-controls-card">
                 <div className="report-card-header">

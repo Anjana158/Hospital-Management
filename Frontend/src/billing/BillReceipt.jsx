@@ -85,7 +85,7 @@ function BillReceipt() {
                 </div>
                 <section className="bill-patient-details">
                     <h3>Patient details</h3>
-                    <p><strong>Name:</strong> {[bill.patient.firstName, bill.patient.middleName, bill.patient.lastName].filter(Boolean).join(" ")}</p>
+                    <p><strong>Name:</strong> {bill.patient.firstName}</p>
                     <p><strong>UHID:</strong> {bill.patient.uhid} <span className="bill-print-separator">|</span> <strong>Age/Gender:</strong> {bill.patient.age} / {bill.patient.gender}</p>
                     {bill.patient.phone && <p><strong>Phone:</strong> {bill.patient.phone}</p>}
                 </section>
