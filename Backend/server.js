@@ -2,8 +2,31 @@ const express = require('express')
 const cors = require('cors')
 const cookieParser = require('cookie-parser')
 const dotenv = require('dotenv')
+const path = require('path')
 
-dotenv.config()
+const envFile = process.env.ENV_FILE
+if (envFile) {
+    const loaded = dotenv.config({
+        path: path.resolve(__dirname, envFile),
+        override: true,
+    })
+    if (loaded.error) {
+        console.error(`Cannot load ENV_FILE (${envFile}). The default .env was not used.`)
+        process.exit(1)
+    }
+    let databaseName = ''
+    try {
+        databaseName = new URL(process.env.DATABASE_URL).pathname.slice(1)
+    } catch {
+        databaseName = ''
+    }
+    if (databaseName !== 'hospital_management_loadtest' || String(process.env.PORT) === '5000') {
+        console.error('Refusing to start. ENV_FILE must select hospital_management_loadtest on a port other than 5000.')
+        process.exit(1)
+    }
+} else {
+    dotenv.config()
+}
 
 const { connectPrisma } = require("./src/config/prisma");
 

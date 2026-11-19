@@ -19,7 +19,7 @@ import ProtectedRoute from './admin/ProtectedRoute'
 import ReceptionDashboard from './reception/ReceptionDashboard'
 import ReceptionHome from './reception/ReceptionHome'
 import PatientManagement from './reception/PatientManagement'
-import OpRegistration from './reception/OpRegistration'
+import OpRegistration from './reception/OPRegistration'
 import OPTicket from './reception/OPTicket'
 import ReceptionistReports from './reception/ReceptionistReports'
 
