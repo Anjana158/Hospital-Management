@@ -117,14 +117,18 @@ test("initial payment always equals the final payable and zero-payable bills hav
     });
     assert.deepEqual(initialPaymentForBill(40000, "GPAY", true), {
         amount: "400.00",
-        method: "GPAY",
+        method: "POS",
+    });
+    assert.deepEqual(initialPaymentForBill(40000, "POS", true), {
+        amount: "400.00",
+        method: "POS",
     });
     assert.equal(initialPaymentForBill(0, null, false), null);
     assert.throws(() => initialPaymentForBill(40000, null, false), {
         code: "BILLING_PAYMENT_METHOD_REQUIRED",
     });
-    assert.throws(() => initialPaymentForBill(40000, "GPAY", false), {
-        code: "BILLING_GPAY_CONFIRMATION_REQUIRED",
+    assert.throws(() => initialPaymentForBill(40000, "POS", false), {
+        code: "BILLING_POS_CONFIRMATION_REQUIRED",
     });
     assert.throws(() => initialPaymentForBill(0, "CASH", false), {
         code: "BILLING_ZERO_PAYABLE",

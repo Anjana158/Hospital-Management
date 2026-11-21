@@ -114,6 +114,12 @@ function isValidPhone(value) {
     return !value || /^\d{10}$/.test(value.trim());
 }
 
+function hasValidAgeValue(value) {
+    if (value === "") return false;
+    const age = Number(value);
+    return Number.isInteger(age) && age >= 0 && age <= 150;
+}
+
 function PatientRegistrationForm({
     onOpTicket,
     loading = false,
@@ -131,10 +137,15 @@ function PatientRegistrationForm({
         visitType: "NEW",
         revisitCount: 0,
     });
-    const [schemeSelectionIsManual, setSchemeSelectionIsManual] = useState(false);
+    const [schemeSelectionIsManual, setSchemeSelectionIsManual] = useState(
+        () => Boolean(initialPatient?.scheme?.id || initialPatient?.schemeId)
+    );
     const [schemeAdditionalInformation, setSchemeAdditionalInformation] = useState(
         () => initialPatient?.schemeAdditionalInformation || []
     );
+
+    const hasSufficientSchemeInfo = Boolean(formData.gender) && hasValidAgeValue(formData.age);
+    const patientAgeForEligibility = hasSufficientSchemeInfo ? Number(formData.age) : null;
 
     const selectedScheme = schemes.find(
         (scheme) => String(scheme.id) === String(formData.schemeId)
@@ -146,28 +157,49 @@ function PatientRegistrationForm({
             : null
     );
 
-    const schemeEligibility = getSchemeEligibility(
-        selectedScheme,
-        formData.gender,
-        formData.age === "" ? null : Number(formData.age)
-    );
+    const schemeEligibility = hasSufficientSchemeInfo
+        ? getSchemeEligibility(selectedScheme, formData.gender, patientAgeForEligibility)
+        : { eligible: false, pending: true, message: "" };
 
-    const eligibleSchemes = useMemo(() => schemes.filter((scheme) =>
-        scheme.status !== "INACTIVE" &&
-        getSchemeEligibility(
-            scheme,
-            formData.gender,
-            formData.age === "" ? null : Number(formData.age)
-        ).eligible
-    ), [schemes, formData.gender, formData.age]);
+    const eligibleSchemes = useMemo(() => {
+        if (!hasSufficientSchemeInfo) return [];
+        return schemes.filter((scheme) =>
+            scheme.status !== "INACTIVE" &&
+            getSchemeEligibility(scheme, formData.gender, patientAgeForEligibility).eligible
+        );
+    }, [schemes, formData.gender, patientAgeForEligibility, hasSufficientSchemeInfo]);
 
     const numericFee = Number(formData.opFee);
     const finalFee = numericFee - (
-        selectedScheme && schemeEligibility.eligible ? numericFee : 0
+        selectedScheme && hasSufficientSchemeInfo && schemeEligibility.eligible ? numericFee : 0
     );
 
     useEffect(() => {
+        if (!hasSufficientSchemeInfo) {
+            setFormData((previous) => previous.schemeId === ""
+                ? previous
+                : { ...previous, schemeId: "" }
+            );
+            setSchemeSelectionIsManual(false);
+            return;
+        }
+
+        if (formData.schemeId) {
+            const selectedIsEligible = eligibleSchemes.some(
+                (scheme) => String(scheme.id) === String(formData.schemeId)
+            );
+            if (!selectedIsEligible) {
+                setFormData((previous) => previous.schemeId === ""
+                    ? previous
+                    : { ...previous, schemeId: "" }
+                );
+                setSchemeSelectionIsManual(false);
+                return;
+            }
+        }
+
         if (schemeSelectionIsManual) return;
+
         const nextSchemeId = eligibleSchemes.length === 1
             ? String(eligibleSchemes[0].id)
             : "";
@@ -175,7 +207,7 @@ function PatientRegistrationForm({
             ? previous
             : { ...previous, schemeId: nextSchemeId }
         );
-    }, [eligibleSchemes, schemeSelectionIsManual]);
+    }, [eligibleSchemes, schemeSelectionIsManual, hasSufficientSchemeInfo, formData.schemeId]);
 
     useEffect(() => {
         const configuredFields = selectedScheme?.collectAdditionalInformation
@@ -277,6 +309,12 @@ function PatientRegistrationForm({
                 paymentMethod: value,
                 authCode: value === "POS" ? previous.authCode : "",
             }));
+            return;
+        }
+
+        if (name === "gender") {
+            setSchemeSelectionIsManual(false);
+            setFormData((previous) => ({ ...previous, gender: value }));
             return;
         }
 
@@ -479,11 +517,12 @@ function PatientRegistrationForm({
                         disabled={loading}
                     >
                         <option value="">No scheme</option>
-                        {schemes
-                            .filter((scheme) => scheme.status === "ACTIVE")
-                            .map((scheme) => (
+                        {(hasSufficientSchemeInfo
+                            ? eligibleSchemes
+                            : schemes.filter((scheme) => scheme.status === "ACTIVE")
+                        ).map((scheme) => (
                             <option key={scheme.id} value={scheme.id}>{scheme.name}</option>
-                            ))}
+                        ))}
                     </select>
                 </div>
                 <div className="form-group">
@@ -672,7 +711,7 @@ function PatientRegistrationForm({
                 <div aria-hidden="true" />
             </div>
 
-            {selectedScheme && (
+            {hasSufficientSchemeInfo && selectedScheme && (
                 <div className={`scheme-eligibility-message ${schemeEligibility.eligible ? "eligible" : "ineligible"}`}>
                     {schemeEligibility.eligible
                         ? `${selectedScheme.name} is eligible.`
@@ -680,7 +719,7 @@ function PatientRegistrationForm({
                 </div>
             )}
 
-            {eligibleSchemes.length > 1 && !selectedScheme && (
+            {hasSufficientSchemeInfo && eligibleSchemes.length > 1 && !selectedScheme && (
                 <div className="scheme-eligibility-message ineligible">
                     Multiple schemes match this patient. Select an eligible scheme to continue.
                 </div>

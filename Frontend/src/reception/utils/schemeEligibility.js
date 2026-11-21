@@ -24,8 +24,8 @@ export function getSchemeEligibility(scheme, gender, age) {
 
     const eligibilityGender = scheme.eligibilityGender || "ALL";
     const ageCriteriaType = scheme.ageCriteriaType || "ALL";
-    const hasGenderRestriction = eligibilityGender !== "ALL";
-    const hasAgeRestriction = ageCriteriaType !== "ALL";
+    const hasGenderRestriction = !["ALL", "NOT_APPLICABLE"].includes(eligibilityGender);
+    const hasAgeRestriction = !["ALL", "NOT_APPLICABLE"].includes(ageCriteriaType);
     const validGenders = ["FEMALE", "MALE", "TRANSGENDER"];
     const numericAge = Number(age);
 

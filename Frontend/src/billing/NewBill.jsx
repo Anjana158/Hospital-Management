@@ -76,7 +76,7 @@ function NewBill() {
     const [quoting, setQuoting] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [paymentMethod, setPaymentMethod] = useState("");
-    const [gpayConfirmed, setGpayConfirmed] = useState(false);
+    const [posConfirmed, setPosConfirmed] = useState(false);
     const [miscellaneousEnabled, setMiscellaneousEnabled] = useState(false);
     const [miscellaneousAmount, setMiscellaneousAmount] = useState("");
     const [remarks, setRemarks] = useState("");
@@ -327,7 +327,7 @@ function NewBill() {
             remarks,
             miscellaneousAmount: miscellaneousEnabled ? Number(miscellaneousAmount) : null,
             paymentMethod: finalPayable > 0 ? paymentMethod : null,
-            gpayConfirmed: finalPayable > 0 && paymentMethod === "GPAY" && gpayConfirmed,
+            posConfirmed: finalPayable > 0 && paymentMethod === "POS" && posConfirmed,
         };
         const fingerprint = JSON.stringify(payload);
         if (!idempotencyKey.current || idempotencyKey.current.fingerprint !== fingerprint) {
@@ -526,16 +526,16 @@ function NewBill() {
                         ? <p className="billing-waiver-note">No payment is due. A waiver/discount receipt will be generated.</p>
                         : quote && <>
                         <div className="billing-form-grid">
-                            <label>Payment method<select required value={paymentMethod} onChange={(event) => { setPaymentMethod(event.target.value); setGpayConfirmed(false); }}>
-                                <option value="">Select method</option><option value="CASH">Cash</option><option value="GPAY">GPay</option>
+                            <label>Payment method<select required value={paymentMethod} onChange={(event) => { setPaymentMethod(event.target.value); setPosConfirmed(false); }}>
+                                <option value="">Select method</option><option value="CASH">Cash</option><option value="POS">POS</option>
                             </select></label>
                         </div>
-                        {paymentMethod === "GPAY" && <div className="billing-gpay-panel">
-                            <label className="billing-checkbox"><input type="checkbox" checked={gpayConfirmed} onChange={(event) => setGpayConfirmed(event.target.checked)} /> I manually confirmed receipt of this GPay payment.</label>
+                        {paymentMethod === "POS" && <div className="billing-pos-panel">
+                            <label className="billing-checkbox"><input type="checkbox" checked={posConfirmed} onChange={(event) => setPosConfirmed(event.target.checked)} /> I manually confirmed receipt of this POS payment.</label>
                         </div>}
                     </>}
                     <div className="billing-form-actions">
-                        <button className="billing-primary-button" type="submit" disabled={!quote || quoting || submitting || !miscellaneousAmountValid || (finalPayable > 0 && !paymentMethod) || (paymentMethod === "GPAY" && !gpayConfirmed)}>
+                        <button className="billing-primary-button" type="submit" disabled={!quote || quoting || submitting || !miscellaneousAmountValid || (finalPayable > 0 && !paymentMethod) || (paymentMethod === "POS" && !posConfirmed)}>
                             {submitting ? "Saving bill…" : "Create bill"}
                         </button>
                         <button className="billing-secondary-button" type="button" onClick={() => navigate("/billing")}>Cancel</button>
