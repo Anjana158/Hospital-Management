@@ -80,37 +80,40 @@ JWT_SECRET="replace-this-with-a-long-random-secret"
 
 Replace `YOUR_POSTGRES_PASSWORD` with the PostgreSQL password. If the password contains characters such as `@`, `:`, `/`, or `#`, URL-encode those characters in `DATABASE_URL`.
 
-## 5. Create the database tables
+## 5. Create the database tables and initialize seed data
 
-Run these commands from the `Backend` folder:
+Run these commands from the `Backend` folder after configuring `Backend/.env`:
 
 ```powershell
 cd C:\DevelopMents\Hospital-Management\Backend
 npx prisma generate
 npx prisma migrate deploy
-```
-
-`prisma generate` creates the Prisma client used by the server. `prisma migrate deploy` applies the checked-in migration and creates the `roles` and `users` tables.
-
-For local schema development, use `npx prisma migrate dev` instead of `migrate deploy`.
-
-## 6. Add the POC user
-
-From the `Backend` folder, run:
-
-```powershell
 npm run seed
 ```
 
-The seed creates the default `ADMIN` role and administrator account:
+- `npx prisma generate` creates the Prisma client used by the server.
+- `npx prisma migrate deploy` applies the checked-in migrations and creates the database schema on a fresh/empty database.
+- `npm run seed` runs the combined seed script (`Backend/scripts/seed.js`). You can also run `npx prisma db seed` (configured to invoke the same script).
 
-| Field | Value |
-| --- | --- |
-| Username | `admin` |
-| Password | `admin123` |
-| Employee ID | `EMP001` |
+The combined seed is idempotent and safe to re-run.
 
-These credentials are for the POC only and must be changed before any production use.
+### What the seed initializes
+
+1. **Default application roles and admin user (preserved behavior)**
+   - Roles: `ADMIN`, `RECEPTION`, `BILLING`
+   - Default admin user: username `admin`, employee ID `EMP001`, full name `System Administrator`, password `admin123` (stored as a bcrypt hash), assigned the `ADMIN` role
+   - These credentials are for POC/fresh-install bootstrap only and must be changed/secured before production use.
+
+2. **Master data from `Backend/prisma/seed-data/master-data.json` (deployment asset)**
+   - `Department`
+   - `PatientScheme`
+   - `BillingService`
+   - `ServiceTariff`
+   - All records/fields in the JSON are seeded with preserved original IDs, codes/names, statuses, eligibility/pricing/effective-date values, and relationships. PostgreSQL sequences are reset after explicit-ID inserts.
+   - Existing master records are not overwritten during normal initialization (insert-missing behavior); duplicates are avoided and relationships are preserved.
+   - `BillingService.createdBy` and `ServiceTariff.createdBy` use valid existing creator references where possible, otherwise the actual default admin user's ID (no additional technical bootstrap user).
+
+**Strict scope:** the seed does not import development data for patients, patient visits/OP registrations, bills, bill items, payments, daily token counters, billing audits, refresh tokens, or other operational/transaction tables. Do not run seed operations against the existing development database.
 
 ## 7. Start the applications
 
