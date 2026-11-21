@@ -14,7 +14,7 @@ const registerVisitSchema = z.object({
     patientId: z.coerce.number().int().positive(),
     departmentId: z.coerce.number().int().positive(),
     schemeId: z.union([z.coerce.number().int().positive(), z.null()]).optional(),
-    paymentMethod: z.enum(["CASH", "POS"]).nullable().optional(),
+    paymentMethod: z.enum(["CASH", "GPAY", "POS"]).nullable().optional(),
     authCode: z.string().trim().optional(),
     visitType: z.enum([
         "NEW",
@@ -29,6 +29,10 @@ const registerVisitSchema = z.object({
         value: z.string().max(500),
     }).strict()).max(50).optional(),
 });
+
+function normalizeVisitPaymentMethod(paymentMethod) {
+    return paymentMethod === "GPAY" ? "POS" : paymentMethod;
+}
 
 
 function getStartOfToday() {
@@ -57,6 +61,7 @@ function calculateVisitAmounts(opFee, selectedScheme) {
 }
 
 function getVisitPaymentDetails(finalFee, paymentMethod) {
+    const normalizedMethod = normalizeVisitPaymentMethod(paymentMethod);
     if (finalFee === 0) {
         return {
             paymentStatus: "FREE",
@@ -64,13 +69,14 @@ function getVisitPaymentDetails(finalFee, paymentMethod) {
         };
     }
 
-    return paymentMethod
-        ? { paymentStatus: "PAID", paymentMethod }
+    return normalizedMethod
+        ? { paymentStatus: "PAID", paymentMethod: normalizedMethod }
         : { paymentStatus: "PENDING", paymentMethod: null };
 }
 
 function validateVisitPayment(finalFee, paymentMethod, authCode) {
-    if (finalFee > 0 && paymentMethod === "POS" && !authCode?.trim()) {
+    const normalizedMethod = normalizeVisitPaymentMethod(paymentMethod);
+    if (finalFee > 0 && normalizedMethod === "POS" && !authCode?.trim()) {
         const error = new Error("Auth Code is required for POS payments");
         error.code = "VISIT_PAYMENT_VALIDATION_ERROR";
         throw error;

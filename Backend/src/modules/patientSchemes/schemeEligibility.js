@@ -25,10 +25,10 @@ function validateSchemeConfiguration(scheme) {
     const maximumAge = scheme.maximumAge ?? null;
     const fields = scheme.additionalInformationFields ?? [];
 
-    if (!["ALL", "FEMALE", "MALE", "TRANSGENDER"].includes(gender)) {
+    if (!["ALL", "NOT_APPLICABLE", "FEMALE", "MALE", "TRANSGENDER"].includes(gender)) {
         throw validationError("Eligibility gender is invalid");
     }
-    if (!["ALL", "UNDER", "ABOVE", "RANGE"].includes(ageType)) {
+    if (!["ALL", "NOT_APPLICABLE", "UNDER", "ABOVE", "RANGE"].includes(ageType)) {
         throw validationError("Age criteria is invalid");
     }
     if (!Array.isArray(fields)) {
@@ -66,7 +66,7 @@ function validateSchemeConfiguration(scheme) {
             throw validationError("Age limit is not used for custom age ranges");
         }
     } else if (ageLimit !== null || minimumAge !== null || maximumAge !== null) {
-        throw validationError("Age boundaries must be empty when all ages are eligible");
+        throw validationError("Age boundaries must be empty when age is not restricted");
     }
 
     if (scheme.collectAdditionalInformation && parsedFields.data.length === 0) {
@@ -107,8 +107,8 @@ function calculateAge(dateOfBirth, fallbackAge) {
 
 function getSchemeIneligibilityReason(scheme, gender, age) {
     const config = validateSchemeConfiguration(scheme);
-    const hasGenderRestriction = config.eligibilityGender !== "ALL";
-    const hasAgeRestriction = config.ageCriteriaType !== "ALL";
+    const hasGenderRestriction = !["ALL", "NOT_APPLICABLE"].includes(config.eligibilityGender);
+    const hasAgeRestriction = !["ALL", "NOT_APPLICABLE"].includes(config.ageCriteriaType);
 
     if (hasGenderRestriction && !["FEMALE", "MALE", "TRANSGENDER"].includes(gender)) {
         return "the patient's gender is required to verify eligibility.";

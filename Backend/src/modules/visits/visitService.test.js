@@ -83,7 +83,7 @@ test("POS visits require an auth code when a payment is due", () => {
     assert.doesNotThrow(() => validateVisitPayment(0, "CASH", undefined));
 });
 
-test("visit registration accepts only current payment methods", () => {
+test("visit registration accepts supported payment methods including legacy GPAY", () => {
     const baseVisit = {
         patientId: 7,
         departmentId: 2,
@@ -101,7 +101,11 @@ test("visit registration accepts only current payment methods", () => {
     assert.equal(registerVisitSchema.safeParse({
         ...baseVisit,
         paymentMethod: "GPAY",
-    }).success, false);
+    }).success, true);
+    assert.deepEqual(getVisitPaymentDetails(10, "GPAY"), {
+        paymentStatus: "PAID",
+        paymentMethod: "POS",
+    });
 });
 
 test("POS auth codes are persisted on the generated visit and visit type comes from history", async () => {

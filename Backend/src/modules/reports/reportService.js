@@ -169,8 +169,16 @@ function resolveAgeFromPatient(patient) {
     return null;
 }
 
-async function getPaymentSummary(where) {
-    const [cashTotals, gpayTotals, posTotals, freeVisits] = await Promise.all([
+function roundAmount(value) {
+    return Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100;
+}
+
+async function getVisitFinancialSummary(where) {
+    const [totals, cashTotals, gpayTotals, posTotals, freeVisits] = await Promise.all([
+        prisma.patientVisit.aggregate({
+            where,
+            _sum: { opFee: true, discountAmount: true, finalFee: true },
+        }),
         prisma.patientVisit.aggregate({
             where: { ...where, paymentStatus: "PAID", paymentMethod: "CASH" },
             _sum: { finalFee: true },
@@ -188,15 +196,18 @@ async function getPaymentSummary(where) {
         }),
     ]);
 
-    const cashCollected = Math.round(Number(cashTotals._sum.finalFee || 0) * 100) / 100;
-    const gpayCollected = Math.round(Number(gpayTotals._sum.finalFee || 0) * 100) / 100;
-    const posCollected = Math.round(Number(posTotals._sum.finalFee || 0) * 100) / 100;
+    const cashAmount = roundAmount(cashTotals._sum.finalFee);
+    const posAmount = roundAmount(Number(gpayTotals._sum.finalFee || 0) + Number(posTotals._sum.finalFee || 0));
+    const totalCollected = roundAmount(cashAmount + posAmount);
+    const discountAmount = roundAmount(totals._sum.discountAmount);
+    const grandTotal = roundAmount(discountAmount + totalCollected);
 
     return {
-        totalOpAmount: Math.round((cashCollected + gpayCollected + posCollected) * 100) / 100,
-        cashCollected,
-        gpayCollected,
-        posCollected,
+        grandTotal,
+        discountAmount,
+        totalCollected,
+        cashAmount,
+        posAmount,
         freeOpVisits: freeVisits,
     };
 }
@@ -364,37 +375,29 @@ async function generateReceptionistReport(query, loggedInUserId) {
         ...(selectedVisitType ? { visitType: selectedVisitType } : {}),
     };
 
-    const [visits, feeTotals, paymentSummary] = await Promise.all([
+    const [visits, financialSummary] = await Promise.all([
         prisma.patientVisit.findMany({
-        where: whereClause,
-        select: {
-            id: true,
-            visitDate: true,
-            visitType: true,
-            departmentId: true,
-            department: {
-                select: { id: true, name: true },
-            },
-            patient: {
-                select: {
-                    gender: true,
-                    age: true,
-                    dateOfBirth: true,
+            where: whereClause,
+            select: {
+                id: true,
+                visitDate: true,
+                visitType: true,
+                departmentId: true,
+                department: {
+                    select: { id: true, name: true },
+                },
+                patient: {
+                    select: {
+                        gender: true,
+                        age: true,
+                        dateOfBirth: true,
+                    },
                 },
             },
-        },
-        orderBy: [{ departmentId: "asc" }, { visitDate: "asc" }],
+            orderBy: [{ departmentId: "asc" }, { visitDate: "asc" }],
         }),
-        prisma.patientVisit.aggregate({
-            where: whereClause,
-            _sum: {
-                finalFee: true,
-            },
-        }),
-        getPaymentSummary(whereClause),
+        getVisitFinancialSummary(whereClause),
     ]);
-
-    const totalAmount = Math.round(Number(feeTotals._sum.finalFee || 0) * 100) / 100;
 
     visits.forEach((visit) => {
         const departmentId = visit.departmentId;
@@ -469,7 +472,6 @@ async function generateReceptionistReport(query, loggedInUserId) {
         age0To13: 0,
         age13To18: 0,
         ageAbove18: 0,
-        totalAmount,
     });
 
     const report = {
@@ -492,7 +494,7 @@ async function generateReceptionistReport(query, loggedInUserId) {
             visitType: selectedVisitType || "All",
         },
         generatedAt: new Date().toISOString(),
-        summary: { ...totals, ...paymentSummary },
+        summary: { ...totals, ...financialSummary },
         departments: departmentSummary,
         hasRecords: visits.length > 0,
     };
@@ -561,7 +563,7 @@ async function generateAdminReceptionReport(query) {
         ...(selectedVisitType ? { visitType: selectedVisitType } : {}),
     };
 
-    const [visits, totals, receptionistGroups, departmentGroups, visitTypeGroups, departments, receptionists, paymentSummary] = await Promise.all([
+    const [visits, visitTotals, receptionistGroups, departmentGroups, visitTypeGroups, departments, receptionists, financialSummary] = await Promise.all([
         prisma.patientVisit.findMany({
             where,
             select: {
@@ -595,7 +597,6 @@ async function generateAdminReceptionReport(query) {
         prisma.patientVisit.aggregate({
             where,
             _count: { _all: true },
-            _sum: { opFee: true, discountAmount: true, finalFee: true },
         }),
         prisma.patientVisit.groupBy({
             by: ["createdBy"],
@@ -625,10 +626,10 @@ async function generateAdminReceptionReport(query) {
             orderBy: { fullName: "asc" },
             select: { id: true, fullName: true },
         }),
-        getPaymentSummary(where),
+        getVisitFinancialSummary(where),
     ]);
 
-    const roundAmount = (value) => Math.round(Number(value || 0) * 100) / 100;
+    const roundAmount = (value) => Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100;
     const amountByReceptionist = new Map(receptionistGroups.map((row) => [row.createdBy, row]));
     const receptionistById = new Map(receptionists.map((user) => [user.id, user]));
     const receptionistBreakdown = Array.from(amountByReceptionist, ([id, row]) => ({
@@ -720,7 +721,7 @@ async function generateAdminReceptionReport(query) {
     const reVisits = visitTypeByName.get("REVISIT")?._count._all || 0;
     const summary = {
         totalPatients: patientIds.size,
-        totalVisits: totals._count._all,
+        totalVisits: visitTotals._count._all,
         newVisits,
         reVisits,
         male: genderCounts.MALE,
@@ -729,10 +730,7 @@ async function generateAdminReceptionReport(query) {
         age0To13: ageCounts["0-13"],
         age13To18: ageCounts["13-18"],
         ageAbove18: ageCounts["18+"],
-        opAmount: roundAmount(totals._sum.opFee),
-        totalDiscount: roundAmount(totals._sum.discountAmount),
-        totalAmount: roundAmount(totals._sum.finalFee),
-        ...paymentSummary,
+        ...financialSummary,
     };
 
     return {

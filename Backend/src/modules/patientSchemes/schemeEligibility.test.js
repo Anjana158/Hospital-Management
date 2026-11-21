@@ -62,6 +62,19 @@ test("custom age range includes both exact boundaries and rejects invalid ranges
     );
 });
 
+test("both age and gender explicitly configured require and validate both criteria", () => {
+    const configured = scheme({
+        eligibilityGender: "FEMALE",
+        ageCriteriaType: "UNDER",
+        ageLimit: 18,
+    });
+    assert.equal(getSchemeIneligibilityReason(configured, "FEMALE", 17), null);
+    assert.match(getSchemeIneligibilityReason(configured, "MALE", 17), /female patients only/);
+    assert.match(getSchemeIneligibilityReason(configured, "FEMALE", 18), /under 18 years old/);
+    assert.match(getSchemeIneligibilityReason(configured, null, 17), /gender is required/);
+    assert.match(getSchemeIneligibilityReason(configured, "FEMALE", null), /age is required/);
+});
+
 test("optional values preserve numeric-looking identifiers and empty values", () => {
     const config = scheme({
         collectAdditionalInformation: true,
@@ -95,6 +108,55 @@ test("unrestricted age and gender criteria do not require patient demographics",
     assert.equal(
         resolveSchemeSelection([activeUnrestricted], null, null, 1, "VISIT_SCHEME_INELIGIBLE"),
         activeUnrestricted
+    );
+});
+
+test("not applicable age and gender criteria do not require demographics or restrict eligibility", () => {
+    const notApplicable = scheme({
+        eligibilityGender: "NOT_APPLICABLE",
+        ageCriteriaType: "NOT_APPLICABLE",
+    });
+    const activeNotApplicable = { ...notApplicable, id: 10, status: "ACTIVE" };
+
+    assert.equal(getSchemeIneligibilityReason(notApplicable, null, null), null);
+    assert.equal(getSchemeIneligibilityReason(notApplicable, "MALE", 45), null);
+    assert.deepEqual(getEligibleSchemes([activeNotApplicable], null, null), [activeNotApplicable]);
+    assert.equal(
+        resolveSchemeSelection([activeNotApplicable], null, null, 10, "VISIT_SCHEME_INELIGIBLE"),
+        activeNotApplicable
+    );
+});
+
+test("age configured with gender not applicable only validates age", () => {
+    const under18 = scheme({
+        eligibilityGender: "NOT_APPLICABLE",
+        ageCriteriaType: "UNDER",
+        ageLimit: 18,
+    });
+    assert.equal(getSchemeIneligibilityReason(under18, null, 17), null);
+    assert.equal(getSchemeIneligibilityReason(under18, "MALE", 17), null);
+    assert.match(getSchemeIneligibilityReason(under18, "MALE", 18), /under 18 years old/);
+    assert.match(getSchemeIneligibilityReason(under18, "MALE", null), /age is required/);
+});
+
+test("gender configured with age not applicable only validates gender", () => {
+    const femaleOnly = scheme({
+        eligibilityGender: "FEMALE",
+        ageCriteriaType: "NOT_APPLICABLE",
+    });
+    assert.equal(getSchemeIneligibilityReason(femaleOnly, "FEMALE", null), null);
+    assert.equal(getSchemeIneligibilityReason(femaleOnly, "FEMALE", 30), null);
+    assert.match(getSchemeIneligibilityReason(femaleOnly, "MALE", 30), /female patients only/);
+    assert.match(getSchemeIneligibilityReason(femaleOnly, null, 30), /gender is required/);
+});
+
+test("age boundaries must be empty when age is not applicable", () => {
+    assert.throws(
+        () => validateSchemeConfiguration(scheme({
+            ageCriteriaType: "NOT_APPLICABLE",
+            ageLimit: 10,
+        })),
+        /Age boundaries must be empty when age is not restricted/
     );
 });
 

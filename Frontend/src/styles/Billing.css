@@ -398,7 +398,7 @@
     color: #267344;
 }
 
-.billing-gpay-panel {
+.billing-pos-panel {
     grid-column: 1 / -1;
     display: flex;
     flex-wrap: wrap;
