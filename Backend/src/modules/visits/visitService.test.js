@@ -1,10 +1,13 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const { prisma } = require("../../config/prisma");
 
 const {
     calculateVisitAmounts,
     getVisitPaymentDetails,
+    registerVisitRecord,
     registerVisitSchema,
+    validateVisitPayment,
 } = require("./visitService");
 
 test("an eligible OP scheme waives the complete visit fee", () => {
@@ -54,9 +57,128 @@ test("OP registration accepts an unpaid visit without a payment method", () => {
     });
 });
 
-test("zero-payable scheme visits remain free without payment details", () => {
+test("OP registration uses the fixed fee and rejects manually supplied amounts", () => {
+    const visit = registerVisitSchema.parse({
+        patientId: 7,
+        departmentId: 2,
+    });
+
+    assert.equal(visit.opFee, 10);
+    assert.equal(registerVisitSchema.safeParse({
+        patientId: 7,
+        departmentId: 2,
+        opFee: 25,
+    }).success, false);
+});
+
+test("zero-payable scheme visits are free and recorded with the cash method", () => {
     assert.deepEqual(getVisitPaymentDetails(0, undefined), {
         paymentStatus: "FREE",
-        paymentMethod: null,
+        paymentMethod: "CASH",
     });
+});
+
+test("POS visits require an auth code when a payment is due", () => {
+    const visit = {
+        patientId: 7,
+        departmentId: 2,
+        paymentMethod: "POS",
+        opFee: 10,
+    };
+
+    assert.equal(registerVisitSchema.safeParse(visit).success, true);
+    assert.throws(() => validateVisitPayment(10, "POS", undefined), {
+        code: "VISIT_PAYMENT_VALIDATION_ERROR",
+    });
+    assert.equal(registerVisitSchema.safeParse({
+        ...visit,
+        authCode: "A123",
+    }).success, true);
+    assert.doesNotThrow(() => validateVisitPayment(0, "CASH", undefined));
+});
+
+test("visit registration accepts supported payment methods including legacy GPAY", () => {
+    const baseVisit = {
+        patientId: 7,
+        departmentId: 2,
+        opFee: 10,
+    };
+
+    assert.equal(registerVisitSchema.safeParse({
+        ...baseVisit,
+        paymentMethod: "CASH",
+    }).success, true);
+    assert.equal(registerVisitSchema.safeParse({
+        ...baseVisit,
+        paymentMethod: "POS",
+    }).success, true);
+    assert.equal(registerVisitSchema.safeParse({
+        ...baseVisit,
+        paymentMethod: "GPAY",
+    }).success, true);
+    assert.deepEqual(getVisitPaymentDetails(10, "GPAY"), {
+        paymentStatus: "PAID",
+        paymentMethod: "POS",
+    });
+});
+
+test("POS auth codes are persisted on the generated visit and visit type comes from history", async () => {
+    const originalTransaction = prisma.$transaction;
+    let createdVisitData;
+    const patient = {
+        id: 7,
+        status: "ACTIVE",
+        gender: "FEMALE",
+        age: 34,
+        dateOfBirth: null,
+        scheme: null,
+    };
+    const department = { id: 2, status: "ACTIVE" };
+    const tx = {
+        patient: { findUnique: async () => patient },
+        department: { findUnique: async () => department },
+        patientScheme: { findMany: async () => [] },
+        patientVisit: {
+            findFirst: async () => null,
+            findMany: async () => [{ id: 1 }, { id: 2 }],
+            create: async ({ data }) => {
+                createdVisitData = data;
+                return { ...data, id: 10, visitDate: new Date() };
+            },
+            update: async ({ data }) => ({
+                ...createdVisitData,
+                ...data,
+                id: 10,
+                visitDate: new Date(),
+                patient,
+                department,
+            }),
+        },
+        $executeRaw: async (queryParts) => {
+            assert.match(
+                queryParts.join("?"),
+                /pg_advisory_xact_lock\(\s*CAST\(\? AS INTEGER\),\s*CAST\(\? AS INTEGER\)\s*\)/s
+            );
+            return 1;
+        },
+        $queryRaw: async () => [{ nextToken: 2 }],
+    };
+
+    prisma.$transaction = async (callback) => callback(tx);
+
+    try {
+        const result = await registerVisitRecord({
+            patientId: 7,
+            departmentId: 2,
+            opFee: 10,
+            paymentMethod: "POS",
+            authCode: "  AUTH-123  ",
+        }, 3);
+
+        assert.equal(result.visit.visitType, "REVISIT");
+        assert.equal(result.visit.revisitCount, 2);
+        assert.equal(result.visit.paymentAuthCode, "AUTH-123");
+    } finally {
+        prisma.$transaction = originalTransaction;
+    }
 });

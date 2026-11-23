@@ -42,6 +42,7 @@ enum PaymentStatus {
 enum PaymentMethod {
   CASH
   GPAY
+  POS
 }
 
 enum RecordStatus {
@@ -190,8 +191,6 @@ model Patient {
   uhid String @unique
 
   firstName   String
-  middleName  String?
-  lastName    String?
   dateOfBirth DateTime?
   age         Int
   gender      Gender
@@ -201,7 +200,6 @@ model Patient {
   email          String?
 
   addressLine1 String?
-  addressLine2 String?
   city         String?
   district     String?
   state        String?
@@ -224,7 +222,6 @@ model Patient {
   updatedAt  DateTime  @updatedAt
   archivedAt DateTime?
 
-  @@index([lastName, firstName])
   @@index([phone])
   @@index([schemeId])
   @@index([createdAt])
@@ -259,6 +256,7 @@ model PatientVisit {
   finalFee                    Decimal             @default(0) @db.Decimal(10, 2)
   paymentStatus               PaymentStatus       @default(PAID)
   paymentMethod               PaymentMethod?
+  paymentAuthCode             String?
   schemeIdAtVisit             Int?
   schemeCodeAtVisit           String?
   schemeNameAtVisit           String?
@@ -384,6 +382,7 @@ model BillPayment {
   handledBy      Int
   method         PaymentMethod
   amount         Decimal              @db.Decimal(10, 2)
+  authCode       String?
   status         BillingPaymentStatus @default(CONFIRMED)
   idempotencyKey String?              @unique
   confirmedAt    DateTime             @default(now())

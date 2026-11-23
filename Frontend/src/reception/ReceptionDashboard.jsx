@@ -1,6 +1,7 @@
  import {
      FaHospital,
      FaUserPlus,
+     FaUsers,
  } from "react-icons/fa";
 
 import {
@@ -18,7 +19,8 @@ function ReceptionDashboard() {
     const navigate = useNavigate();
     const location = useLocation();
     const isDashboard = location.pathname === "/reception";
-    const isPatientManagement = location.pathname.startsWith("/reception/patients");
+    const isNewPatientRegistration = location.pathname === "/reception/patients/new";
+    const isRegisteredPatients = location.pathname.startsWith("/reception/registered-patients");
     const isReportsPage = location.pathname.startsWith("/reception/reports");
 
     const user =
@@ -103,11 +105,19 @@ function ReceptionDashboard() {
                         </button>
 
                         <button
-                            className={`staff-nav-link${isPatientManagement ? " active" : ""}`}
-                            onClick={() => navigate("/reception/patients")}
+                            className={`staff-nav-link${isNewPatientRegistration ? " active" : ""}`}
+                            onClick={() => navigate("/reception/patients/new")}
                         >
                             <FaUserPlus />
                             <span>New Patient</span>
+                        </button>
+
+                        <button
+                            className={`staff-nav-link${isRegisteredPatients ? " active" : ""}`}
+                            onClick={() => navigate("/reception/registered-patients")}
+                        >
+                            <FaUsers />
+                            <span>Registered Patients</span>
                         </button>
 
                         <button

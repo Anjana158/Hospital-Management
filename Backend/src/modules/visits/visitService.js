@@ -2,6 +2,7 @@ const crypto = require("crypto");
 const { z } = require("zod");
 
 const { prisma } = require("../../config/prisma");
+const DEFAULT_OP_FEE = 10;
 const {
     calculateAge,
     resolveSchemeSelection,
@@ -14,20 +15,24 @@ const registerVisitSchema = z.object({
     patientId: z.coerce.number().int().positive(),
     departmentId: z.coerce.number().int().positive(),
     schemeId: z.union([z.coerce.number().int().positive(), z.null()]).optional(),
-    paymentMethod: z.enum(["CASH", "GPAY"]).nullable().optional(),
+    paymentMethod: z.enum(["CASH", "GPAY", "POS"]).nullable().optional(),
+    authCode: z.string().trim().optional(),
     visitType: z.enum([
         "NEW",
         "REVISIT",
     ]).optional(),
-    opFee: z.coerce
-        .number()
-        .min(0)
-        .max(100000),
+    opFee: z.coerce.number()
+        .refine((value) => value === DEFAULT_OP_FEE, `OP fee is fixed at ${DEFAULT_OP_FEE}`)
+        .default(DEFAULT_OP_FEE),
     schemeAdditionalInformation: z.array(z.object({
         key: z.string().trim().min(1).max(100),
         value: z.string().max(500),
     }).strict()).max(50).optional(),
 });
+
+function normalizeVisitPaymentMethod(paymentMethod) {
+    return paymentMethod === "GPAY" ? "POS" : paymentMethod;
+}
 
 
 function getStartOfToday() {
@@ -56,16 +61,26 @@ function calculateVisitAmounts(opFee, selectedScheme) {
 }
 
 function getVisitPaymentDetails(finalFee, paymentMethod) {
+    const normalizedMethod = normalizeVisitPaymentMethod(paymentMethod);
     if (finalFee === 0) {
         return {
             paymentStatus: "FREE",
-            paymentMethod: null,
+            paymentMethod: "CASH",
         };
     }
 
-    return paymentMethod
-        ? { paymentStatus: "PAID", paymentMethod }
+    return normalizedMethod
+        ? { paymentStatus: "PAID", paymentMethod: normalizedMethod }
         : { paymentStatus: "PENDING", paymentMethod: null };
+}
+
+function validateVisitPayment(finalFee, paymentMethod, authCode) {
+    const normalizedMethod = normalizeVisitPaymentMethod(paymentMethod);
+    if (finalFee > 0 && normalizedMethod === "POS" && !authCode?.trim()) {
+        const error = new Error("Auth Code is required for POS payments");
+        error.code = "VISIT_PAYMENT_VALIDATION_ERROR";
+        throw error;
+    }
 }
 
 function getTokenDate() {
@@ -207,6 +222,7 @@ async function registerVisitRecord(
         schemeId,
         opFee,
         paymentMethod,
+        authCode,
         schemeAdditionalInformation: submittedSchemeAdditionalInformation,
     } = validated;
 
@@ -301,6 +317,12 @@ async function registerVisitRecord(
                 throw error;
             }
 
+            await tx.$executeRaw`
+                SELECT pg_advisory_xact_lock(
+                    CAST(${patientId} AS INTEGER),
+                    CAST(${departmentId} AS INTEGER)
+                )
+            `;
 
             const sameDayVisit = await tx.patientVisit.findFirst({
                 where: {
@@ -388,7 +410,9 @@ async function registerVisitRecord(
             }
 
             const { discountAmount, finalFee } = calculateVisitAmounts(opFee, selectedScheme);
-            const paymentDetails = getVisitPaymentDetails(finalFee, paymentMethod);
+            const effectivePaymentMethod = finalFee === 0 ? "CASH" : paymentMethod;
+            validateVisitPayment(finalFee, effectivePaymentMethod, authCode);
+            const paymentDetails = getVisitPaymentDetails(finalFee, effectivePaymentMethod);
 
 
             /*
@@ -478,6 +502,8 @@ async function registerVisitRecord(
 
                         finalFee,
                         ...paymentDetails,
+                        paymentAuthCode:
+                            effectivePaymentMethod === "POS" ? authCode.trim() : null,
                         schemeIdAtVisit: selectedScheme
                             ? selectedScheme.id
                             : null,
@@ -723,6 +749,7 @@ async function getPatientVisitHistory(patientId) {
 module.exports = {
     calculateVisitAmounts,
     getVisitPaymentDetails,
+    validateVisitPayment,
     registerVisitSchema,
     registerVisitRecord,
     getPatientDepartmentVisitHistory,

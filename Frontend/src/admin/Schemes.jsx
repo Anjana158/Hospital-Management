@@ -11,8 +11,8 @@ import {
 const emptyForm = {
     code: "",
     name: "",
-    eligibilityGender: "ALL",
-    ageCriteriaType: "ALL",
+    eligibilityGender: "NOT_APPLICABLE",
+    ageCriteriaType: "NOT_APPLICABLE",
     ageLimit: "",
     minimumAge: "",
     maximumAge: "",
@@ -335,6 +335,7 @@ function Schemes() {
                                                 eligibilityGender: event.target.value,
                                             }))}
                                         >
+                                            <option value="NOT_APPLICABLE">Not Applicable</option>
                                             <option value="ALL">All Genders</option>
                                             <option value="FEMALE">Female</option>
                                             <option value="MALE">Male</option>
@@ -350,6 +351,7 @@ function Schemes() {
                                                 ageCriteriaType: event.target.value,
                                             }))}
                                         >
+                                            <option value="NOT_APPLICABLE">Not Applicable</option>
                                             <option value="ALL">All Ages</option>
                                             <option value="UNDER">Under a specified age</option>
                                             <option value="ABOVE">Above a specified age</option>

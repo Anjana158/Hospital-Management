@@ -22,6 +22,7 @@ const serviceInputSchema = z.object({
 const serviceUpdateSchema = serviceInputSchema.partial().strict();
 const billInputSchema = z.object({
     patientId: z.coerce.number().int().positive(),
+    schemeId: z.union([z.coerce.number().int().positive(), z.null()]).optional(),
     category: z.enum(["APL", "BPL"]).default("APL"),
     remarks: z.string().trim().max(10000).optional().default(""),
     miscellaneousAmount: moneySchema.nullable().optional(),
@@ -29,12 +30,21 @@ const billInputSchema = z.object({
         serviceId: z.coerce.number().int().positive(),
         quantity: z.coerce.number().int().min(1).max(1000),
     }).strict()).min(1).max(100),
-    paymentMethod: z.enum(["CASH", "GPAY"]).nullable().optional(),
-    gpayConfirmed: z.boolean().default(false),
+    paymentMethod: z.enum(["CASH", "GPAY", "POS"]).nullable().optional(),
+    authCode: z.string().trim().optional(),
     idempotencyKey: z.string().trim().min(8).max(100),
-}).strict();
+}).strict().superRefine((data, context) => {
+    if (data.miscellaneousAmount != null && !data.remarks) {
+        context.addIssue({
+            code: "custom",
+            message: "A remark is required when applying a miscellaneous adjustment",
+            path: ["remarks"],
+        });
+    }
+});
 const billQuoteSchema = z.object({
     patientId: z.coerce.number().int().positive(),
+    schemeId: z.union([z.coerce.number().int().positive(), z.null()]).optional(),
     category: z.enum(["APL", "BPL"]).default("APL"),
     items: z.array(z.object({
         serviceId: z.coerce.number().int().positive(),
@@ -160,20 +170,25 @@ function paymentTotal(payments) {
     return payments.reduce((total, payment) => total + (payment.status === "CONFIRMED" ? cents(payment.amount) : 0), 0);
 }
 
-function initialPaymentForBill(netPayable, paymentMethod, gpayConfirmed) {
+function initialPaymentForBill(netPayable, paymentMethod, authCode) {
     if (netPayable === 0) {
         if (paymentMethod) {
             throw fail("BILLING_ZERO_PAYABLE", "Zero-payable bills cannot record a payment or payment method");
         }
         return null;
     }
-    if (!paymentMethod) {
-        throw fail("BILLING_PAYMENT_METHOD_REQUIRED", "Select Cash or GPay for the full payment");
+    const normalizedMethod = normalizePaymentMethod(paymentMethod);
+    if (!normalizedMethod) {
+        throw fail("BILLING_PAYMENT_METHOD_REQUIRED", "Select Cash or POS for the full payment");
     }
-    if (paymentMethod === "GPAY" && !gpayConfirmed) {
-        throw fail("BILLING_GPAY_CONFIRMATION_REQUIRED", "Confirm receipt of the GPay payment before recording it");
+    if (normalizedMethod === "POS" && !authCode?.trim()) {
+        throw fail("BILLING_POS_AUTH_CODE_REQUIRED", "Auth Code is required for POS payments");
     }
-    return { amount: amount(netPayable), method: paymentMethod };
+    return {
+        amount: amount(netPayable),
+        method: normalizedMethod,
+        authCode: normalizedMethod === "POS" ? authCode.trim() : null,
+    };
 }
 
 function applyMiscellaneousAmount(netPayable, miscellaneousAmount) {
@@ -200,13 +215,19 @@ function assertBillRequestMatches(bill, data) {
         .sort();
     const initialPayment = bill.payments.find((payment) => payment.idempotencyKey === `${data.idempotencyKey}:payment`);
     const payable = cents(bill.netPayable);
+    const expectedMethod = normalizePaymentMethod(data.paymentMethod || null);
+    const actualMethod = initialPayment ? normalizePaymentMethod(initialPayment.method) : null;
+    const expectedAuthCode = expectedMethod === "POS" ? data.authCode : null;
     const paymentMatches = payable > 0
         ? initialPayment &&
-            initialPayment.method === data.paymentMethod &&
+            actualMethod === expectedMethod &&
+            (expectedMethod !== "POS" || Boolean(expectedAuthCode)) &&
+            (initialPayment.authCode || null) === (expectedAuthCode || null) &&
             cents(initialPayment.amount) === payable
-        : !initialPayment && !data.paymentMethod;
+        : !initialPayment && !expectedMethod;
     if (
         bill.patientId !== data.patientId ||
+        (data.schemeId !== undefined && (bill.schemeId ?? null) !== data.schemeId) ||
         bill.category !== data.category ||
         (bill.remarks || "") !== data.remarks ||
         (bill.miscellaneousAmount == null) !== (data.miscellaneousAmount == null) ||
@@ -340,13 +361,11 @@ async function searchBillingPatients(query) {
             OR: [
                 { uhid: { contains: q, mode: "insensitive" } },
                 { firstName: { contains: q, mode: "insensitive" } },
-                { middleName: { contains: q, mode: "insensitive" } },
-                { lastName: { contains: q, mode: "insensitive" } },
                 { phone: { contains: q, mode: "insensitive" } },
             ],
         },
         select: {
-            id: true, uhid: true, firstName: true, middleName: true, lastName: true,
+            id: true, uhid: true, firstName: true,
             age: true, dateOfBirth: true, gender: true, phone: true,
             scheme: {
                 select: {
@@ -381,7 +400,7 @@ async function listPatientRegistrationSchemes() {
     });
 }
 
-async function getBillablePatient(patientId, serviceIds) {
+async function getBillablePatient(patientId, serviceIds, requestedSchemeId) {
     const patient = await prisma.patient.findUnique({
         where: { id: patientId },
         include: {
@@ -392,6 +411,14 @@ async function getBillablePatient(patientId, serviceIds) {
         throw fail("BILLING_PATIENT_NOT_FOUND", "Active registered patient not found");
     }
     let scheme = patient.scheme;
+    if (requestedSchemeId === null) {
+        scheme = null;
+    } else if (requestedSchemeId !== undefined && requestedSchemeId !== patient.scheme?.id) {
+        scheme = await prisma.patientScheme.findFirst({
+            where: { id: requestedSchemeId, status: "ACTIVE" },
+        });
+        if (!scheme) throw fail("BILLING_SCHEME_INACTIVE", "Selected scheme does not exist or is inactive");
+    }
     if (scheme) {
         if (scheme.status !== "ACTIVE") throw fail("BILLING_SCHEME_INACTIVE", "The patient's assigned scheme is inactive");
         validateSchemeEligibility(scheme, patient.gender, calculateAge(patient.dateOfBirth, patient.age), "BILLING_SCHEME_INELIGIBLE");
@@ -473,14 +500,15 @@ async function quoteBill(input) {
     }
     const { patient, scheme, services } = await getBillablePatient(
         data.patientId,
-        data.items.map((item) => item.serviceId)
+        data.items.map((item) => item.serviceId),
+        data.schemeId
     );
     const calculated = calculateBill(data.category, data.items, services, scheme);
     return {
         patient: {
             id: patient.id,
             uhid: patient.uhid,
-            fullName: [patient.firstName, patient.middleName, patient.lastName].filter(Boolean).join(" "),
+            fullName: patient.firstName,
             scheme: scheme ? { code: scheme.code, name: scheme.name } : null,
         },
         category: data.category,
@@ -501,7 +529,7 @@ async function readBill(where) {
     const bill = await prisma.bill.findUnique({
         where,
         include: {
-            patient: { select: { id: true, uhid: true, firstName: true, middleName: true, lastName: true, age: true, gender: true, phone: true } },
+            patient: { select: { id: true, uhid: true, firstName: true, age: true, gender: true, phone: true } },
             createdByUser: { select: { id: true, employeeId: true, fullName: true } },
             items: { orderBy: { id: "asc" } },
             payments: {
@@ -517,6 +545,10 @@ async function readBill(where) {
     const collected = paymentTotal(bill.payments);
     return {
         ...bill,
+        payments: bill.payments.map((payment) => ({
+            ...payment,
+            method: normalizePaymentMethod(payment.method),
+        })),
         amountCollected: amount(collected),
         outstandingAmount: amount(Math.max(0, cents(bill.netPayable) - collected)),
     };
@@ -537,10 +569,15 @@ async function createBill(input, actorId) {
     }
 
     const serviceIds = data.items.map((item) => item.serviceId);
-    const { patient, scheme, services } = await getBillablePatient(data.patientId, serviceIds);
+    const { patient, scheme, services } = await getBillablePatient(data.patientId, serviceIds, data.schemeId);
     const calculated = calculateBill(data.category, data.items, services, scheme);
     const adjustment = applyMiscellaneousAmount(calculated.net, data.miscellaneousAmount);
-    const initialPayment = initialPaymentForBill(adjustment.net, data.paymentMethod, data.gpayConfirmed);
+    const normalizedRequestMethod = normalizePaymentMethod(data.paymentMethod || null);
+    const initialPayment = initialPaymentForBill(
+        adjustment.net,
+        normalizedRequestMethod,
+        data.authCode
+    );
 
     for (let attempt = 0; attempt < 3; attempt += 1) {
         try {
@@ -569,6 +606,7 @@ async function createBill(input, actorId) {
                                     handledBy: actorId,
                                     method: initialPayment.method,
                                     amount: initialPayment.amount,
+                                    authCode: initialPayment.authCode,
                                     idempotencyKey: `${data.idempotencyKey}:payment`,
                                 },
                             },
@@ -644,10 +682,16 @@ async function reversePayment(paymentId, actorId, reason) {
     return readBill({ billNumber });
 }
 
+function normalizePaymentMethod(method) {
+    return method === "GPAY" ? "POS" : method;
+}
+
 function parseReportFilters(query, role, userId) {
     const range = buildReportRange(query);
-    const method = query.method || "";
-    if (method && !["CASH", "GPAY"].includes(method)) throw fail("BILLING_REPORT_VALIDATION_ERROR", "Payment method must be Cash or GPay");
+    const method = query.method ? String(query.method).toUpperCase() : "";
+    if (method && !["CASH", "GPAY", "POS"].includes(method)) {
+        throw fail("BILLING_REPORT_VALIDATION_ERROR", "Payment method must be Cash or POS");
+    }
     let staffId = null;
     if (role === "ADMIN" && query.staffId) {
         staffId = Number(query.staffId);
@@ -655,7 +699,7 @@ function parseReportFilters(query, role, userId) {
     } else if (role !== "ADMIN") {
         staffId = userId;
     }
-    return { ...range, method: method || null, staffId };
+    return { ...range, method: method ? normalizePaymentMethod(method) : null, staffId };
 }
 
 async function getReport(query, role, userId) {
@@ -665,8 +709,13 @@ async function getReport(query, role, userId) {
         createdAt: { gte: filters.start, lte: filters.end },
         ...(filters.staffId ? { createdBy: filters.staffId } : {}),
     };
+    const paymentMethodFilter = filters.method === "CASH"
+        ? { method: "CASH" }
+        : filters.method === "POS"
+            ? { method: { in: ["GPAY", "POS"] } }
+            : {};
     const paymentsWhere = {
-        ...(filters.method ? { method: filters.method } : {}),
+        ...paymentMethodFilter,
         ...(filters.staffId ? { handledBy: filters.staffId } : {}),
         OR: [
             { confirmedAt: { gte: filters.start, lte: filters.end } },
@@ -678,7 +727,7 @@ async function getReport(query, role, userId) {
             where: billWhere,
             include: {
                 items: true,
-                patient: { select: { uhid: true, firstName: true, middleName: true, lastName: true } },
+                patient: { select: { uhid: true, firstName: true } },
                 payments: { select: { amount: true, status: true } },
                 createdByUser: { select: { id: true, employeeId: true, fullName: true } },
             },
@@ -742,7 +791,7 @@ async function getReport(query, role, userId) {
             serviceRows.set(item.serviceId, row);
         }
     }
-    const collections = { CASH: { collected: 0, reversed: 0, count: 0 }, GPAY: { collected: 0, reversed: 0, count: 0 } };
+    const collections = { CASH: { collected: 0, reversed: 0, count: 0 }, POS: { collected: 0, reversed: 0, count: 0 } };
     let paymentTransactionCount = 0;
     for (const payment of payments) {
         if (!staffRows.has(payment.handledBy)) {
@@ -761,7 +810,7 @@ async function getReport(query, role, userId) {
         }
     }
     for (const payment of payments) {
-        const key = payment.method;
+        const key = normalizePaymentMethod(payment.method);
         const events = paymentEvents(payment, filters.start, filters.end);
         paymentTransactionCount += paymentEventCount(payment, filters.start, filters.end);
         if (events.collected) {
@@ -773,7 +822,9 @@ async function getReport(query, role, userId) {
             collections[key].count += 1;
         }
     }
-    const amountCollected = Object.values(collections).reduce((sum, row) => sum + row.collected - row.reversed, 0);
+    const cashAmount = collections.CASH.collected - collections.CASH.reversed;
+    const posAmount = collections.POS.collected - collections.POS.reversed;
+    const amountCollected = cashAmount + posAmount;
     for (const [staffId, row] of staffRows) {
         const staffPayments = payments.filter((payment) => payment.handledBy === staffId);
         row.paymentTransactionCount = 0;
@@ -810,6 +861,15 @@ async function getReport(query, role, userId) {
             })),
         ];
     }
+    const grandTotal = discounts + amountCollected;
+    const financialSummary = {
+        grandTotal: amount(grandTotal),
+        discountAmount: amount(discounts),
+        totalCollected: amount(amountCollected),
+        cashAmount: amount(cashAmount),
+        posAmount: amount(posAmount),
+    };
+
     return {
         period: filters.period,
         from: filters.start.toISOString(),
@@ -823,7 +883,7 @@ async function getReport(query, role, userId) {
             return {
                 billNumber: bill.billNumber,
                 createdAt: bill.createdAt,
-                patientName: [bill.patient.firstName, bill.patient.middleName, bill.patient.lastName].filter(Boolean).join(" "),
+                patientName: bill.patient.firstName,
                 uhid: bill.patient.uhid,
                 category: bill.category,
                 remarks: bill.remarks,
@@ -839,16 +899,17 @@ async function getReport(query, role, userId) {
                 status: bill.status,
             };
         }),
+        financialSummary,
         grossServiceCharges: amount(gross),
         totalDiscounts: amount(discounts),
         miscellaneousDiscounts: amount(miscellaneousDiscounts),
         netPayable: amount(payable),
         amountCollected: amount(amountCollected),
         outstandingBalance: amount(outstanding),
-        reversals: amount(collections.CASH.reversed + collections.GPAY.reversed),
+        reversals: amount(collections.CASH.reversed + collections.POS.reversed),
         collections: {
             CASH: { grossCollected: amount(collections.CASH.collected), reversed: amount(collections.CASH.reversed), netCollected: amount(collections.CASH.collected - collections.CASH.reversed), transactionCount: collections.CASH.count },
-            GPAY: { grossCollected: amount(collections.GPAY.collected), reversed: amount(collections.GPAY.reversed), netCollected: amount(collections.GPAY.collected - collections.GPAY.reversed), transactionCount: collections.GPAY.count },
+            POS: { grossCollected: amount(collections.POS.collected), reversed: amount(collections.POS.reversed), netCollected: amount(collections.POS.collected - collections.POS.reversed), transactionCount: collections.POS.count },
         },
         services: [...serviceRows.values()].map((row) => ({
             ...row, grossAmount: amount(row.grossAmount), discountAmount: amount(row.discountAmount), netPayable: amount(row.netPayable),
@@ -887,4 +948,6 @@ module.exports = {
     initialPaymentForBill,
     paymentEvents,
     paymentEventCount,
+    billInputSchema,
+    billQuoteSchema,
 };

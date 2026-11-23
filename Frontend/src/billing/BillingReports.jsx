@@ -68,9 +68,7 @@ function BillingReports() {
     return (
         <div className={`billing-page billing-report-print-shell${isAdmin ? " admin-page" : ""}`}>
             <header className={isAdmin ? "admin-page-header" : "billing-page-header"}>
-                {!isAdmin && <p>BILLING</p>}
                 <h1>{isAdmin ? "Billing Reports" : "Reports"}</h1>
-                {!isAdmin && <span>Your billing and collection activity.</span>}
             </header>
             <section className="billing-card billing-report-controls">
                 <form className="billing-form-grid" onSubmit={runReport}>
@@ -89,7 +87,7 @@ function BillingReports() {
                         <label>To<input type="date" required value={filters.to} onChange={(event) => setFilter("to", event.target.value)} /></label>
                     </>}
                     <label>Payment method<select value={filters.method} onChange={(event) => setFilter("method", event.target.value)}>
-                        <option value="">All methods</option><option value="CASH">Cash</option><option value="GPAY">GPay</option>
+                        <option value="">All methods</option><option value="CASH">Cash</option><option value="POS">POS</option>
                     </select></label>
                     {isAdmin && <label>Billing staff<select value={filters.staffId} onChange={(event) => setFilter("staffId", event.target.value)}>
                         <option value="">All staff — hospital total</option>{staff.map((member) => <option key={member.id} value={member.id}>{member.fullName} ({member.employeeId}){member.status !== "ACTIVE" ? ` · ${member.status}` : ""}</option>)}
@@ -114,11 +112,13 @@ function BillingReports() {
                         </p>
                     </header>
                 <section className="billing-summary-grid">
-                    <div><span>Original bill amount</span><strong>{money(report.grossServiceCharges)}</strong></div>
-                    <div><span>Total discounts</span><strong>{money(report.totalDiscounts)}</strong></div>
+                    <div><span>Grand Total</span><strong>{money(report.financialSummary?.grandTotal ?? report.grossServiceCharges)}</strong></div>
+                    <div><span>Discount Amount</span><strong>{money(report.financialSummary?.discountAmount ?? report.totalDiscounts)}</strong></div>
+                    <div><span>Total Collected</span><strong>{money(report.financialSummary?.totalCollected ?? report.amountCollected)}</strong></div>
+                    <div><span>Cash Amount</span><strong>{money(report.financialSummary?.cashAmount ?? report.collections?.CASH?.netCollected)}</strong></div>
+                    <div><span>POS Amount</span><strong>{money(report.financialSummary?.posAmount ?? report.collections?.POS?.netCollected)}</strong></div>
                     <div><span>Miscellaneous discounts</span><strong>{money(report.miscellaneousDiscounts)}</strong></div>
                     <div><span>Net payable (billed)</span><strong>{money(report.netPayable)}</strong></div>
-                    <div><span>Actual collected</span><strong>{money(report.amountCollected)}</strong></div>
                     <div><span>Outstanding balance</span><strong>{money(report.outstandingBalance)}</strong></div>
                     <div><span>Refunds / reversals</span><strong>{money(report.reversals)}</strong></div>
                 </section>
@@ -129,10 +129,10 @@ function BillingReports() {
                 <section className="billing-card">
                     <h2>Collections by payment method</h2>
                     <div className="billing-summary-grid billing-collection-grid">
-                        {["CASH", "GPAY"].map((method) => <div key={method}>
-                            <span>{method === "CASH" ? "Cash" : "GPay"} collected / reversed</span>
-                            <strong>{money(report.collections[method].netCollected)}</strong>
-                            <small>Received {money(report.collections[method].grossCollected)} · Reversed {money(report.collections[method].reversed)} · {report.collections[method].transactionCount} transactions</small>
+                        {["CASH", "POS"].map((method) => <div key={method}>
+                            <span>{method === "CASH" ? "Cash" : "POS"} collected / reversed</span>
+                            <strong>{money(report.collections[method]?.netCollected)}</strong>
+                            <small>Received {money(report.collections[method]?.grossCollected)} · Reversed {money(report.collections[method]?.reversed)} · {report.collections[method]?.transactionCount || 0} transactions</small>
                         </div>)}
                     </div>
                 </section>

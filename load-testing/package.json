@@ -1,6 +1,0 @@
-{
-  "name": "hms-load-testing",
-  "private": true,
-  "type": "module",
-  "description": "Local k6 harness for the hospital management API. It does not start tests on import."
-}

@@ -1,6 +1,5 @@
 # Environment Variables
 .env
-.env.loadtest
 
 # Node Modules
 node_modules/

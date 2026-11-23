@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { FaCalendarAlt, FaChartBar, FaPrint, FaRedo, FaFilter } from "react-icons/fa";
+import { FaCalendarAlt, FaPrint, FaRedo, FaFilter } from "react-icons/fa";
 import { getDepartments } from "../admin/services/departmentService";
 import { getReceptionistReport } from "./services/reportService";
 import "../styles/ReceptionistReports.css";
@@ -84,12 +84,14 @@ function ReceptionistReports() {
         }
 
         return [
+            { label: "Grand Total", value: formatAmount(report.summary.grandTotal) },
+            { label: "Discount Amount", value: formatAmount(report.summary.discountAmount) },
+            { label: "Total Collected", value: formatAmount(report.summary.totalCollected) },
+            { label: "Cash Amount", value: formatAmount(report.summary.cashAmount) },
+            { label: "POS Amount", value: formatAmount(report.summary.posAmount) },
             { label: "Total New Visits", value: report.summary.newVisits || 0 },
             { label: "Total Re-Visits", value: report.summary.reVisits || 0 },
             { label: "Total Visits", value: report.summary.totalVisits || 0 },
-            { label: "Total OP Amount", value: formatAmount(report.summary.totalOpAmount) },
-            { label: "Cash Collected", value: formatAmount(report.summary.cashCollected) },
-            { label: "G-Pay Collected", value: formatAmount(report.summary.gpayCollected) },
             { label: "Free OP Visits", value: report.summary.freeOpVisits || 0 },
             { label: "Male", value: report.summary.male || 0 },
             { label: "Female", value: report.summary.female || 0 },
@@ -285,18 +287,10 @@ function ReceptionistReports() {
     };
 
     return (
-        <div className="reception-reports-page report-print-shell">
-            <div className="report-page-header">
-                <div className="report-page-title">
-                    <div className="report-title-icon">
-                        <FaChartBar />
-                    </div>
-                    <div>
-                        <p>RECEPTION REPORTS</p>
-                        <h2>Receptionist Reports</h2>
-                    </div>
-                </div>
-            </div>
+        <div className="reception-reports-page report-print-shell reception-page">
+            <header className="report-page-header reception-page-header">
+                <h1>Receptionist Reports</h1>
+            </header>
 
             <div className="report-controls-card">
                 <div className="report-card-header">
@@ -410,11 +404,7 @@ function ReceptionistReports() {
                     </div>
 
                     <div className="report-summary-grid">
-                        <div className="report-summary-card">
-                            <span>Total Amount</span>
-                            <strong>{formatAmount(report.summary?.totalAmount)}</strong>
-                        </div>
-                        {report.hasRecords && summaryCards.map((card) => (
+                        {summaryCards.map((card) => (
                             <div key={card.label} className="report-summary-card">
                                 <span>{card.label}</span>
                                 <strong>{card.value}</strong>
@@ -480,7 +470,11 @@ function ReceptionistReports() {
                         </>
                     )}
                     <div className="report-print-total">
-                        <strong>Total Amount collected:</strong> {formatAmount(report.summary?.totalAmount)}
+                        <strong>Grand Total:</strong> {formatAmount(report.summary?.grandTotal)} &nbsp;|&nbsp;
+                        <strong>Discount Amount:</strong> {formatAmount(report.summary?.discountAmount)} &nbsp;|&nbsp;
+                        <strong>Total Collected:</strong> {formatAmount(report.summary?.totalCollected)} &nbsp;|&nbsp;
+                        <strong>Cash Amount:</strong> {formatAmount(report.summary?.cashAmount)} &nbsp;|&nbsp;
+                        <strong>POS Amount:</strong> {formatAmount(report.summary?.posAmount)}
                     </div>
                 </div>
             )}
