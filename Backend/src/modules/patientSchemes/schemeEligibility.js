@@ -25,10 +25,10 @@ function validateSchemeConfiguration(scheme) {
     const maximumAge = scheme.maximumAge ?? null;
     const fields = scheme.additionalInformationFields ?? [];
 
-    if (!["ALL", "FEMALE", "MALE", "TRANSGENDER"].includes(gender)) {
+    if (!["ALL", "NOT_APPLICABLE", "FEMALE", "MALE", "TRANSGENDER"].includes(gender)) {
         throw validationError("Eligibility gender is invalid");
     }
-    if (!["ALL", "UNDER", "ABOVE", "RANGE"].includes(ageType)) {
+    if (!["ALL", "NOT_APPLICABLE", "UNDER", "ABOVE", "RANGE"].includes(ageType)) {
         throw validationError("Age criteria is invalid");
     }
     if (!Array.isArray(fields)) {
@@ -66,7 +66,7 @@ function validateSchemeConfiguration(scheme) {
             throw validationError("Age limit is not used for custom age ranges");
         }
     } else if (ageLimit !== null || minimumAge !== null || maximumAge !== null) {
-        throw validationError("Age boundaries must be empty when all ages are eligible");
+        throw validationError("Age boundaries must be empty when age is not restricted");
     }
 
     if (scheme.collectAdditionalInformation && parsedFields.data.length === 0) {
@@ -107,8 +107,8 @@ function calculateAge(dateOfBirth, fallbackAge) {
 
 function getSchemeIneligibilityReason(scheme, gender, age) {
     const config = validateSchemeConfiguration(scheme);
-    const hasGenderRestriction = config.eligibilityGender !== "ALL";
-    const hasAgeRestriction = config.ageCriteriaType !== "ALL";
+    const hasGenderRestriction = !["ALL", "NOT_APPLICABLE"].includes(config.eligibilityGender);
+    const hasAgeRestriction = !["ALL", "NOT_APPLICABLE"].includes(config.ageCriteriaType);
 
     if (hasGenderRestriction && !["FEMALE", "MALE", "TRANSGENDER"].includes(gender)) {
         return "the patient's gender is required to verify eligibility.";
@@ -156,25 +156,16 @@ function getEligibleSchemes(schemes, gender, age) {
 }
 
 function resolveSchemeSelection(schemes, gender, age, requestedSchemeId, errorCode) {
-    const eligibleSchemes = getEligibleSchemes(schemes, gender, age);
-
-    if (requestedSchemeId !== undefined && requestedSchemeId !== null) {
-        const selectedScheme = schemes.find((scheme) => scheme.id === requestedSchemeId);
-        if (!selectedScheme || selectedScheme.status !== "ACTIVE") {
-            throw validationError("Selected scheme does not exist or is inactive", errorCode);
-        }
-        validateSchemeEligibility(selectedScheme, gender, age, errorCode);
-        return selectedScheme;
+    if (requestedSchemeId === undefined || requestedSchemeId === null) {
+        return null;
     }
 
-    if (eligibleSchemes.length > 1) {
-        throw validationError(
-            "Multiple schemes match this patient. Select an eligible scheme to continue.",
-            "VISIT_SCHEME_SELECTION_REQUIRED"
-        );
+    const selectedScheme = schemes.find((scheme) => scheme.id === requestedSchemeId);
+    if (!selectedScheme || selectedScheme.status !== "ACTIVE") {
+        throw validationError("Selected scheme does not exist or is inactive", errorCode);
     }
-
-    return eligibleSchemes[0] ?? null;
+    validateSchemeEligibility(selectedScheme, gender, age, errorCode);
+    return selectedScheme;
 }
 
 function validateSchemeAdditionalInformation(scheme, values) {

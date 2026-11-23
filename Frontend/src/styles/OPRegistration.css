@@ -1,7 +1,30 @@
 .op-registration-page {
-    padding: 25px;
+    box-sizing: border-box;
+    width: 100%;
     min-height: 100%;
-    background: #f7f9fc;
+    background: transparent;
+}
+
+.op-payment-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: 1px solid #dfe5ed;
+}
+
+.op-payment-free {
+    display: flex;
+    min-height: 42px;
+    align-items: center;
+    box-sizing: border-box;
+    padding: 0 12px;
+    border: 1px solid #d8e0ea;
+    border-radius: 7px;
+    background: #f1f4f8;
+    color: #667085;
+    font-size: 14px;
 }
 
 
@@ -13,45 +36,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 22px;
-}
-
-
-.op-page-title {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-}
-
-
-.op-title-icon {
-    width: 48px;
-    height: 48px;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    background: #eaf3ff;
-    color: #4779b8;
-
-    border-radius: 12px;
-
-    font-size: 22px;
-}
-
-
-.op-page-title h2 {
-    margin: 0;
-    color: #27364b;
-    font-size: 25px;
-}
-
-
-.op-page-title p {
-    margin: 4px 0 0;
-    color: #718096;
-    font-size: 13px;
+    margin-bottom: 30px;
 }
 
 
@@ -63,7 +48,7 @@
     background: #ffffff;
     border: 1px solid #e5eaf1;
     border-radius: 12px;
-    padding: 22px;
+    padding: 24px;
     margin-bottom: 20px;
 
     box-shadow:
@@ -258,7 +243,7 @@
 }
 
 
-.op-fee-summary > div {
+.op-fee-row {
     display: flex;
     justify-content: space-between;
 
@@ -398,11 +383,6 @@
 
 @media (max-width: 650px) {
 
-    .op-registration-page {
-        padding: 15px;
-    }
-
-
     .op-page-header {
         align-items: flex-start;
         gap: 15px;
@@ -410,7 +390,8 @@
 
 
     .op-patient-grid,
-    .op-form-grid {
+    .op-form-grid,
+    .op-payment-grid {
         grid-template-columns: 1fr;
     }
 

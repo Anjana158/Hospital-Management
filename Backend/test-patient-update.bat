@@ -3,7 +3,7 @@ REM Patient Update Test Suite using curl
 
 setlocal enabledelayedexpansion
 
-set BASE_URL=http://100.103.223.11:5000/api
+set BASE_URL=http://127.0.0.1:5001/api
 set TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIsInVzZXJuYW1lIjoidXNlcjEwMDAiLCJyb2xlIjoiUkVDRVBUSU9OIiwiaWF0IjoxNzg3OTc3MzQ1fQ.xeY7bUAb8epp-Fi5mpDKzk7E8pxw7SqBDPUNEDEtgZI
 
 echo === PATIENT UPDATE TEST SUITE ===

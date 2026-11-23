@@ -86,18 +86,9 @@ function BillingHome() {
 
             <div className="staff-page-header">
 
-                <p>
-                    BILLING DASHBOARD
-                </p>
-
                 <h1>
-                    Welcome, {user?.fullName}
+                    Dashboard
                 </h1>
-
-                <span>
-                    Manage billing, payments and
-                    patient invoices efficiently.
-                </span>
 
             </div>
 

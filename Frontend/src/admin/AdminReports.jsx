@@ -165,16 +165,15 @@ function AdminReports() {
     const summary = report?.summary || {};
     const breakdowns = report?.breakdowns || {};
     const summaryCards = [
+        ["Grand Total", formatAmount(summary.grandTotal)],
+        ["Discount Amount", formatAmount(summary.discountAmount)],
+        ["Total Collected", formatAmount(summary.totalCollected)],
+        ["Cash Amount", formatAmount(summary.cashAmount)],
+        ["POS Amount", formatAmount(summary.posAmount)],
         ["Total Patients", summary.totalPatients],
         ["Total Visits", summary.totalVisits],
         ["New Visits", summary.newVisits],
         ["Revisit Visits", summary.reVisits],
-        ["OP Amount", formatAmount(summary.opAmount)],
-        ["Total Discount", formatAmount(summary.totalDiscount)],
-        ["Total Amount Collected", formatAmount(summary.totalAmount)],
-        ["Total OP Amount", formatAmount(summary.totalOpAmount)],
-        ["Cash Collected", formatAmount(summary.cashCollected)],
-        ["G-Pay Collected", formatAmount(summary.gpayCollected)],
         ["Free OP Visits", summary.freeOpVisits || 0],
     ];
 

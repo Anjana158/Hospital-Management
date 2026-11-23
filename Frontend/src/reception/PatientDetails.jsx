@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import { updatePatient } from "./services/patientService";
 import { getPatientVisitHistory } from "./services/visitService";
@@ -218,12 +218,6 @@ function buildForm(patient) {
         firstName:
             patient.firstName || "",
 
-        middleName:
-            patient.middleName || "",
-
-        lastName:
-            patient.lastName || "",
-
         dateOfBirth:
             toDateInputValue(
                 patient.dateOfBirth
@@ -249,9 +243,6 @@ function buildForm(patient) {
 
         addressLine1:
             patient.addressLine1 || "",
-
-        addressLine2:
-            patient.addressLine2 || "",
 
         city:
             patient.city || "",
@@ -292,6 +283,7 @@ function PatientDetails({
     schemes = [],
 }) {
     const navigate = useNavigate();
+    const location = useLocation();
 
     const [isEditing, setIsEditing] = useState(false);
     const [formData, setFormData] =useState(() => buildForm(patient));
@@ -503,7 +495,7 @@ function PatientDetails({
             !formData.firstName.trim()
         ) {
             setError(
-                "First name is required"
+                "Patient name is required"
             );
 
             return;
@@ -673,12 +665,6 @@ function PatientDetails({
             firstName:
                 formData.firstName.trim(),
 
-            middleName:
-                formData.middleName.trim(),
-
-            lastName:
-                formData.lastName.trim(),
-
             dateOfBirth:
                 formData.dateOfBirth,
 
@@ -699,9 +685,6 @@ function PatientDetails({
 
             addressLine1:
                 formData.addressLine1.trim(),
-
-            addressLine2:
-                formData.addressLine2.trim(),
 
             city:
                 formData.city.trim(),
@@ -803,13 +786,7 @@ function PatientDetails({
     |--------------------------------------------------------------------------
     */
 
-    const fullName = [
-        patient.firstName,
-        patient.middleName,
-        patient.lastName,
-    ]
-        .filter(Boolean)
-        .join(" ");
+    const fullName = patient.firstName || "";
 
 
     /*
@@ -849,7 +826,7 @@ function PatientDetails({
                                 Edit
                             </button>
 
-                            {patient.status === "ACTIVE" && (
+                            {patient.status === "ACTIVE" && onRegisterOp && (
                                 <button
                                     type="button"
                                     className="btn btn-primary"
@@ -952,85 +929,22 @@ function PatientDetails({
                     </div>
 
 
-                    {/* ================================================= */}
-                    {/* NAME */}
-                    {/* ================================================= */}
-
                     <div className="form-row">
 
                         <div className="form-group">
 
                             <label className="required">
-                                First name
+                                Patient Name
                             </label>
 
                             <input
                                 name="firstName"
-                                value={
-                                    formData.firstName
-                                }
-                                onChange={
-                                    handleChange
-                                }
-                                disabled={
-                                    saving
-                                }
+                                value={formData.firstName}
+                                onChange={handleChange}
+                                disabled={saving}
                             />
 
                         </div>
-
-
-                        <div className="form-group">
-
-                            <label>
-                                Middle name
-                            </label>
-
-                            <input
-                                name="middleName"
-                                value={
-                                    formData.middleName
-                                }
-                                onChange={
-                                    handleChange
-                                }
-                                disabled={
-                                    saving
-                                }
-                            />
-
-                        </div>
-
-                    </div>
-
-
-                    {/* ================================================= */}
-                    {/* LAST NAME + GENDER */}
-                    {/* ================================================= */}
-
-                    <div className="form-row">
-
-                        <div className="form-group">
-
-                            <label>
-                                Last name
-                            </label>
-
-                            <input
-                                name="lastName"
-                                value={
-                                    formData.lastName
-                                }
-                                onChange={
-                                    handleChange
-                                }
-                                disabled={
-                                    saving
-                                }
-                            />
-
-                        </div>
-
 
                         <div className="form-group">
 
@@ -1296,32 +1210,6 @@ function PatientDetails({
                                 name="addressLine1"
                                 value={
                                     formData.addressLine1
-                                }
-                                onChange={
-                                    handleChange
-                                }
-                                disabled={
-                                    saving
-                                }
-                            />
-
-                        </div>
-
-                    </div>
-
-
-                    <div className="form-row full">
-
-                        <div className="form-group">
-
-                            <label>
-                                Address line 2
-                            </label>
-
-                            <input
-                                name="addressLine2"
-                                value={
-                                    formData.addressLine2
                                 }
                                 onChange={
                                     handleChange
@@ -1732,47 +1620,13 @@ function PatientDetails({
                             <div className="detail-item">
 
                                 <label>
-                                    First name
+                                    Patient Name
                                 </label>
 
                                 <span>
                                     {
                                         displayValue(
-                                            patient.firstName
-                                        )
-                                    }
-                                </span>
-
-                            </div>
-
-
-                            <div className="detail-item">
-
-                                <label>
-                                    Middle name
-                                </label>
-
-                                <span>
-                                    {
-                                        displayValue(
-                                            patient.middleName
-                                        )
-                                    }
-                                </span>
-
-                            </div>
-
-
-                            <div className="detail-item">
-
-                                <label>
-                                    Last name
-                                </label>
-
-                                <span>
-                                    {
-                                        displayValue(
-                                            patient.lastName
+                                            fullName
                                         )
                                     }
                                 </span>
@@ -1934,23 +1788,6 @@ function PatientDetails({
                             <div className="detail-item">
 
                                 <label>
-                                    Address line 2
-                                </label>
-
-                                <span>
-                                    {
-                                        displayValue(
-                                            patient.addressLine2
-                                        )
-                                    }
-                                </span>
-
-                            </div>
-
-
-                            <div className="detail-item">
-
-                                <label>
                                     City
                                 </label>
 
@@ -2079,7 +1916,12 @@ function PatientDetails({
                                                         onClick={() =>
                                                             navigate(
                                                                 `/reception/op-ticket/${visit.id}`,
-                                                                { state: { autoPrint: true } }
+                                                                {
+                                                                    state: {
+                                                                        autoPrint: true,
+                                                                        returnTo: location.pathname,
+                                                                    },
+                                                                }
                                                             )
                                                         }
                                                     >

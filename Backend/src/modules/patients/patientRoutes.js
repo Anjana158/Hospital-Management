@@ -4,6 +4,7 @@ const {
     registerPatient,
     searchPatients,
     getTodayPatients,
+    getRegisteredPatients,
     getPatientDetails,
     updatePatient,
 } = require("./patientController");
@@ -15,7 +16,8 @@ const router = express.Router();
 router.use(authenticateToken, requireRole("RECEPTION"));
 
 router.get("/search", searchPatients);
-router.get("/today",getTodayPatients);
+router.get("/today", getTodayPatients);
+router.get("/registered", getRegisteredPatients);
 router.get("/uhid/:uhid", getPatientDetails);
 router.get("/:id", getPatientDetails);
 router.patch("/:id", updatePatient);

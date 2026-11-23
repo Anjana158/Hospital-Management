@@ -18,7 +18,9 @@ import ProtectedRoute from './admin/ProtectedRoute'
 // RECEPTION
 import ReceptionDashboard from './reception/ReceptionDashboard'
 import ReceptionHome from './reception/ReceptionHome'
-import PatientManagement from './reception/PatientManagement'
+import NewPatientRegistration from './reception/NewPatientRegistration'
+import RegisteredPatients from './reception/RegisteredPatients'
+import RegisteredPatientDetails from './reception/RegisteredPatientDetails'
 import OpRegistration from './reception/OPRegistration'
 import OPTicket from './reception/OPTicket'
 import ReceptionistReports from './reception/ReceptionistReports'
@@ -73,7 +75,9 @@ function App() {
                 <Route element={<ProtectedRoute allowedRoles={["RECEPTION"]}/>}>
                     <Route path="/reception" element={<ReceptionDashboard />}>
                         <Route index element={<ReceptionHome />}/>
-                        <Route path="patients" element={<PatientManagement />}/>
+                        <Route path="patients/new" element={<NewPatientRegistration />}/>
+                        <Route path="registered-patients" element={<RegisteredPatients />}/>
+                        <Route path="registered-patients/details/:patientId" element={<RegisteredPatientDetails />}/>
                         <Route path="/reception/op/:patientId" element={<OpRegistration />}/>
                         <Route path="/reception/op-ticket/:visitId" element={<OPTicket />}/>
                         <Route path="/reception/reports" element={<ReceptionistReports />}/>
