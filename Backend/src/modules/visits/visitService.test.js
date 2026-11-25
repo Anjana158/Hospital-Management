@@ -57,6 +57,20 @@ test("OP registration accepts an unpaid visit without a payment method", () => {
     });
 });
 
+test("OP registration uses the fixed fee and rejects manually supplied amounts", () => {
+    const visit = registerVisitSchema.parse({
+        patientId: 7,
+        departmentId: 2,
+    });
+
+    assert.equal(visit.opFee, 10);
+    assert.equal(registerVisitSchema.safeParse({
+        patientId: 7,
+        departmentId: 2,
+        opFee: 25,
+    }).success, false);
+});
+
 test("zero-payable scheme visits are free and recorded with the cash method", () => {
     assert.deepEqual(getVisitPaymentDetails(0, undefined), {
         paymentStatus: "FREE",

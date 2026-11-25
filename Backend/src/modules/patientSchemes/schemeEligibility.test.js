@@ -180,7 +180,7 @@ test("eligibility requires only the demographics used by configured criteria", (
     assert.match(getSchemeIneligibilityReason(under18, "FEMALE", null), /age is required/);
 });
 
-test("only fully eligible active schemes are matched and conflicts require a choice", () => {
+test("scheme selection is optional, while explicitly selected schemes must be eligible", () => {
     const activeUnder18 = {
         ...scheme({ eligibilityGender: "FEMALE", ageCriteriaType: "UNDER", ageLimit: 18 }),
         id: 1,
@@ -201,11 +201,8 @@ test("only fully eligible active schemes are matched and conflicts require a cho
         activeUnder18,
         activeFemale,
     ]);
-    assert.equal(resolveSchemeSelection([activeUnder18], "FEMALE", 17, undefined, "VISIT_SCHEME_INELIGIBLE"), activeUnder18);
-    assert.throws(
-        () => resolveSchemeSelection([activeUnder18, activeFemale], "FEMALE", 17, undefined, "VISIT_SCHEME_INELIGIBLE"),
-        { code: "VISIT_SCHEME_SELECTION_REQUIRED" }
-    );
+    assert.equal(resolveSchemeSelection([activeUnder18], "FEMALE", 17, undefined, "VISIT_SCHEME_INELIGIBLE"), null);
+    assert.equal(resolveSchemeSelection([activeUnder18, activeFemale], "FEMALE", 17, null, "VISIT_SCHEME_INELIGIBLE"), null);
     assert.equal(resolveSchemeSelection([activeUnder18, activeFemale], "FEMALE", 17, 3, "VISIT_SCHEME_INELIGIBLE"), activeFemale);
     assert.throws(
         () => resolveSchemeSelection([activeUnder18], "FEMALE", 18, 1, "VISIT_SCHEME_INELIGIBLE"),

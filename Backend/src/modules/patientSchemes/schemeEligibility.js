@@ -156,25 +156,16 @@ function getEligibleSchemes(schemes, gender, age) {
 }
 
 function resolveSchemeSelection(schemes, gender, age, requestedSchemeId, errorCode) {
-    const eligibleSchemes = getEligibleSchemes(schemes, gender, age);
-
-    if (requestedSchemeId !== undefined && requestedSchemeId !== null) {
-        const selectedScheme = schemes.find((scheme) => scheme.id === requestedSchemeId);
-        if (!selectedScheme || selectedScheme.status !== "ACTIVE") {
-            throw validationError("Selected scheme does not exist or is inactive", errorCode);
-        }
-        validateSchemeEligibility(selectedScheme, gender, age, errorCode);
-        return selectedScheme;
+    if (requestedSchemeId === undefined || requestedSchemeId === null) {
+        return null;
     }
 
-    if (eligibleSchemes.length > 1) {
-        throw validationError(
-            "Multiple schemes match this patient. Select an eligible scheme to continue.",
-            "VISIT_SCHEME_SELECTION_REQUIRED"
-        );
+    const selectedScheme = schemes.find((scheme) => scheme.id === requestedSchemeId);
+    if (!selectedScheme || selectedScheme.status !== "ACTIVE") {
+        throw validationError("Selected scheme does not exist or is inactive", errorCode);
     }
-
-    return eligibleSchemes[0] ?? null;
+    validateSchemeEligibility(selectedScheme, gender, age, errorCode);
+    return selectedScheme;
 }
 
 function validateSchemeAdditionalInformation(scheme, values) {

@@ -84,7 +84,8 @@
 
 .billing-form-grid > label,
 .billing-service-row > label,
-.billing-field {
+.billing-field,
+.billing-pos-panel > label {
     display: flex;
     flex-direction: column;
     gap: 7px;
@@ -100,7 +101,8 @@
 .billing-service-row select,
 .billing-field input,
 .billing-field select,
-.billing-field textarea {
+.billing-field textarea,
+.billing-pos-panel > input {
     box-sizing: border-box;
     width: 100%;
     min-height: 42px;
@@ -129,7 +131,8 @@
 .billing-service-row select:focus,
 .billing-field input:focus,
 .billing-field select:focus,
-.billing-field textarea:focus {
+.billing-field textarea:focus,
+.billing-pos-panel > input:focus {
     outline: 2px solid rgba(42, 101, 187, 0.18);
     border-color: #7ea5db;
 }
@@ -303,6 +306,15 @@
 
 .billing-category-field {
     max-width: 260px;
+    flex: 1 1 220px;
+    margin-top: 0;
+}
+
+.billing-category-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 14px;
     margin-top: 14px;
 }
 
@@ -399,11 +411,9 @@
 }
 
 .billing-pos-panel {
-    grid-column: 1 / -1;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 16px;
+    display: grid;
+    gap: 8px;
+    max-width: 430px;
     padding: 14px;
     border: 1px solid #e0e6ef;
     border-radius: 8px;

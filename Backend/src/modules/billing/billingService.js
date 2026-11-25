@@ -22,6 +22,7 @@ const serviceInputSchema = z.object({
 const serviceUpdateSchema = serviceInputSchema.partial().strict();
 const billInputSchema = z.object({
     patientId: z.coerce.number().int().positive(),
+    schemeId: z.union([z.coerce.number().int().positive(), z.null()]).optional(),
     category: z.enum(["APL", "BPL"]).default("APL"),
     remarks: z.string().trim().max(10000).optional().default(""),
     miscellaneousAmount: moneySchema.nullable().optional(),
@@ -30,8 +31,7 @@ const billInputSchema = z.object({
         quantity: z.coerce.number().int().min(1).max(1000),
     }).strict()).min(1).max(100),
     paymentMethod: z.enum(["CASH", "GPAY", "POS"]).nullable().optional(),
-    gpayConfirmed: z.boolean().default(false),
-    posConfirmed: z.boolean().optional(),
+    authCode: z.string().trim().optional(),
     idempotencyKey: z.string().trim().min(8).max(100),
 }).strict().superRefine((data, context) => {
     if (data.miscellaneousAmount != null && !data.remarks) {
@@ -44,6 +44,7 @@ const billInputSchema = z.object({
 });
 const billQuoteSchema = z.object({
     patientId: z.coerce.number().int().positive(),
+    schemeId: z.union([z.coerce.number().int().positive(), z.null()]).optional(),
     category: z.enum(["APL", "BPL"]).default("APL"),
     items: z.array(z.object({
         serviceId: z.coerce.number().int().positive(),
@@ -169,7 +170,7 @@ function paymentTotal(payments) {
     return payments.reduce((total, payment) => total + (payment.status === "CONFIRMED" ? cents(payment.amount) : 0), 0);
 }
 
-function initialPaymentForBill(netPayable, paymentMethod, confirmed) {
+function initialPaymentForBill(netPayable, paymentMethod, authCode) {
     if (netPayable === 0) {
         if (paymentMethod) {
             throw fail("BILLING_ZERO_PAYABLE", "Zero-payable bills cannot record a payment or payment method");
@@ -180,10 +181,14 @@ function initialPaymentForBill(netPayable, paymentMethod, confirmed) {
     if (!normalizedMethod) {
         throw fail("BILLING_PAYMENT_METHOD_REQUIRED", "Select Cash or POS for the full payment");
     }
-    if (normalizedMethod === "POS" && !confirmed) {
-        throw fail("BILLING_POS_CONFIRMATION_REQUIRED", "Confirm receipt of the POS payment before recording it");
+    if (normalizedMethod === "POS" && !authCode?.trim()) {
+        throw fail("BILLING_POS_AUTH_CODE_REQUIRED", "Auth Code is required for POS payments");
     }
-    return { amount: amount(netPayable), method: normalizedMethod };
+    return {
+        amount: amount(netPayable),
+        method: normalizedMethod,
+        authCode: normalizedMethod === "POS" ? authCode.trim() : null,
+    };
 }
 
 function applyMiscellaneousAmount(netPayable, miscellaneousAmount) {
@@ -212,13 +217,17 @@ function assertBillRequestMatches(bill, data) {
     const payable = cents(bill.netPayable);
     const expectedMethod = normalizePaymentMethod(data.paymentMethod || null);
     const actualMethod = initialPayment ? normalizePaymentMethod(initialPayment.method) : null;
+    const expectedAuthCode = expectedMethod === "POS" ? data.authCode : null;
     const paymentMatches = payable > 0
         ? initialPayment &&
             actualMethod === expectedMethod &&
+            (expectedMethod !== "POS" || Boolean(expectedAuthCode)) &&
+            (initialPayment.authCode || null) === (expectedAuthCode || null) &&
             cents(initialPayment.amount) === payable
         : !initialPayment && !expectedMethod;
     if (
         bill.patientId !== data.patientId ||
+        (data.schemeId !== undefined && (bill.schemeId ?? null) !== data.schemeId) ||
         bill.category !== data.category ||
         (bill.remarks || "") !== data.remarks ||
         (bill.miscellaneousAmount == null) !== (data.miscellaneousAmount == null) ||
@@ -391,7 +400,7 @@ async function listPatientRegistrationSchemes() {
     });
 }
 
-async function getBillablePatient(patientId, serviceIds) {
+async function getBillablePatient(patientId, serviceIds, requestedSchemeId) {
     const patient = await prisma.patient.findUnique({
         where: { id: patientId },
         include: {
@@ -402,6 +411,14 @@ async function getBillablePatient(patientId, serviceIds) {
         throw fail("BILLING_PATIENT_NOT_FOUND", "Active registered patient not found");
     }
     let scheme = patient.scheme;
+    if (requestedSchemeId === null) {
+        scheme = null;
+    } else if (requestedSchemeId !== undefined && requestedSchemeId !== patient.scheme?.id) {
+        scheme = await prisma.patientScheme.findFirst({
+            where: { id: requestedSchemeId, status: "ACTIVE" },
+        });
+        if (!scheme) throw fail("BILLING_SCHEME_INACTIVE", "Selected scheme does not exist or is inactive");
+    }
     if (scheme) {
         if (scheme.status !== "ACTIVE") throw fail("BILLING_SCHEME_INACTIVE", "The patient's assigned scheme is inactive");
         validateSchemeEligibility(scheme, patient.gender, calculateAge(patient.dateOfBirth, patient.age), "BILLING_SCHEME_INELIGIBLE");
@@ -483,7 +500,8 @@ async function quoteBill(input) {
     }
     const { patient, scheme, services } = await getBillablePatient(
         data.patientId,
-        data.items.map((item) => item.serviceId)
+        data.items.map((item) => item.serviceId),
+        data.schemeId
     );
     const calculated = calculateBill(data.category, data.items, services, scheme);
     return {
@@ -551,14 +569,14 @@ async function createBill(input, actorId) {
     }
 
     const serviceIds = data.items.map((item) => item.serviceId);
-    const { patient, scheme, services } = await getBillablePatient(data.patientId, serviceIds);
+    const { patient, scheme, services } = await getBillablePatient(data.patientId, serviceIds, data.schemeId);
     const calculated = calculateBill(data.category, data.items, services, scheme);
     const adjustment = applyMiscellaneousAmount(calculated.net, data.miscellaneousAmount);
     const normalizedRequestMethod = normalizePaymentMethod(data.paymentMethod || null);
     const initialPayment = initialPaymentForBill(
         adjustment.net,
         normalizedRequestMethod,
-        Boolean(data.posConfirmed ?? data.gpayConfirmed)
+        data.authCode
     );
 
     for (let attempt = 0; attempt < 3; attempt += 1) {
@@ -588,6 +606,7 @@ async function createBill(input, actorId) {
                                     handledBy: actorId,
                                     method: initialPayment.method,
                                     amount: initialPayment.amount,
+                                    authCode: initialPayment.authCode,
                                     idempotencyKey: `${data.idempotencyKey}:payment`,
                                 },
                             },
@@ -930,4 +949,5 @@ module.exports = {
     paymentEvents,
     paymentEventCount,
     billInputSchema,
+    billQuoteSchema,
 };

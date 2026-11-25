@@ -2,6 +2,7 @@ const crypto = require("crypto");
 const { z } = require("zod");
 
 const { prisma } = require("../../config/prisma");
+const DEFAULT_OP_FEE = 10;
 const {
     calculateAge,
     resolveSchemeSelection,
@@ -20,10 +21,9 @@ const registerVisitSchema = z.object({
         "NEW",
         "REVISIT",
     ]).optional(),
-    opFee: z.coerce
-        .number()
-        .min(0)
-        .max(100000),
+    opFee: z.coerce.number()
+        .refine((value) => value === DEFAULT_OP_FEE, `OP fee is fixed at ${DEFAULT_OP_FEE}`)
+        .default(DEFAULT_OP_FEE),
     schemeAdditionalInformation: z.array(z.object({
         key: z.string().trim().min(1).max(100),
         value: z.string().max(500),

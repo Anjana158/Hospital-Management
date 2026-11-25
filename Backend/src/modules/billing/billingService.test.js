@@ -9,6 +9,7 @@ const {
     initialPaymentForBill,
     paymentEventCount,
     paymentEvents,
+    billQuoteSchema,
 } = require("./billingService");
 
 const scheme = {
@@ -110,29 +111,83 @@ test("remarks are required only when a miscellaneous amount is applied", () => {
     }).success, true);
 });
 
+test("bill quotes and bills accept a selected scheme or no scheme", () => {
+    const quote = billQuoteSchema.parse({
+        patientId: 7,
+        schemeId: 3,
+        category: "APL",
+        items: [{ serviceId: 3, quantity: 1 }],
+    });
+    assert.equal(quote.schemeId, 3);
+
+    const bill = billInputSchema.parse({
+        patientId: 7,
+        schemeId: null,
+        category: "APL",
+        items: [{ serviceId: 3, quantity: 1 }],
+        idempotencyKey: "scheme-selection-123",
+    });
+    assert.equal(bill.schemeId, null);
+});
+
 test("initial payment always equals the final payable and zero-payable bills have no payment", () => {
-    assert.deepEqual(initialPaymentForBill(40000, "CASH", false), {
+    assert.deepEqual(initialPaymentForBill(40000, "CASH", null), {
         amount: "400.00",
         method: "CASH",
+        authCode: null,
     });
-    assert.deepEqual(initialPaymentForBill(40000, "GPAY", true), {
+    assert.deepEqual(initialPaymentForBill(40000, "GPAY", "AUTH-123"), {
         amount: "400.00",
         method: "POS",
+        authCode: "AUTH-123",
     });
-    assert.deepEqual(initialPaymentForBill(40000, "POS", true), {
+    assert.deepEqual(initialPaymentForBill(40000, "POS", "AUTH-456"), {
         amount: "400.00",
         method: "POS",
+        authCode: "AUTH-456",
     });
-    assert.equal(initialPaymentForBill(0, null, false), null);
-    assert.throws(() => initialPaymentForBill(40000, null, false), {
+    assert.equal(initialPaymentForBill(0, null, null), null);
+    assert.throws(() => initialPaymentForBill(40000, null, null), {
         code: "BILLING_PAYMENT_METHOD_REQUIRED",
     });
-    assert.throws(() => initialPaymentForBill(40000, "POS", false), {
-        code: "BILLING_POS_CONFIRMATION_REQUIRED",
+    assert.throws(() => initialPaymentForBill(40000, "POS", "   "), {
+        code: "BILLING_POS_AUTH_CODE_REQUIRED",
     });
-    assert.throws(() => initialPaymentForBill(0, "CASH", false), {
+    assert.equal(initialPaymentForBill(40000, "CASH", "unused").authCode, null);
+    assert.throws(() => initialPaymentForBill(0, "CASH", null), {
         code: "BILLING_ZERO_PAYABLE",
     });
+});
+
+test("POS auth codes are trimmed and included in bill idempotency matching", () => {
+    const request = billInputSchema.parse({
+        patientId: 7,
+        category: "APL",
+        items: [{ serviceId: 3, quantity: 1 }],
+        paymentMethod: "POS",
+        authCode: "  AUTH-123  ",
+        idempotencyKey: "pos-auth-code-123",
+    });
+    const bill = {
+        patientId: 7,
+        category: "APL",
+        remarks: "",
+        netPayable: "100.00",
+        items: [{ serviceId: 3, quantity: 1 }],
+        payments: [{
+            idempotencyKey: "pos-auth-code-123:payment",
+            method: "POS",
+            amount: "100.00",
+            authCode: "AUTH-123",
+        }],
+    };
+
+    assert.equal(request.authCode, "AUTH-123");
+    assert.doesNotThrow(() => assertBillRequestMatches(bill, request));
+    assert.throws(() => assertBillRequestMatches(bill, {
+        ...request,
+        authCode: "AUTH-456",
+    }), { code: "BILLING_IDEMPOTENCY_CONFLICT" });
 });
 
 test("BPL bills use the BPL tariff rather than the APL tariff", () => {
@@ -220,4 +275,31 @@ test("bill idempotency checks include remarks so retries cannot silently change 
         ...request,
         miscellaneousAmount: 401,
     }), { code: "BILLING_IDEMPOTENCY_CONFLICT" });
+});
+
+test("bill idempotency checks include the selected scheme", () => {
+    const bill = {
+        patientId: 7,
+        schemeId: 3,
+        category: "APL",
+        remarks: "",
+        netPayable: "0.00",
+        items: [{ serviceId: 3, quantity: 1 }],
+        payments: [],
+    };
+    const request = {
+        patientId: 7,
+        schemeId: 3,
+        category: "APL",
+        remarks: "",
+        items: [{ serviceId: 3, quantity: 1 }],
+        paymentMethod: null,
+        idempotencyKey: "scheme-selection-123",
+    };
+
+    assert.doesNotThrow(() => assertBillRequestMatches(bill, request));
+    assert.throws(
+        () => assertBillRequestMatches(bill, { ...request, schemeId: 4 }),
+        { code: "BILLING_IDEMPOTENCY_CONFLICT" }
+    );
 });

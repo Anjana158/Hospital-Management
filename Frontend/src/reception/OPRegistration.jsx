@@ -66,7 +66,7 @@ function OPRegistration() {
             revisitCount: 0,
         });
 
-    const [opFee, setOpFee] = useState("10");
+    const opFee = 10;
     const [paymentMethod, setPaymentMethod] = useState("CASH");
     const [authCode, setAuthCode] = useState("");
     const [schemeAdditionalInformation, setSchemeAdditionalInformation] = useState([]);
@@ -237,13 +237,6 @@ function OPRegistration() {
     |--------------------------------------------------------------------------
     */
 
-    const eligibleSchemes = activeSchemes.filter((candidate) =>
-        getSchemeEligibility(
-            candidate,
-            patient?.gender,
-            getPatientAge(patient)
-        ).eligible
-    );
     const scheme = activeSchemes.find(
         (candidate) => String(candidate.id) === selectedSchemeId
     ) || null;
@@ -297,11 +290,6 @@ function OPRegistration() {
                     "Please select a department"
                 );
 
-                return;
-            }
-
-            if (eligibleSchemes.length > 1 && !scheme) {
-                setError("Multiple schemes match this patient. Select an eligible scheme to continue.");
                 return;
             }
 
@@ -741,41 +729,25 @@ function OPRegistration() {
 
                         <input
                             type="number"
-                            min="0"
-                            step="0.01"
                             value={
                                 opFee
                             }
-                            onChange={(event) =>setOpFee(event.target.value)}
-                            disabled={
-                                saving
-                            }
+                            readOnly
+                            disabled
                         />
 
                     </div>
 
                 </div>
 
-                {eligibleSchemes.length > 1 && !scheme && (
-                    <div className="op-scheme-message ineligible">
-                        Multiple schemes match this patient. Choose one to continue:{" "}
-                        {eligibleSchemes.map((candidate) => candidate.name).join(", ")}.
-                    </div>
-                )}
-
                 <div className="op-form-group">
-                    <label>Scheme</label>
+                    <label>Scheme (optional)</label>
                     <select
                         value={selectedSchemeId}
-                        onChange={(event) => setSelectedSchemeId(
-                            event.target.value ||
-                            (eligibleSchemes.length === 1 ? String(eligibleSchemes[0].id) : "")
-                        )}
+                        onChange={(event) => setSelectedSchemeId(event.target.value)}
                         disabled={saving}
                     >
-                        <option value="" disabled={eligibleSchemes.length === 1}>
-                            No scheme
-                        </option>
+                        <option value="">No scheme</option>
                         {activeSchemes.map((candidate) => (
                             <option key={candidate.id} value={candidate.id}>
                                 {candidate.name}
@@ -932,7 +904,7 @@ function OPRegistration() {
                     <button
                         type="submit"
                         className="op-primary-btn"
-                        disabled={saving || Boolean(scheme && !schemeEligibility.eligible) || (eligibleSchemes.length > 1 && !scheme)}
+                        disabled={saving || Boolean(scheme && !schemeEligibility.eligible)}
                     >
                         <FaCheckCircle />
 

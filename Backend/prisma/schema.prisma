@@ -382,6 +382,7 @@ model BillPayment {
   handledBy      Int
   method         PaymentMethod
   amount         Decimal              @db.Decimal(10, 2)
+  authCode       String?
   status         BillingPaymentStatus @default(CONFIRMED)
   idempotencyKey String?              @unique
   confirmedAt    DateTime             @default(now())

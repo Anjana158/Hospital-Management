@@ -392,10 +392,6 @@ function PatientRegistrationForm({
             setFormError("Primary and alternate phone numbers cannot be the same.");
             return;
         }
-        if (eligibleSchemes.length > 1 && !selectedScheme) {
-            setFormError("Multiple schemes match this patient. Select an eligible scheme to continue.");
-            return;
-        }
         if (selectedScheme && !schemeEligibility.eligible) {
             setFormError(schemeEligibility.message);
             return;
@@ -508,7 +504,7 @@ function PatientRegistrationForm({
 
             <div className="registration-grid-row">
                 <div className="form-group">
-                    <label htmlFor="patient-scheme">Scheme</label>
+                    <label htmlFor="patient-scheme">Scheme (optional)</label>
                     <select
                         id="patient-scheme"
                         name="schemeId"
@@ -662,13 +658,12 @@ function PatientRegistrationForm({
                     <input
                         id="patient-op-fee"
                         type="number"
-                        name="opFee"
                         min="0"
                         max="100000"
                         step="0.01"
                         value={formData.opFee}
-                        onChange={handleChange}
-                        disabled={loading}
+                        readOnly
+                        disabled
                     />
                 </div>
             </div>
@@ -719,12 +714,6 @@ function PatientRegistrationForm({
                 </div>
             )}
 
-            {hasSufficientSchemeInfo && eligibleSchemes.length > 1 && !selectedScheme && (
-                <div className="scheme-eligibility-message ineligible">
-                    Multiple schemes match this patient. Select an eligible scheme to continue.
-                </div>
-            )}
-
             {selectedScheme?.collectAdditionalInformation &&
                 schemeAdditionalInformation.length > 0 && (
                     <div className="scheme-patient-fields">
@@ -757,7 +746,6 @@ function PatientRegistrationForm({
                     disabled={
                         loading ||
                         Boolean(selectedScheme && !schemeEligibility.eligible) ||
-                        (eligibleSchemes.length > 1 && !selectedScheme) ||
                         Boolean(historyError) ||
                         visitHistory.hasVisitToday
                     }
