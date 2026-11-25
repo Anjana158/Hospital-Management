@@ -100,7 +100,7 @@ function OPTicket() {
 
     if (loading) {
         return (
-            <div className="op-ticket-page">
+            <div className="op-ticket-page reception-page">
                 <div className="op-ticket-error">Loading OP ticket...</div>
             </div>
         );
@@ -109,7 +109,7 @@ function OPTicket() {
     if (!visit) {
 
         return (
-            <div className="op-ticket-page">
+            <div className="op-ticket-page reception-page">
 
                 <div className="op-ticket-error">
 
@@ -124,7 +124,7 @@ function OPTicket() {
                     <button
                         className="ticket-back-btn"
                         onClick={() =>
-                            navigate("/reception/patients")
+                            navigate(location.state?.returnTo || "/reception/registered-patients")
                         }
                     >
                         <FaArrowLeft />
@@ -148,13 +148,7 @@ function OPTicket() {
     |--------------------------------------------------------------------------
     */
 
-    const patientName = [
-        patient?.firstName,
-        patient?.middleName,
-        patient?.lastName,
-    ]
-        .filter(Boolean)
-        .join(" ");
+    const patientName = patient?.firstName || "";
 
 
     /*
@@ -222,7 +216,7 @@ function OPTicket() {
 
     return (
 
-        <div className="op-ticket-page">
+        <div className="op-ticket-page reception-page">
 
             {/* =====================================================
                 PAGE ACTIONS
@@ -233,7 +227,7 @@ function OPTicket() {
                 <button
                     className="ticket-back-btn"
                     onClick={() =>
-                        navigate("/reception/patients")
+                        navigate(location.state?.returnTo || "/reception/registered-patients")
                     }
                 >
                     <FaArrowLeft />
@@ -344,7 +338,6 @@ function OPTicket() {
 
                                 <span className="ticket-value">
                                     : {patient?.addressLine1 ||
-                                        patient?.addressLine2 ||
                                         patient?.city ||
                                         patient?.district ||
                                         "—"}

@@ -5,8 +5,8 @@ const { validateSchemeConfiguration } = require("./schemeEligibility");
 
 
 const schemeConfigurationFields = {
-    eligibilityGender: z.enum(["ALL", "FEMALE", "MALE", "TRANSGENDER"]),
-    ageCriteriaType: z.enum(["ALL", "UNDER", "ABOVE", "RANGE"]),
+    eligibilityGender: z.enum(["ALL", "NOT_APPLICABLE", "FEMALE", "MALE", "TRANSGENDER"]),
+    ageCriteriaType: z.enum(["ALL", "NOT_APPLICABLE", "UNDER", "ABOVE", "RANGE"]),
     ageLimit: z.number().int().min(0).max(150).nullable(),
     minimumAge: z.number().int().min(0).max(150).nullable(),
     maximumAge: z.number().int().min(0).max(150).nullable(),
@@ -18,8 +18,8 @@ const schemeConfigurationFields = {
 };
 
 const schemeConfigurationDefaults = {
-    eligibilityGender: "ALL",
-    ageCriteriaType: "ALL",
+    eligibilityGender: "NOT_APPLICABLE",
+    ageCriteriaType: "NOT_APPLICABLE",
     ageLimit: null,
     minimumAge: null,
     maximumAge: null,

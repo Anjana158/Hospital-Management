@@ -8,6 +8,9 @@
     "start": "nodemon server.js",
     "seed": "node scripts/seed.js"
   },
+  "prisma": {
+    "seed": "node scripts/seed.js"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",

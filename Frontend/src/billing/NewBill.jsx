@@ -54,6 +54,7 @@ function NewBill() {
     const [patients, setPatients] = useState([]);
     const [searchedQuery, setSearchedQuery] = useState("");
     const [patient, setPatient] = useState(null);
+    const [billSchemeId, setBillSchemeId] = useState("");
     const [registrationOpen, setRegistrationOpen] = useState(false);
     const [registrationForm, setRegistrationForm] = useState({
         name: "",
@@ -76,7 +77,7 @@ function NewBill() {
     const [quoting, setQuoting] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [paymentMethod, setPaymentMethod] = useState("");
-    const [gpayConfirmed, setGpayConfirmed] = useState(false);
+    const [authCode, setAuthCode] = useState("");
     const [miscellaneousEnabled, setMiscellaneousEnabled] = useState(false);
     const [miscellaneousAmount, setMiscellaneousAmount] = useState("");
     const [remarks, setRemarks] = useState("");
@@ -133,12 +134,17 @@ function NewBill() {
         const timer = setTimeout(async () => {
             setQuoting(true);
             try {
-                const calculated = await billingApi.quote({ patientId: patient.id, category, items: quoteItems });
+                const calculated = await billingApi.quote({
+                    patientId: patient.id,
+                    schemeId: billSchemeId ? Number(billSchemeId) : null,
+                    category,
+                    items: quoteItems,
+                });
                 if (!cancelled) {
                     setQuote(calculated);
                     if (Number(calculated.netPayable) === 0) {
                         setPaymentMethod("");
-                        setGpayConfirmed(false);
+                        setAuthCode("");
                     }
                 }
             } catch (quoteError) {
@@ -151,7 +157,7 @@ function NewBill() {
             cancelled = true;
             clearTimeout(timer);
         };
-    }, [patient, category, quoteItems, items.length]);
+    }, [patient, billSchemeId, category, quoteItems, items.length]);
 
     function updateItem(index, field, value) {
         setItems((current) => current.map((item, itemIndex) =>
@@ -160,7 +166,8 @@ function NewBill() {
 
     function selectPatient(record) {
         setPatient(record);
-        setPatientQuery(`${record.uhid} - ${[record.firstName, record.middleName, record.lastName].filter(Boolean).join(" ")}`);
+        setBillSchemeId(record.scheme?.id ? String(record.scheme.id) : "");
+        setPatientQuery(`${record.uhid} - ${record.firstName}`);
         setPatients([]);
         setDuplicatePatients([]);
         setRegistrationOpen(false);
@@ -168,15 +175,18 @@ function NewBill() {
         setRegistrationNotice("");
         setSearching(false);
         setPaymentMethod("");
-        setGpayConfirmed(false);
+        setAuthCode("");
     }
 
     function clearPatient() {
         setPatient(null);
+        setBillSchemeId("");
         setPatientQuery("");
         setQuote(null);
         setItems([{ serviceId: "", quantity: 1 }]);
         setRegistrationNotice("");
+        setPaymentMethod("");
+        setAuthCode("");
     }
 
     function updateRegistrationField(name, value) {
@@ -275,16 +285,9 @@ function NewBill() {
             setRegistrationError("Age is required and must be a whole number between 0 and 150.");
             return;
         }
-        if (!registrationForm.schemeId) {
-            setRegistrationError("Select the patient's scheme.");
-            return;
-        }
-
-        const [firstName, ...remainingName] = name.split(/\s+/);
         const selectedScheme = schemes.find((row) => String(row.id) === registrationForm.schemeId);
         const payload = {
-            firstName,
-            lastName: remainingName.join(" "),
+            firstName: name,
             phone,
             gender: registrationForm.gender,
             dateOfBirth: registrationForm.dateOfBirth,
@@ -316,16 +319,21 @@ function NewBill() {
     async function submitBill(event) {
         event.preventDefault();
         if (!quote || !patient) return;
+        if (miscellaneousEnabled && !remarks.trim()) {
+            setError("A remark is required when applying a miscellaneous adjustment.");
+            return;
+        }
         setError("");
         setSubmitting(true);
         const payload = {
             patientId: patient.id,
+            schemeId: billSchemeId ? Number(billSchemeId) : null,
             category,
             items: quoteItems,
             remarks,
             miscellaneousAmount: miscellaneousEnabled ? Number(miscellaneousAmount) : null,
             paymentMethod: finalPayable > 0 ? paymentMethod : null,
-            gpayConfirmed: finalPayable > 0 && paymentMethod === "GPAY" && gpayConfirmed,
+            authCode: finalPayable > 0 && paymentMethod === "POS" ? authCode.trim() : undefined,
         };
         const fingerprint = JSON.stringify(payload);
         if (!idempotencyKey.current || idempotencyKey.current.fingerprint !== fingerprint) {
@@ -365,9 +373,7 @@ function NewBill() {
     return (
         <div className="billing-page">
             <header className="billing-page-header">
-                <p>BILLING</p>
                 <h1>Create New Bill</h1>
-                <span>Search for a patient or register a new patient to start billing.</span>
             </header>
             {error && <p className="billing-error" role="alert">{error}</p>}
 
@@ -392,13 +398,13 @@ function NewBill() {
                     {patients.length > 0 && <ul className="billing-patient-results">
                         {patients.map((record) => <li key={record.id}>
                             <button type="button" onClick={() => selectPatient(record)}>
-                                <strong>{record.uhid}</strong> — {[record.firstName, record.middleName, record.lastName].filter(Boolean).join(" ")}
+                                <strong>{record.uhid}</strong> — {record.firstName}
                                 <span>{record.phone || "No phone"}{record.scheme ? ` · ${record.scheme.name}` : ""}</span>
                             </button>
                         </li>)}
                     </ul>}
                     {patient && <div className="billing-selected-patient">
-                        <strong>{[patient.firstName, patient.middleName, patient.lastName].filter(Boolean).join(" ")}</strong>
+                        <strong>{patient.firstName}</strong>
                         <span>{patient.uhid} · Age {patient.age} · {patient.gender}{patient.scheme ? ` · Scheme: ${patient.scheme.name}` : " · No assigned scheme"}</span>
                         <button type="button" className="billing-link-button" onClick={clearPatient}>Change patient</button>
                     </div>}
@@ -414,8 +420,8 @@ function NewBill() {
                             </select></label>
                             <label>Age<input required type="number" min="0" max="150" step="1" inputMode="numeric" value={registrationForm.age} onChange={(event) => updateRegistrationField("age", event.target.value)} /></label>
                             <label>Date of birth<input required type="date" max={new Date().toISOString().slice(0, 10)} value={registrationForm.dateOfBirth} onChange={(event) => updateRegistrationField("dateOfBirth", event.target.value)} /></label>
-                            <label>Patient scheme<select required value={registrationForm.schemeId} onChange={(event) => updateRegistrationScheme(event.target.value)}>
-                                <option value="">Select scheme</option>{schemes.map((scheme) => <option key={scheme.id} value={scheme.id}>{scheme.name}</option>)}
+                            <label>Patient scheme (optional)<select value={registrationForm.schemeId} onChange={(event) => updateRegistrationScheme(event.target.value)}>
+                                <option value="">No scheme</option>{schemes.map((scheme) => <option key={scheme.id} value={scheme.id}>{scheme.name}</option>)}
                             </select></label>
                             {selectedRegistrationScheme?.collectAdditionalInformation
                                 && selectedRegistrationScheme.additionalInformationFields.map((field) => (
@@ -429,7 +435,7 @@ function NewBill() {
                         {duplicatePatients.length > 0 && <div className="billing-patient-results billing-possible-duplicates">
                             <p>Possible matching patients found. Select the correct existing record to continue:</p>
                             {duplicatePatients.map((record) => <button key={record.id} type="button" disabled={record.status !== "ACTIVE" || record.archivedAt} onClick={() => selectPatient(record)}>
-                                <strong>{record.uhid}</strong> — {[record.firstName, record.middleName, record.lastName].filter(Boolean).join(" ")}
+                                <strong>{record.uhid}</strong> — {record.firstName}
                                 <span>{record.phone || record.alternatePhone || "No phone"}{record.scheme ? ` · ${record.scheme.name}` : ""} · {record.status === "ACTIVE" && !record.archivedAt ? "Select this patient" : "Inactive patient — cannot bill"}</span>
                             </button>)}
                         </div>}
@@ -440,12 +446,27 @@ function NewBill() {
                             <button className="billing-secondary-button" type="button" disabled={registeringPatient} onClick={() => setRegistrationOpen(false)}>Cancel</button>
                         </div>
                     </div>}
-                    <label className="billing-field billing-category-field">
-                        Patient category
-                        <select value={category} onChange={(event) => setCategory(event.target.value)}>
-                            <option value="APL">APL</option><option value="BPL">BPL</option>
-                        </select>
-                    </label>
+                    <div className="billing-category-controls">
+                        <label className="billing-field billing-category-field">
+                            Patient category
+                            <select value={category} onChange={(event) => setCategory(event.target.value)}>
+                                <option value="APL">APL</option><option value="BPL">BPL</option>
+                            </select>
+                        </label>
+                        <label className="billing-field billing-category-field">
+                            Scheme
+                            <select
+                                value={billSchemeId}
+                                onChange={(event) => setBillSchemeId(event.target.value)}
+                                disabled={!patient || Boolean(schemeLoadError)}
+                            >
+                                <option value="">No scheme</option>
+                                {schemes.map((scheme) => (
+                                    <option key={scheme.id} value={scheme.id}>{scheme.name}</option>
+                                ))}
+                            </select>
+                        </label>
+                    </div>
                 </section>
 
                 <section className="billing-card">
@@ -496,7 +517,7 @@ function NewBill() {
                                     setMiscellaneousAmount(event.target.value);
                                     if (Number(event.target.value) === 0) {
                                         setPaymentMethod("");
-                                        setGpayConfirmed(false);
+                                        setAuthCode("");
                                     }
                                 }} />
                             </label>
@@ -504,14 +525,20 @@ function NewBill() {
                         </>}
                     </div>
                     <label className="billing-field billing-remarks-field">
-                        Remarks (optional)
+                        Remarks {miscellaneousEnabled ? "(required)" : "(optional)"}
                         <textarea
+                            required={miscellaneousEnabled}
+                            aria-invalid={miscellaneousEnabled && !remarks.trim()}
+                            aria-describedby={miscellaneousEnabled ? "miscellaneous-remark-validation" : undefined}
                             rows="4"
                             maxLength="10000"
                             value={remarks}
                             onChange={(event) => setRemarks(event.target.value)}
                             placeholder="Add notes or additional information for this bill"
                         />
+                        {miscellaneousEnabled && !remarks.trim() && <span id="miscellaneous-remark-validation" className="billing-validation-message" role="alert">
+                            A remark is required when applying a miscellaneous adjustment.
+                        </span>}
                     </label>
                     {quote && <div className="billing-totals">
                         <div className="billing-total-due"><span>Final payable amount</span><strong>₹{finalPayable.toFixed(2)}</strong></div>
@@ -520,16 +547,28 @@ function NewBill() {
                         ? <p className="billing-waiver-note">No payment is due. A waiver/discount receipt will be generated.</p>
                         : quote && <>
                         <div className="billing-form-grid">
-                            <label>Payment method<select required value={paymentMethod} onChange={(event) => { setPaymentMethod(event.target.value); setGpayConfirmed(false); }}>
-                                <option value="">Select method</option><option value="CASH">Cash</option><option value="GPAY">GPay</option>
+                            <label>Payment method<select required value={paymentMethod} onChange={(event) => {
+                                const nextMethod = event.target.value;
+                                setPaymentMethod(nextMethod);
+                                if (nextMethod !== "POS") setAuthCode("");
+                            }}>
+                                <option value="">Select method</option><option value="CASH">Cash</option><option value="POS">POS</option>
                             </select></label>
                         </div>
-                        {paymentMethod === "GPAY" && <div className="billing-gpay-panel">
-                            <label className="billing-checkbox"><input type="checkbox" checked={gpayConfirmed} onChange={(event) => setGpayConfirmed(event.target.checked)} /> I manually confirmed receipt of this GPay payment.</label>
+                        {finalPayable > 0 && paymentMethod === "POS" && <div className="billing-pos-panel">
+                            <label htmlFor="billing-pos-auth-code">Auth Code <span>*</span></label>
+                            <input
+                                id="billing-pos-auth-code"
+                                type="text"
+                                value={authCode}
+                                onChange={(event) => setAuthCode(event.target.value)}
+                                disabled={submitting}
+                                required
+                            />
                         </div>}
                     </>}
                     <div className="billing-form-actions">
-                        <button className="billing-primary-button" type="submit" disabled={!quote || quoting || submitting || !miscellaneousAmountValid || (finalPayable > 0 && !paymentMethod) || (paymentMethod === "GPAY" && !gpayConfirmed)}>
+                        <button className="billing-primary-button" type="submit" disabled={!quote || quoting || submitting || !miscellaneousAmountValid || (finalPayable > 0 && !paymentMethod) || (finalPayable > 0 && paymentMethod === "POS" && !authCode.trim())}>
                             {submitting ? "Saving bill…" : "Create bill"}
                         </button>
                         <button className="billing-secondary-button" type="button" onClick={() => navigate("/billing")}>Cancel</button>

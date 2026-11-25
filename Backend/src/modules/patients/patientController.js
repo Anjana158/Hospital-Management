@@ -2,6 +2,7 @@ const {
     registerPatientRecord,
     searchPatients: searchPatientRecords,
     getTodayPatients: getTodayPatientRecords,
+    getRegisteredPatients: getRegisteredPatientRecords,
     getPatientDetails: getPatientDetailsRecord,
     updatePatientRecord: updatePatientRecordService,
 } = require("./patientService");
@@ -71,6 +72,36 @@ async function getTodayPatients(req, res) {
         return res.status(error.code === "PATIENT_TODAY_VALIDATION_ERROR" ? 400 : 500 ).json({
             success: false,
             message: error.message,
+        });
+    }
+}
+
+async function getRegisteredPatients(req, res) {
+    try {
+        const results = await getRegisteredPatientRecords(
+            req.user.userId,
+            req.query
+        );
+
+        return res.status(200).json({
+            success: true,
+            data: results,
+        });
+    } catch (error) {
+        console.error("Get registered patients error:", error);
+
+        const statusCode =
+            error.name === "ZodError" ||
+            error.code === "PATIENT_REGISTERED_VALIDATION_ERROR" ||
+            error.code === "PATIENT_SEARCH_VALIDATION_ERROR"
+                ? 400
+                : 500;
+
+        return res.status(statusCode).json({
+            success: false,
+            message: error.name === "ZodError"
+                ? error.issues.map((issue) => issue.message).join(", ")
+                : error.message,
         });
     }
 }
@@ -155,6 +186,7 @@ module.exports = {
     registerPatient,
     searchPatients,
     getTodayPatients,
+    getRegisteredPatients,
     getPatientDetails,
     updatePatient,
 };

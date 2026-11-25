@@ -17,6 +17,42 @@ const patientSearchSchema = z.object({q: z.string().trim().min(2, "Search query 
     limit: z.coerce.number().int().min(1).max(50).default(20),
 }).strict();
 
+const registeredPatientsSchema = z.object({
+    q: z.string().trim().max(100).optional().default(""),
+    gender: z.enum(["ALL", "MALE", "FEMALE", "TRANSGENDER"]).default("ALL"),
+    age: z.coerce.number().int().min(0).max(150).optional(),
+    departmentId: z.coerce.number().int().positive().optional(),
+    fromDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    toDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    page: z.coerce.number().int().min(1).default(1),
+    limit: z.coerce.number().int().min(1).max(50).default(20),
+}).strict().superRefine((filters, context) => {
+    for (const date of [filters.fromDate, filters.toDate]) {
+        if (date) {
+            const [year, month, day] = date.split("-").map(Number);
+            const parsedDate = new Date(Date.UTC(year, month - 1, day));
+            if (
+                parsedDate.getUTCFullYear() !== year ||
+                parsedDate.getUTCMonth() !== month - 1 ||
+                parsedDate.getUTCDate() !== day
+            ) {
+                context.addIssue({
+                    code: "custom",
+                    message: "Dates must be valid calendar dates",
+                });
+                return;
+            }
+        }
+    }
+
+    if (filters.fromDate && filters.toDate && filters.fromDate > filters.toDate) {
+        context.addIssue({
+            code: "custom",
+            message: "From date cannot be later than to date",
+        });
+    }
+});
+
 const phoneSchema = z.string().trim().min(1).max(30, "Phone number is too long")
     .refine((value) => /^\d{10}$/.test(value), {
         message: "Phone number must contain exactly 10 digits and no special characters",
@@ -45,11 +81,12 @@ const optionalPhoneSchema = z.union([
 |
 */
 const patientRegistrationSchema = z.object({
-    firstName: z.string().trim().min(1, "First name is required").max(100),
-    middleName: z.string().trim().max(100).optional().or(z.literal("")),
-    lastName: z.string().trim().max(100).optional().or(z.literal("")),
+    firstName: z.string().trim().min(1, "Patient name is required").max(300),
     dateOfBirth: z.string().trim().optional().or(z.literal("")),
-    age: z.coerce.number().int("Age must be a whole number").min(0, "Age cannot be negative").max(150, "Age cannot exceed 150").optional(),
+    age: z.preprocess(
+        (value) => value === "" ? undefined : value,
+        z.coerce.number().int("Age must be a whole number").min(0, "Age cannot be negative").max(150, "Age cannot exceed 150").optional()
+    ),
     gender: z.enum(["MALE", "FEMALE", "TRANSGENDER"],{
             message: "Gender is required",
         }
@@ -58,7 +95,6 @@ const patientRegistrationSchema = z.object({
     alternatePhone: phoneSchema.optional().or(z.literal("")),
     email: z.string().trim().email("Email must be valid").max(255).optional().or(z.literal("")),
     addressLine1: z.string().trim().max(255).optional().or(z.literal("")),
-    addressLine2: z.string().trim().max(255).optional().or(z.literal("")),
     city: z.string().trim().max(100).optional().or(z.literal("")),
     district: z.string().trim().max(100).optional().or(z.literal("")),
     state: z.string().trim().max(100).optional().or(z.literal("")),
@@ -81,9 +117,7 @@ const patientRegistrationSchema = z.object({
 */
 
 const patientUpdateSchema = z.object({
-    firstName: z.string().trim().min(1, "First name is required").max(100).optional(),
-    middleName: z.string().trim().max(100).optional().or(z.literal("")),
-    lastName: z.string().trim().max(100).optional().or(z.literal("")),
+    firstName: z.string().trim().min(1, "Patient name is required").max(300).optional(),
     dateOfBirth: z.string().trim().optional().or(z.literal("")),
     age: z.coerce.number().int("Age must be a whole number").min(0, "Age cannot be negative").max(150, "Age cannot exceed 150").optional(),
     gender: z.enum(["MALE", "FEMALE", "TRANSGENDER"]).optional(),
@@ -91,7 +125,6 @@ const patientUpdateSchema = z.object({
     alternatePhone: phoneSchema.optional().or(z.literal("")),
     email: z.string().trim().email("Email must be valid").max(255).optional().or(z.literal("")),
     addressLine1: z.string().trim().max(255).optional().or(z.literal("")),
-    addressLine2: z.string().trim().max(255).optional().or(z.literal("")),
     city: z.string().trim().max(100).optional().or(z.literal("")),
     district: z.string().trim().max(100).optional().or(z.literal("")),
     state: z.string().trim().max(100).optional().or(z.literal("")),
@@ -123,9 +156,16 @@ function parseDateOfBirth(value, errorCode = "PATIENT_UPDATE_VALIDATION_ERROR") 
     }
     const date = new Date(`${value}T00:00:00`);
 
-    if (Number.isNaN(date.getTime()) || date > new Date()) {
+    const [year, month, day] = value.split("-").map(Number);
+    if (
+        Number.isNaN(date.getTime()) ||
+        date.getFullYear() !== year ||
+        date.getMonth() !== month - 1 ||
+        date.getDate() !== day ||
+        date > new Date()
+    ) {
         const error = new Error(
-            "Date of birth must be a valid past date"
+            "Date of birth must be a valid date that is not in the future"
         );
         error.code = errorCode;
         throw error;
@@ -244,8 +284,6 @@ const patientSummarySelect = {
     uhid: true,
 
     firstName: true,
-    middleName: true,
-    lastName: true,
 
     dateOfBirth: true,
     age: true,
@@ -286,8 +324,6 @@ const patientDetailsSelect = {
     uhid: true,
 
     firstName: true,
-    middleName: true,
-    lastName: true,
 
     dateOfBirth: true,
     age: true,
@@ -298,7 +334,6 @@ const patientDetailsSelect = {
     email: true,
 
     addressLine1: true,
-    addressLine2: true,
     city: true,
     district: true,
     state: true,
@@ -513,6 +548,130 @@ async function getTodayPatients(page = 1, limit = 20) {
 
 /*
 |--------------------------------------------------------------------------
+| Get Patients Registered by the Current Receptionist
+|--------------------------------------------------------------------------
+*/
+
+function buildRegisteredPatientsQuery(userId, query) {
+    const parsedUserId = Number(userId);
+    if (!Number.isInteger(parsedUserId) || parsedUserId < 1) {
+        const error = new Error("Receptionist ID is invalid");
+        error.code = "PATIENT_REGISTERED_VALIDATION_ERROR";
+        throw error;
+    }
+
+    const filters = registeredPatientsSchema.parse(query);
+    const skip = (filters.page - 1) * filters.limit;
+    const dateRange = {};
+
+    if (filters.fromDate) {
+        const [year, month, day] = filters.fromDate.split("-").map(Number);
+        dateRange.gte = new Date(year, month - 1, day);
+    }
+
+    if (filters.toDate) {
+        const [year, month, day] = filters.toDate.split("-").map(Number);
+        dateRange.lt = new Date(year, month - 1, day + 1);
+    }
+
+    const visitWhere = {};
+    if (filters.departmentId) {
+        visitWhere.departmentId = filters.departmentId;
+    }
+    if (Object.keys(dateRange).length > 0) {
+        visitWhere.visitDate = dateRange;
+    }
+
+    const patientFilters = [{ createdBy: parsedUserId }];
+    if (filters.q) {
+        patientFilters.push(buildPatientSearchFilter(filters.q, "all"));
+    }
+    if (filters.gender !== "ALL") {
+        patientFilters.push({ gender: filters.gender });
+    }
+    if (filters.age !== undefined) {
+        patientFilters.push({ age: filters.age });
+    }
+
+    if (filters.departmentId || Object.keys(dateRange).length > 0) {
+        const matchingRecords = [{ visits: { some: visitWhere } }];
+        if (!filters.departmentId && Object.keys(dateRange).length > 0) {
+            matchingRecords.push({ createdAt: dateRange });
+        }
+        patientFilters.push({ OR: matchingRecords });
+    }
+
+    const where = { AND: patientFilters };
+    return {
+        where,
+        visitWhere,
+        skip,
+        page: filters.page,
+        limit: filters.limit,
+    };
+}
+
+async function getRegisteredPatients(userId, query) {
+    const {
+        where,
+        visitWhere,
+        skip,
+        page,
+        limit,
+    } = buildRegisteredPatientsQuery(userId, query);
+
+    const [items, total] = await prisma.$transaction([
+        prisma.patient.findMany({
+            where,
+            select: {
+                ...patientSummarySelect,
+                createdAt: true,
+                visits: {
+                    where: Object.keys(visitWhere).length > 0 ? visitWhere : undefined,
+                    select: {
+                        id: true,
+                        visitDate: true,
+                        visitType: true,
+                        status: true,
+                        tokenLabel: true,
+                        tokenNumber: true,
+                        department: {
+                            select: { name: true },
+                        },
+                    },
+                    orderBy: [
+                        { visitDate: "desc" },
+                        { id: "desc" },
+                    ],
+                    take: 1,
+                },
+            },
+            orderBy: { createdAt: "desc" },
+            skip,
+            take: limit,
+        }),
+        prisma.patient.count({ where }),
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
+    return {
+        items: items.map(({ visits, ...patient }) => ({
+            ...patient,
+            latestVisit: visits[0] || null,
+        })),
+        pagination: {
+            page,
+            limit,
+            total,
+            totalPages,
+            hasPreviousPage: page > 1,
+            hasNextPage: page < totalPages,
+        },
+    };
+}
+
+/*
+|--------------------------------------------------------------------------
 | Register Patient
 |--------------------------------------------------------------------------
 */
@@ -639,8 +798,6 @@ async function registerPatientRecord(data,createdBy) {
                 uhid: true,
 
                 firstName: true,
-                middleName: true,
-                lastName: true,
 
                 dateOfBirth: true,
                 age: true,
@@ -678,8 +835,6 @@ async function registerPatientRecord(data,createdBy) {
 
     const patientData = {
         firstName: validatedData.firstName,
-        middleName: validatedData.middleName || undefined,
-        lastName:  validatedData.lastName || undefined,
         dateOfBirth,
         age,
         gender:validatedData.gender,
@@ -687,7 +842,6 @@ async function registerPatientRecord(data,createdBy) {
         alternatePhone:normalizedAlternatePhone,
         email:validatedData.email || undefined,
         addressLine1:validatedData.addressLine1 || undefined,
-        addressLine2:validatedData.addressLine2 || undefined,
         city:validatedData.city || undefined,
         district:validatedData.district || undefined,
         state:validatedData.state || undefined,
@@ -726,8 +880,6 @@ async function registerPatientRecord(data,createdBy) {
                     uhid: true,
 
                     firstName: true,
-                    middleName: true,
-                    lastName: true,
 
                     dateOfBirth: true,
                     age: true,
@@ -738,7 +890,6 @@ async function registerPatientRecord(data,createdBy) {
                     email: true,
 
                     addressLine1: true,
-                    addressLine2: true,
                     city: true,
                     district: true,
                     state: true,
@@ -850,11 +1001,8 @@ async function updatePatientRecord(patientId,data) {
     */
 
     const optionalStringFields = [
-        "middleName",
-        "lastName",
         "email",
         "addressLine1",
-        "addressLine2",
         "city",
         "district",
         "state",
@@ -1021,7 +1169,6 @@ async function updatePatientRecord(patientId,data) {
                         uhid: true,
 
                         firstName: true,
-                        lastName: true,
 
                         phone: true,
                         alternatePhone: true,
@@ -1179,9 +1326,14 @@ async function updatePatientRecord(patientId,data) {
 */
 
 module.exports = {
+    patientRegistrationSchema,
+    patientUpdateSchema,
+    resolveAgeAndDateOfBirth,
     registerPatientRecord,
     searchPatients,
     getTodayPatients,
+    buildRegisteredPatientsQuery,
+    getRegisteredPatients,
     getPatientDetails,
     updatePatientRecord,
 };

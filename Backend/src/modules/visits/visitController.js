@@ -47,6 +47,7 @@ async function registerVisit(req, res) {
             "TOKEN_ASSIGNMENT_FAILED",
             "DUPLICATE_SAME_DAY_VISIT",
             "PAYMENT_METHOD_REQUIRED",
+            "VISIT_PAYMENT_VALIDATION_ERROR",
             "VISIT_SCHEME_INELIGIBLE",
             "VISIT_SCHEME_SELECTION_REQUIRED",
             "SCHEME_VALIDATION_ERROR",

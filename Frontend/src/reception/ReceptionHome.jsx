@@ -105,10 +105,10 @@ function ReceptionHome() {
                     className="staff-action-card"
                     role="button"
                     tabIndex={0}
-                    onClick={() => navigate("/reception/patients")}
+                    onClick={() => navigate("/reception/patients/new")}
                     onKeyDown={(event) => {
                         if (event.key === "Enter" || event.key === " ") {
-                            navigate("/reception/patients");
+                            navigate("/reception/patients/new");
                         }
                     }}
                 >
